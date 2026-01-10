@@ -1,0 +1,160 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import {
+    Users,
+    UserSquare2,
+    MapPin,
+    Key,
+    BarChart3,
+    History,
+    Activity,
+    CalendarCheck2,
+    Trash2,
+    ChevronRight,
+} from 'lucide-react';
+import { adminApi } from '../../services/api';
+import DashboardLayout from '../../components/layout/DashboardLayout';
+
+const AdminDashboard = () => {
+    const { data: users, isLoading: usersLoading } = useQuery({
+        queryKey: ['adminUsers'],
+        queryFn: async () => {
+            const res = await adminApi.getUsers();
+            return res.data;
+        }
+    });
+
+    const { data: invoices, isLoading: invoicesLoading } = useQuery({
+        queryKey: ['adminInvoicesSummary'],
+        queryFn: async () => {
+            const res = await adminApi.getInvoices();
+            return res.data;
+        }
+    });
+
+
+    // Calculate real stats
+    const patientCount = users?.filter(u => u.role === 'patient').length || 0;
+    const totalRevenue = invoices?.reduce((acc, inv) => acc + inv.totalAmount, 0) || 0;
+    const totalUsers = users?.length || 0;
+
+    const stats = [
+        { label: 'Total Patients', value: patientCount, change: '+12%', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'System Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: 'Live', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+        { label: 'System Users', value: totalUsers, change: '+8%', icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
+        { label: 'Security Events', value: 'Active', change: 'Audit Log', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-100' },
+    ];
+
+    const isLoading = usersLoading || invoicesLoading;
+
+    return (
+        <DashboardLayout>
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-10 lg:flex items-center justify-between ">
+                    <div>
+                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Command Center</h1>
+                        <p className="text-slate-500 mt-1 font-medium">New Venus Clinic • Intelligence & Management</p>
+                    </div>
+                    <div className="flex gap-3 mt-4 lg:mt-0">
+                        <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100/50">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                            Operational
+                        </span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+                    {stats.map((stat, i) => (
+                        <div key={i} className="glass-card p-6 flex items-center gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-default group border-b-4 border-b-slate-50 hover:border-b-primary-200">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color}`}>
+                                <stat.icon className="w-7 h-7" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-black text-secondary-900 tracking-tighter ">{stat.value}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 ">
+                    <div className="lg:col-span-2 glass-card p-8">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-black text-secondary-900 uppercase tracking-tighter ">Recent Patient Registrations</h3>
+                            <Link to="/admin/patients" className="text-primary-600 text-xs font-black uppercase tracking-widest hover:underline">Directory</Link>
+                        </div>
+                        <div className="space-y-4">
+                            {isLoading ? (
+                                [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />)
+                            ) : (
+                                users?.filter(u => u.role === 'patient').slice(-5).reverse().map((u, i) => (
+                                    <div key={u._id} className="flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-primary-600 font-black group-hover:bg-primary-100/50 group-hover:rotate-12 transition-all">
+                                            {u.name.charAt(0)}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-black text-secondary-900 uppercase tracking-tight">
+                                                {u.name}
+                                                <span className="font-bold text-slate-400 ml-2 normal-case tracking-normal">
+                                                    #{u._id.slice(-6)}
+                                                </span>
+                                            </p>
+                                            <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
+                                                {new Date(u.createdAt).toLocaleDateString('en-GB')} • {u.email}
+                                            </p>
+                                        </div>
+                                        <button className="text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="glass-card p-8">
+                        <h3 className="text-xl font-black text-secondary-900 uppercase tracking-tighter  mb-8">Admin Directives</h3>
+                        <div className="grid gap-4">
+                            <Link to="/admin/users" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                <div className="flex items-center gap-4">
+                                    <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                    <span className="font-black text-xs uppercase tracking-widest">User Directory</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                            </Link>
+                            <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                <div className="flex items-center gap-4">
+                                    <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                    <span className="font-black text-xs uppercase tracking-widest">Onboard Patient</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                            </Link>
+                            <Link to="/admin/billing" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                <div className="flex items-center gap-4">
+                                    <BarChart3 className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                    <span className="font-black text-xs uppercase tracking-widest">Financial Audit</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                            </Link>
+                            <Link to="/admin/logs" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-rose-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                <div className="flex items-center gap-4">
+                                    <History className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                    <span className="font-black text-xs uppercase tracking-widest">System Security</span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                            </Link>
+                            <button className="flex items-center justify-center gap-3 p-5 border-2 border-dashed border-slate-200 rounded-3xl transition-all hover:border-primary-400 hover:text-primary-600 mt-4 group">
+                                <CalendarCheck2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                <span className="font-black text-[10px] uppercase tracking-widest">System Maintenance</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </DashboardLayout>
+    );
+};
+
+export default AdminDashboard;
