@@ -44,6 +44,7 @@ export const doctorApi = {
 export const adminApi = {
     getUsers: () => api.get('/admin/users'),
     deleteUser: (id) => api.delete(`/admin/users/${id}`),
+    restoreUser: (id) => api.put(`/admin/users/${id}/restore`),
     createDoctor: (data) => api.post('/admin/doctors', data),
     createPatient: (data) => api.post('/admin/patients', data),
     getDepartments: () => api.get('/admin/departments'),

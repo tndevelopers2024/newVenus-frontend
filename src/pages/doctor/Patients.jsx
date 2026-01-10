@@ -22,11 +22,15 @@ import { printDocument } from '../../utils/printHelper';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Plus } from 'lucide-react';
+import { X, FileText, Plus, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import TablePagination from '../../components/shared/TablePagination';
+import { Link } from 'react-router-dom';
 
 const Patients = () => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [viewDate, setViewDate] = useState(new Date());
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [viewingNote, setViewingNote] = useState(null);
@@ -74,11 +78,24 @@ const Patients = () => {
         setIsHistoryModalOpen(true);
     };
 
-    const filteredPatients = patients?.filter(p =>
-        p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p._id?.includes(searchQuery)
-    ) || [];
+    const filteredPatients = patients?.filter(p => {
+        const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p._id?.includes(searchQuery);
+
+        if (!dateRange.start) return matchesSearch;
+
+        const patientDate = new Date(p.createdAt).toISOString().split('T')[0];
+        let matchesDate = true;
+
+        if (dateRange.start && dateRange.end) {
+            matchesDate = patientDate >= dateRange.start && patientDate <= dateRange.end;
+        } else if (dateRange.start) {
+            matchesDate = patientDate === dateRange.start;
+        }
+
+        return matchesSearch && matchesDate;
+    }) || [];
 
     // Pagination Logic
     const totalPages = Math.ceil((filteredPatients?.length || 0) / itemsPerPage);
@@ -91,6 +108,19 @@ const Patients = () => {
 
     const handleItemsPerPageChange = (newSize) => {
         setItemsPerPage(newSize);
+        setCurrentPage(1);
+    };
+
+    const handleDateClick = (dateStr) => {
+        if (!dateRange.start || (dateRange.start && dateRange.end)) {
+            setDateRange({ start: dateStr, end: '' });
+        } else {
+            if (dateStr < dateRange.start) {
+                setDateRange({ start: dateStr, end: dateRange.start });
+            } else {
+                setDateRange({ start: dateRange.start, end: dateStr });
+            }
+        }
         setCurrentPage(1);
     };
 
@@ -111,19 +141,152 @@ const Patients = () => {
 
                 <div className="glass-card mb-8">
                     <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="relative w-full md:w-96">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by name, email or ID..."
-                                className="input-field pl-11 py-2 text-sm shadow-sm"
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            />
+                        <div className="flex gap-4">
+                            <div className="relative w-full md:w-96">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, email or ID..."
+                                    className="input-field pl-11 py-2 text-sm shadow-sm"
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-4 w-full md:w-auto relative">
+                                <button
+                                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                                    className="px-4 py-2 bg-white rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm text-slate-600"
+                                >
+                                    <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
+                                    <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
+                                        {dateRange.start && dateRange.end ? (
+                                            `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+                                        ) : dateRange.start ? (
+                                            new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                        ) : 'Filter by Date'}
+                                    </span>
+                                    {dateRange.start && (
+                                        <div
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDateRange({ start: '', end: '' });
+                                                setCurrentPage(1);
+                                            }}
+                                            className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
+                                        >
+                                            <X className="w-3 h-3 text-slate-400" />
+                                        </div>
+                                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {isCalendarOpen && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setIsCalendarOpen(false)}
+                                            />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                className="absolute top-full left-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
+                                            >
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
+                                                        {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                                    </h4>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
+                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                        >
+                                                            <ChevronLeft className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
+                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-7 gap-1 mb-2">
+                                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                                        <div key={day} className="text-center text-[9px] font-black text-slate-300 uppercase py-2">
+                                                            {day}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="grid grid-cols-7 gap-1">
+                                                    {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
+                                                        <div key={`empty-${i}`} />
+                                                    ))}
+                                                    {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                                                        const day = i + 1;
+                                                        const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                                                        const isStart = dateRange.start === dateStr;
+                                                        const isEnd = dateRange.end === dateStr;
+                                                        const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
+                                                        const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
+                                                        return (
+                                                            <button
+                                                                key={day}
+                                                                onClick={() => handleDateClick(dateStr)}
+                                                                className={`
+                                                                aspect-square flex items-center justify-center rounded-xl text-[10px] font-black transition-all relative
+                                                                ${isStart || isEnd
+                                                                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-200 z-10'
+                                                                        : isInRange
+                                                                            ? 'bg-primary-50 text-primary-600 rounded-none first:rounded-l-xl last:rounded-r-xl'
+                                                                            : isToday
+                                                                                ? 'bg-slate-50 text-primary-600 border border-primary-100'
+                                                                                : 'hover:bg-slate-50 text-secondary-900'
+                                                                    }
+                                                            `}
+                                                            >
+                                                                {day}
+                                                                {isInRange && (
+                                                                    <div className="absolute inset-x-[-2px] h-full bg-primary-50 -z-1" />
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                                    <button
+                                                        onClick={() => {
+                                                            const today = new Date().toISOString().split('T')[0];
+                                                            setDateRange({ start: today, end: '' });
+                                                            setCurrentPage(1);
+                                                        }}
+                                                        className="text-[9px] font-black text-slate-400 hover:text-primary-600 uppercase tracking-widest transition-colors"
+                                                    >
+                                                        Today
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsCalendarOpen(false)}
+                                                        className="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                                                    >
+                                                        Done
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
+
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
                             <Filter className="w-4 h-4" />
                             Total {filteredPatients.length} Patients
@@ -383,11 +546,11 @@ const HistoryModal = ({ patient, data, isLoading, onClose, onViewNote }) => {
                                                         <div>
                                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Report File</p>
                                                             <h4 className="text-sm font-black uppercase tracking-tighter leading-tight">{r.title}</h4>
-                                                            <p className="text-[8px] font-bold text-slate-500 tracking-widest mt-1 uppercase">{new Date(r.uploadedAt).toLocaleDateString('en-GB')}</p>
+                                                            <p className="text-[12px] font-bold text-slate-500 tracking-widest mt-1 uppercase">{new Date(r.uploadedAt).toLocaleDateString('en-GB')}</p>
                                                         </div>
                                                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                                     </div>
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-secondary-600 to-secondary-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                                 </a>
                                             ))
                                         )}

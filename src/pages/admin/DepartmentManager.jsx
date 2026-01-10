@@ -28,7 +28,7 @@ const DepartmentManager = () => {
     });
 
     const adminLinks = [
-        { label: 'Overview', path: '/admin', icon: MapPin },
+        { label: 'Dashboard', path: '/admin', icon: MapPin },
         { label: 'Departments', path: '/admin/departments', icon: MapPin },
     ];
 

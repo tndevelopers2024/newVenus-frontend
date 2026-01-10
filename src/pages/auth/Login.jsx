@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogIn, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { LogIn, User, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { login } = useAuth();
@@ -49,9 +50,9 @@ const Login = () => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.5, duration: 0.8 }}
                     >
-                        <h2 className="text-5xl font-black text-white leading-tight mb-4 tracking-tighter uppercase">
-                            NEW VENUS <br />
-                            <span className="text-primary-400">CLINIC</span>
+                        <h2 className="text-5xl font-black text-primary-400 leading-tight mb-4 tracking-tighter uppercase">
+                            NEW <br />
+                            <span className="text-white">VENUS CLINIC</span>
                         </h2>
                         <p className="text-slate-200 text-lg font-medium max-w-md">
                             Healthcare Excellence Reimagined
@@ -133,18 +134,26 @@ const Login = () => {
                             transition={{ delay: 0.4 }}
                         >
                             <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Password</label>
+
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <Lock className="w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
                                 </div>
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
-                                    className="block w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
+                                    className="block w-full pl-11 pr-12 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-primary-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
                         </motion.div>
 

@@ -14,6 +14,10 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import ConfirmationModal from '../../components/shared/ConfirmationModal';
 
 const AdminDashboard = () => {
     const { data: users, isLoading: usersLoading } = useQuery({
@@ -29,6 +33,21 @@ const AdminDashboard = () => {
         queryFn: async () => {
             const res = await adminApi.getInvoices();
             return res.data;
+        }
+    });
+
+    const queryClient = useQueryClient();
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => adminApi.deleteUser(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['adminUsers']);
+            setConfirmModal({ isOpen: false, id: null, name: '' });
+            toast.success('User removed successfully');
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to remove user');
         }
     });
 
@@ -52,7 +71,7 @@ const AdminDashboard = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="mb-10 lg:flex items-center justify-between ">
                     <div>
-                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Command Center</h1>
+                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Dashboard</h1>
                         <p className="text-slate-500 mt-1 font-medium">New Venus Clinic • Intelligence & Management</p>
                     </div>
                     <div className="flex gap-3 mt-4 lg:mt-0">
@@ -83,7 +102,7 @@ const AdminDashboard = () => {
                     <div className="lg:col-span-2 glass-card p-8">
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-xl font-black text-secondary-900 uppercase tracking-tighter ">Recent Patient Registrations</h3>
-                            <Link to="/admin/patients" className="text-primary-600 text-xs font-black uppercase tracking-widest hover:underline">Directory</Link>
+                            <Link to="/admin/users" className="text-primary-600 text-xs font-black uppercase tracking-widest hover:underline">Directory</Link>
                         </div>
                         <div className="space-y-4">
                             {isLoading ? (
@@ -97,15 +116,18 @@ const AdminDashboard = () => {
                                         <div className="flex-1">
                                             <p className="text-sm font-black text-secondary-900 uppercase tracking-tight">
                                                 {u.name}
-                                                <span className="font-bold text-slate-400 ml-2 normal-case tracking-normal">
+                                                {/* <span className="font-bold text-slate-400 ml-2 normal-case tracking-normal">
                                                     #{u._id.slice(-6)}
-                                                </span>
+                                                </span> */}
                                             </p>
                                             <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
                                                 {new Date(u.createdAt).toLocaleDateString('en-GB')} • {u.email}
                                             </p>
                                         </div>
-                                        <button className="text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                                        <button
+                                            onClick={() => setConfirmModal({ isOpen: true, id: u._id, name: u.name })}
+                                            className="text-slate-200 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
+                                        >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -131,13 +153,13 @@ const AdminDashboard = () => {
                                 </div>
                                 <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
                             </Link>
-                            <Link to="/admin/billing" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                            {/* <Link to="/admin/billing" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
                                 <div className="flex items-center gap-4">
                                     <BarChart3 className="w-6 h-6 transition-transform group-hover:scale-110" />
                                     <span className="font-black text-xs uppercase tracking-widest">Financial Audit</span>
                                 </div>
                                 <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                            </Link>
+                            </Link> */}
                             <Link to="/admin/logs" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-rose-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
                                 <div className="flex items-center gap-4">
                                     <History className="w-6 h-6 transition-transform group-hover:scale-110" />
@@ -145,14 +167,26 @@ const AdminDashboard = () => {
                                 </div>
                                 <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
                             </Link>
-                            <button className="flex items-center justify-center gap-3 p-5 border-2 border-dashed border-slate-200 rounded-3xl transition-all hover:border-primary-400 hover:text-primary-600 mt-4 group">
+                            {/* <button className="flex items-center justify-center gap-3 p-5 border-2 border-dashed border-slate-200 rounded-3xl transition-all hover:border-primary-400 hover:text-primary-600 mt-4 group">
                                 <CalendarCheck2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
                                 <span className="font-black text-[10px] uppercase tracking-widest">System Maintenance</span>
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null, name: '' })}
+                onConfirm={() => deleteMutation.mutate(confirmModal.id)}
+                title="Remove User?"
+                message={`Are you sure you want to remove ${confirmModal.name}? This action cannot be undone.`}
+                confirmText="Yes, Remove"
+                cancelText="No, Keep It"
+                type="danger"
+                isLoading={deleteMutation.isPending}
+            />
         </DashboardLayout>
     );
 };

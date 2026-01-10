@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Key, ShieldCheck, ArrowRight, Lock } from 'lucide-react';
+import { Key, Lock, ArrowRight, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/api';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
 const ResetPassword = () => {
     const location = useLocation();
@@ -14,6 +15,9 @@ const ResetPassword = () => {
         password: '',
         confirmPassword: ''
     });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (!formData.email) {
@@ -27,15 +31,16 @@ const ResetPassword = () => {
             toast.success('Password reset successfully');
             navigate('/login');
         },
-        onError: (error) => {
-            toast.error(error.response?.data?.message || 'Failed to reset password');
+        onError: (err) => {
+            setError(err.response?.data?.message || 'Failed to reset password');
         }
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setError('');
         if (formData.password !== formData.confirmPassword) {
-            return toast.error("Passwords don't match");
+            return setError("Passwords don't match");
         }
         mutation.mutate({
             email: formData.email,
@@ -45,77 +50,176 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-            <div className="w-full max-w-md">
-                <div className="mb-10 text-center">
-                    <div className="w-16 h-16 bg-primary-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-primary-600/20 rotate-12">
-                        <ShieldCheck className="w-8 h-8 text-white -rotate-12" />
-                    </div>
-                    <h1 className="text-4xl font-black text-secondary-900 uppercase tracking-tighter italic">Reset Password</h1>
-                    <p className="text-slate-500 font-medium mt-2">Verify OTP and set new password</p>
-                </div>
+        <div className="min-h-screen flex bg-white font-sans selection:bg-primary-100 selection:text-primary-900">
+            {/* Left Side: Immersive Background Image */}
+            <div className="hidden lg:block lg:w-3/5 relative overflow-hidden">
+                <motion.div
+                    initial={{ scale: 1.1 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: 'url("/images/login-bg.png")' }}
+                >
+                    <div className="absolute inset-0 bg-secondary-900/10 backdrop-brightness-75" />
+                </motion.div>
 
-                <div className="glass-card p-8">
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">OTP Code</label>
-                            <div className="relative">
-                                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="absolute inset-0 flex flex-col justify-end p-20 bg-gradient-to-t from-secondary-900/60 to-transparent">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5, duration: 0.8 }}
+                    >
+                        <h2 className="text-5xl font-black text-white leading-tight mb-4 tracking-tighter uppercase">
+                            SECURE <br />
+                            <span className="text-primary-400">ACCESS</span>
+                        </h2>
+                        <p className="text-slate-200 text-lg font-medium max-w-md">
+                            Create a new password to retrieve your account
+                        </p>
+                    </motion.div>
+                </div>
+            </div>
+
+            {/* Right Side: Form Area */}
+            <div className="w-full lg:w-2/5 flex flex-col items-center justify-center p-8 sm:p-12 lg:p-20 relative overflow-hidden bg-slate-50/50">
+                {/* Motion Blobs */}
+                <div className="absolute top-[-20%] right-[-20%] w-[60%] h-[60%] bg-primary-100/50 rounded-full blur-[100px] animate-pulse" />
+                <div className="absolute bottom-[-20%] left-[-20%] w-[60%] h-[60%] bg-secondary-100/50 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="w-full max-w-md relative z-10"
+                >
+                    <div className="mb-12 text-center lg:text-left">
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="inline-block mb-8"
+                        >
+                            <img
+                                src="/images/venus-logo.webp"
+                                alt="Venus Logo"
+                                className="w-64 h-auto"
+                            />
+                        </motion.div>
+                        <h1 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter mb-2">
+                            Reset Password
+                        </h1>
+                        <p className="text-slate-500 font-bold text-xs uppercase tracking-widest flex items-center gap-2 lg:justify-start justify-center">
+                            <span className="w-8 h-[2px] bg-primary-500 rounded-full" />
+                            Verify OTP and set new password
+                        </p>
+                    </div>
+
+
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="mb-8 p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-700 text-xs font-black uppercase tracking-widest flex items-center gap-3 rounded-r-2xl"
+                        >
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            {error}
+                        </motion.div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 }}
+                        >
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">OTP Code</label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-primary-500">
+                                    <Key className="w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
+                                </div>
                                 <input
                                     type="text"
-                                    className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20 tracking-[1em] text-center"
-                                    placeholder="000000"
                                     required
+                                    className="block w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm tracking-[0.5em] text-center"
+                                    placeholder="000000"
                                     value={formData.otp}
                                     onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
                                 />
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">New Password</label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-primary-500">
+                                    <Lock className="w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
+                                </div>
                                 <input
-                                    type="password"
-                                    className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                    placeholder="••••••••"
+                                    type={showPassword ? "text" : "password"}
                                     required
+                                    className="block w-full pl-11 pr-12 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
+                                    placeholder="••••••••"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-primary-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Password</label>
-                            <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 }}
+                        >
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Confirm Password</label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-primary-500">
+                                    <CheckCircle className="w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
+                                </div>
                                 <input
-                                    type="password"
-                                    className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                    placeholder="••••••••"
+                                    type={showConfirmPassword ? "text" : "password"}
                                     required
+                                    className="block w-full pl-11 pr-12 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
+                                    placeholder="••••••••"
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-primary-600 transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <button
+                        <motion.button
                             type="submit"
                             disabled={mutation.isPending}
-                            className="w-full py-5 bg-secondary-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-primary-600 transition-all shadow-xl shadow-secondary-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4"
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            className="w-full bg-secondary-900 text-white font-black uppercase tracking-[0.2em] text-[10px] py-5 rounded-2xl shadow-xl shadow-secondary-900/20 hover:bg-primary-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                         >
-                            {mutation.isPending ? 'Resetting...' : (
+                            {mutation.isPending ? 'Updating...' : (
                                 <>
-                                    Update Password
-                                    <ArrowRight className="w-5 h-5" />
+                                    Set New Password
+                                    <ArrowRight className="w-4 h-4" />
                                 </>
                             )}
-                        </button>
+                        </motion.button>
                     </form>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

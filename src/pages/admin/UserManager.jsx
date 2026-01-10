@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone } from 'lucide-react';
+import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -25,10 +25,15 @@ const UserManager = () => {
     });
 
     const filteredUsers = users?.filter(user => {
+        if (filter === 'archived') {
+            return user.isDeleted;
+        }
+        // For other tabs (all, doctor, patient), exclude deleted users
+        const isNotDeleted = !user.isDeleted;
         const matchesRole = filter === 'all' || user.role === filter;
         const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesRole && matchesSearch;
+        return isNotDeleted && matchesRole && matchesSearch;
     });
 
     // Pagination logic
@@ -53,13 +58,20 @@ const UserManager = () => {
         }
     });
 
+    const restoreMutation = useMutation({
+        mutationFn: (id) => adminApi.restoreUser(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['adminUsersList']);
+        }
+    });
+
 
     return (
         <DashboardLayout>
             <div className="max-w-7xl mx-auto py-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 ">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">User Management</h1>
+                        <h1 className="text-3xl font-bold text-slate-900 uppercase">User Management</h1>
                         <p className="text-slate-500 mt-1">Control access levels and manage profiles</p>
                     </div>
                     <div className="flex gap-3">
@@ -96,7 +108,7 @@ const UserManager = () => {
                             />
                         </div>
                         <div className="flex gap-2">
-                            {['all', 'doctor', 'patient'].map(role => (
+                            {['all', 'doctor', 'patient', 'archived'].map(role => (
                                 <button
                                     key={role}
                                     onClick={() => {
@@ -108,7 +120,7 @@ const UserManager = () => {
                                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                                         }`}
                                 >
-                                    {role === 'all' ? role : `${role}s`}
+                                    {role === 'all' ? role : role === 'archived' ? 'Archived' : `${role}s`}
                                 </button>
                             ))}
                         </div>
@@ -132,11 +144,11 @@ const UserManager = () => {
                                         <tr key={user._id} className="hover:bg-slate-50/30 transition-colors">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-primary-600 border border-slate-200">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border ${user.isDeleted ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-100 text-primary-600 border-slate-200'}`}>
                                                         {user.name.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-slate-900">{user.name}</p>
+                                                        <p className={`font-bold ${user.isDeleted ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{user.name}</p>
                                                         <p className="text-xs text-slate-400">ID: {user._id.slice(-8)}</p>
                                                     </div>
                                                 </div>
@@ -154,15 +166,24 @@ const UserManager = () => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border ${user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                    user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                                        'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                    user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                        user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                                            'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                     }`}>
-                                                    {user.role}
+                                                    {user.isDeleted ? 'Deleted' : user.role}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6">
-                                                {user.role !== 'superadmin' && (
+                                                {user.isDeleted ? (
+                                                    <button
+                                                        onClick={() => restoreMutation.mutate(user._id)}
+                                                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                                        title="Restore User"
+                                                    >
+                                                        <RotateCcw className="w-5 h-5" />
+                                                    </button>
+                                                ) : user.role !== 'superadmin' && (
                                                     <button
                                                         onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
                                                         className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"

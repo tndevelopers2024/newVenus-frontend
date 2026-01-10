@@ -54,9 +54,9 @@ const Sidebar = ({ links: propLinks }) => {
                         />
                     </div>
                 </div>
-                <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                {/* <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
                     {isOpen ? <X className="w-5 h-5 text-slate-400" /> : <Menu className="w-5 h-5 text-slate-400" />}
-                </button>
+                </button> */}
             </div>
 
             <nav className="flex-1 px-4 space-y-2 mt-4">
