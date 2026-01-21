@@ -44,24 +44,24 @@ const DoctorDashboard = () => {
     return (
         <DashboardLayout>
             <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 ">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 md:mb-10">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">Dr. {user?.name}'s Portal</h1>
-                        <p className="text-slate-500 mt-1">Manage your consultations and patient records</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dr. {user?.name}'s Portal</h1>
+                        <p className="text-slate-500 mt-1 text-sm md:text-base">Manage your consultations and patient records</p>
                     </div>
                     <button
                         onClick={() => navigate('/doctor/appointments')}
-                        className="btn-primary flex items-center justify-center gap-2"
+                        className="btn-primary flex items-center justify-center gap-2 w-full md:w-auto"
                     >
                         <Calendar className="w-5 h-5" />
                         Manage Schedule
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <div className="lg:col-span-2 glass-card p-8">
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-xl font-bold ">Upcoming Appointments</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
+                    <div className="lg:col-span-2 glass-card p-4 md:p-8">
+                        <div className="flex items-center justify-between mb-6 md:mb-8">
+                            <h3 className="text-lg md:text-xl font-bold">Upcoming Appointments</h3>
                             <button
                                 onClick={() => navigate('/doctor/appointments')}
                                 className="text-primary-600 text-sm font-bold hover:underline"
@@ -77,37 +77,46 @@ const DoctorDashboard = () => {
                         ) : (
                             <div className="space-y-4">
                                 {upcomingAppointments.length === 0 && (
-                                    <p className="text-slate-400 text-center py-10 ">No appointments for today yet.</p>
+                                    <p className="text-slate-400 text-center py-10">No appointments for today yet.</p>
                                 )}
                                 {upcomingAppointments.map((appt) => (
-                                    <div key={appt._id} className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all">
-                                        <div className="w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                                            <span className="text-xs font-bold text-slate-400 uppercase">
-                                                {new Date(appt.date).toLocaleString('default', { month: 'short' })}
-                                            </span>
-                                            <span className="text-xl font-extrabold text-slate-900">
-                                                {new Date(appt.date).getDate()}
-                                            </span>
+                                    <div key={appt._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 p-4 md:p-6 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all">
+                                        <div className="flex items-center gap-4 sm:block w-full sm:w-16">
+                                            <div className="w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                                                <span className="text-xs font-bold text-slate-400 uppercase">
+                                                    {new Date(appt.date).toLocaleString('default', { month: 'short' })}
+                                                </span>
+                                                <span className="text-xl font-extrabold text-slate-900">
+                                                    {new Date(appt.date).getDate()}
+                                                </span>
+                                            </div>
+                                            {/* Mobile-only time display next to date box */}
+                                            <div className="sm:hidden">
+                                                <p className="font-bold text-slate-900">{new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{appt.status}</p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 overflow-hidden">
+
+                                        <div className="flex-1 overflow-hidden w-full">
                                             <h4
                                                 onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
-                                                className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors"
+                                                className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors text-lg"
                                             >
                                                 {appt.patient?.name}
                                             </h4>
-                                            <p className="text-sm text-slate-500">{appt.reason || 'Checkup'} • {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                            <p className="text-sm text-slate-500 hidden sm:block">{appt.reason || 'Checkup'} • {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                            <p className="text-sm text-slate-500 sm:hidden">{appt.reason || 'Checkup'}</p>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 w-full sm:w-auto">
                                             <button
                                                 onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
-                                                className="px-4 py-2 bg-white text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50"
+                                                className="flex-1 sm:flex-none px-4 py-2 bg-white text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 onClick={() => navigate('/doctor/appointments')}
-                                                className="px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 shadow-md transition-shadow active:shadow-inner"
+                                                className="flex-1 sm:flex-none px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 shadow-md transition-shadow active:shadow-inner"
                                             >
                                                 View
                                             </button>
@@ -118,8 +127,8 @@ const DoctorDashboard = () => {
                         )}
                     </div>
 
-                    <div className="glass-card p-8">
-                        <h3 className="text-xl font-bold mb-6 ">Quick Search</h3>
+                    <div className="glass-card p-4 md:p-8">
+                        <h3 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Quick Search</h3>
                         <div className="relative mb-6">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input

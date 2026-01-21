@@ -24,7 +24,7 @@ const ForgotPassword = () => {
     };
 
     return (
-        <div className="min-h-screen flex bg-white font-sans selection:bg-primary-100 selection:text-primary-900">
+        <div className="min-h-[100dvh] flex bg-white font-sans selection:bg-primary-100 selection:text-primary-900">
             {/* Left Side: Immersive Background Image */}
             <div className="hidden lg:block lg:w-3/5 relative overflow-hidden">
                 <motion.div
@@ -55,7 +55,7 @@ const ForgotPassword = () => {
             </div>
 
             {/* Right Side: Form Area */}
-            <div className="w-full lg:w-2/5 flex flex-col items-center justify-center p-8 sm:p-12 lg:p-20 relative overflow-hidden bg-slate-50/50">
+            <div className="w-full lg:w-2/5 flex flex-col items-center justify-center p-6 sm:p-12 lg:p-20 relative overflow-hidden bg-slate-50/50">
                 {/* Motion Blobs */}
                 <div className="absolute top-[-20%] right-[-20%] w-[60%] h-[60%] bg-primary-100/50 rounded-full blur-[100px] animate-pulse" />
                 <div className="absolute bottom-[-20%] left-[-20%] w-[60%] h-[60%] bg-secondary-100/50 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
@@ -66,23 +66,23 @@ const ForgotPassword = () => {
                     transition={{ duration: 0.6 }}
                     className="w-full max-w-md relative z-10"
                 >
-                    <div className="mb-12 text-center lg:text-left">
+                    <div className="mb-8 lg:mb-12 text-center lg:text-left">
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="inline-block mb-8"
+                            className="inline-block mb-6 lg:mb-8"
                         >
                             <img
                                 src="/images/venus-logo.webp"
                                 alt="Venus Logo"
-                                className="w-64 h-auto"
+                                className="w-48 lg:w-64 h-auto"
                             />
                         </motion.div>
-                        <h1 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter mb-2">
+                        <h1 className="text-xl lg:text-2xl font-black text-secondary-900 uppercase tracking-tighter mb-2">
                             Forgot Password
                         </h1>
-                        <p className="text-slate-500 font-bold text-xs uppercase tracking-widest flex items-center gap-2 lg:justify-start justify-center">
+                        <p className="text-slate-500 font-bold text-[10px] lg:text-xs uppercase tracking-widest flex items-center gap-2 lg:justify-start justify-center">
                             <span className="w-8 h-[2px] bg-primary-500 rounded-full" />
                             Enter email to receive OTP
                         </p>
@@ -113,7 +113,7 @@ const ForgotPassword = () => {
                                 <input
                                     type="email"
                                     required
-                                    className="block w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
+                                    className="block w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-base sm:text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
                                     placeholder="your@email.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}

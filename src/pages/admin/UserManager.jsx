@@ -93,7 +93,7 @@ const UserManager = () => {
                 </div>
 
                 <div className="glass-card overflow-hidden">
-                    <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 gap-2">
                         <div className="relative w-72">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input

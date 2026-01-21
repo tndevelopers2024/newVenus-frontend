@@ -8,8 +8,10 @@ import {
     Key,
     ChevronLeft,
     ShieldCheck,
-    Stethoscope
+    Stethoscope,
+    AlertCircle
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -22,15 +24,21 @@ const DoctorRegistration = () => {
         phone: ''
     });
 
+    const [error, setError] = useState('');
+
     const mutation = useMutation({
         mutationFn: adminApi.createDoctor,
         onSuccess: () => {
             navigate('/admin/users');
+        },
+        onError: (err) => {
+            setError(err.response?.data?.message || 'Failed to create doctor account.');
         }
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setError('');
         mutation.mutate(formData);
     };
 
@@ -49,6 +57,16 @@ const DoctorRegistration = () => {
                 </div>
 
                 <div className="glass-card p-10">
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="mb-8 p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-700 text-xs font-black uppercase tracking-widest flex items-center gap-3 rounded-r-2xl"
+                        >
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            {error}
+                        </motion.div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 gap-6">
                             <div className="space-y-2">

@@ -37,10 +37,10 @@ const PatientDashboard = () => {
     return (
         <DashboardLayout>
             <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-start mb-10 ">
+                <div className="flex justify-between items-start mb-6 md:mb-10">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 tracking-tighter uppercase">NEW VENUS CLINIC</h1>
-                        <p className="text-slate-500 mt-1 font-medium">Healthcare Excellence • {user?.name}</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tighter uppercase">NEW VENUS CLINIC</h1>
+                        <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">Healthcare Excellence • {user?.name}</p>
                     </div>
                 </div>
 
@@ -104,14 +104,14 @@ const PatientDashboard = () => {
                     </Link>
                 </div> */}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 glass-card p-8">
-                        <div className="flex items-center justify-between mb-10 ">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                    <div className="lg:col-span-2 glass-card p-4 md:p-8">
+                        <div className="flex items-center justify-between mb-8 md:mb-10">
                             <div>
-                                <h3 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Treatment Timeline</h3>
-                                <p className="text-slate-400 text-sm font-bold">Premium Comprehensive Health Tracking</p>
+                                <h3 className="text-xl md:text-2xl font-black text-secondary-900 uppercase tracking-tighter">Treatment Timeline</h3>
+                                <p className="text-slate-400 text-xs md:text-sm font-bold">Premium Comprehensive Health Tracking</p>
                             </div>
-                            <Link to="/patient/history" className="text-primary-600 text-xs font-black uppercase tracking-widest hover:underline decoration-primary-200">Full Archive</Link>
+                            <Link to="/patient/history" className="text-primary-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline decoration-primary-200">Full Archive</Link>
                         </div>
 
                         {isLoading ? (
@@ -119,7 +119,7 @@ const PatientDashboard = () => {
                                 {[1, 2, 3].map(i => <div key={i} className="h-32 bg-slate-50 rounded-3xl"></div>)}
                             </div>
                         ) : (
-                            <div className="space-y-6  relative before:absolute before:left-3.5 before:top-4 before:bottom-4 before:w-[2px] before:bg-slate-100">
+                            <div className="space-y-6 relative before:absolute before:left-3.5 before:top-4 before:bottom-4 before:w-[2px] before:bg-slate-100">
                                 {historyData?.appointments?.length === 0 && (
                                     <div className="text-center py-20">
                                         <ActivityIcon className="w-12 h-12 text-slate-100 mx-auto mb-4" />
@@ -127,19 +127,19 @@ const PatientDashboard = () => {
                                     </div>
                                 )}
                                 {historyData?.appointments?.slice(0, 5).map((appt, i) => (
-                                    <div key={appt._id} className="relative pl-12 group">
+                                    <div key={appt._id} className="relative pl-10 md:pl-12 group">
                                         <div className="absolute left-0 top-6 w-8 h-8 rounded-full bg-white border-2 border-slate-100 shadow-sm flex items-center justify-center group-hover:border-primary-200 transition-all z-10">
                                             <div className={`w-2.5 h-2.5 rounded-full ${appt.status === 'Completed' ? 'bg-emerald-500' : 'bg-primary-400'} shadow-sm`}></div>
                                         </div>
-                                        <div className="p-6 bg-white border border-slate-50 rounded-3xl group-hover:shadow-2xl group-hover:shadow-primary-500/5 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-4 border-b-slate-50 hover:border-b-primary-100">
+                                        <div className="p-4 md:p-6 bg-white border border-slate-50 rounded-3xl group-hover:shadow-2xl group-hover:shadow-primary-500/5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:gap-6 border-b-4 border-b-slate-50 hover:border-b-primary-100">
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <span className="px-3 py-1 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-full">
                                                         {new Date(appt.date).toLocaleDateString('en-GB')}
                                                     </span>
                                                 </div>
-                                                <h4 className="text-xl font-black text-secondary-900 uppercase tracking-tighter mb-1">{appt.reason || 'General Checkup'}</h4>
-                                                <p className="text-sm font-bold text-slate-500">
+                                                <h4 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter mb-1">{appt.reason || 'General Checkup'}</h4>
+                                                <p className="text-xs md:text-sm font-bold text-slate-500">
                                                     Attended by <span className="text-secondary-900">Dr. {appt.doctor?.name}</span>
                                                 </p>
                                             </div>
@@ -153,9 +153,9 @@ const PatientDashboard = () => {
                         )}
                     </div>
 
-                    <div className="glass-card p-8">
+                    <div className="glass-card p-4 md:p-8">
                         <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-xl font-black text-secondary-900 uppercase tracking-tighter">Recent Reports</h3>
+                            <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter">Recent Reports</h3>
                             <Link to="/patient/reports" className="text-amber-600 text-[10px] font-black uppercase tracking-widest hover:underline">View Vault</Link>
                         </div>
 
@@ -170,7 +170,7 @@ const PatientDashboard = () => {
                             ) : (
                                 historyData?.reports?.slice(-4).reverse().map((report) => (
                                     <div key={report._id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/30 transition-all group flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-amber-500 group-hover:rotate-6 transition-transform">
+                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-amber-500 group-hover:rotate-6 transition-transform shrink-0">
                                             <FileTextIcon className="w-5 h-5" />
                                         </div>
                                         <div className="flex-1 overflow-hidden">

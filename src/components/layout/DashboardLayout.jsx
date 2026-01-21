@@ -22,18 +22,10 @@ import toast from 'react-hot-toast';
 
 import { getLinksByRole } from '../../config/navigation';
 
-const Sidebar = ({ links: propLinks }) => {
+const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const [isOpen, setIsOpen] = useState(() => {
-        const saved = localStorage.getItem('sidebarOpen');
-        return saved !== null ? JSON.parse(saved) : true;
-    });
-
-    useEffect(() => {
-        localStorage.setItem('sidebarOpen', JSON.stringify(isOpen));
-    }, [isOpen]);
 
     const links = propLinks || getLinksByRole(user?.role);
 
@@ -42,10 +34,14 @@ const Sidebar = ({ links: propLinks }) => {
         navigate('/login');
     };
 
-    return (
-        <div className={`h-screen bg-white border-r border-slate-200 transition-all duration-300 flex flex-col ${isOpen ? 'w-64' : 'w-20'}`}>
+    const containerClasses = mobile
+        ? `fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+        : `hidden md:flex flex-col h-screen bg-white border-r border-slate-200 transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`;
+
+    const content = (
+        <div className="flex flex-col h-full">
             <div className="p-6 flex items-center justify-between border-b border-slate-50">
-                <div className={`flex items-center gap-3 ${!isOpen && 'hidden'}`}>
+                <div className={`flex items-center gap-3 ${!isOpen && !mobile && 'hidden'}`}>
                     <div className="flex items-center">
                         <img
                             src="/images/venus-logo.webp"
@@ -54,36 +50,43 @@ const Sidebar = ({ links: propLinks }) => {
                         />
                     </div>
                 </div>
-                {/* <button onClick={() => setIsOpen(!isOpen)} className="p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                    {isOpen ? <X className="w-5 h-5 text-slate-400" /> : <Menu className="w-5 h-5 text-slate-400" />}
-                </button> */}
+                {mobile && (
+                    <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400">
+                        <X className="w-5 h-5" />
+                    </button>
+                )}
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4">
+            <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
                 {links.map((link) => {
                     const isActive = location.pathname === link.path;
                     return (
                         <button
                             key={link.label}
-                            onClick={() => navigate(link.path)}
+                            onClick={() => {
+                                navigate(link.path);
+                                if (mobile) onClose();
+                            }}
                             className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${isActive
                                 ? 'bg-secondary-900 text-white shadow-lg shadow-secondary-200'
                                 : 'text-slate-600 hover:bg-primary-50 hover:text-primary-600'
                                 }`}
                         >
-                            <link.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
-                            {isOpen && <span className={`font-bold text-sm ${isActive ? 'text-white' : 'font-medium'}`}>{link.label}</span>}
+                            <link.icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
+                            {(isOpen || mobile) && (
+                                <span className={`font-bold text-sm ${isActive ? 'text-white' : 'font-medium'}`}>{link.label}</span>
+                            )}
                         </button>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-slate-100 ">
-                <div className={`p-3 bg-slate-50 rounded-2xl flex items-center gap-3 ${!isOpen && 'justify-center'}`}>
+            <div className="p-4 border-t border-slate-100">
+                <div className={`p-3 bg-slate-50 rounded-2xl flex items-center gap-3 ${!isOpen && !mobile && 'justify-center'}`}>
                     <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold shrink-0">
                         {user?.name?.charAt(0)}
                     </div>
-                    {isOpen && (
+                    {(isOpen || mobile) && (
                         <div className="flex-1 overflow-hidden">
                             <p className="text-sm font-bold text-slate-900 truncate">{user?.name}</p>
                             <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
@@ -95,10 +98,30 @@ const Sidebar = ({ links: propLinks }) => {
                     onClick={handleLogout}
                     className="w-full mt-4 flex items-center gap-4 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
                 >
-                    <LogOut className="w-5 h-5" />
-                    {isOpen && <span className="font-medium text-sm">Logout</span>}
+                    <LogOut className="w-5 h-5 shrink-0" />
+                    {(isOpen || mobile) && <span className="font-medium text-sm">Logout</span>}
                 </button>
             </div>
+        </div>
+    );
+
+    if (mobile) {
+        return (
+            <>
+                <div
+                    className={`fixed inset-0 bg-secondary-900/20 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    onClick={onClose}
+                />
+                <div className={containerClasses}>
+                    {content}
+                </div>
+            </>
+        );
+    }
+
+    return (
+        <div className={containerClasses}>
+            {content}
         </div>
     );
 };
@@ -106,29 +129,18 @@ const Sidebar = ({ links: propLinks }) => {
 const NotificationPanel = ({ onClose }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
-
     const [realtimeNotifications, setRealtimeNotifications] = useState([]);
 
     useEffect(() => {
-        // Connect socket
         if (!socket.connected) {
-            socket.on('connect', () => {
-                console.log('Socket connected:', socket.id);
-            });
+            socket.on('connect', () => console.log('Socket connected:', socket.id));
             socket.connect();
         }
 
-        // Listen for notifications
         const onNotification = (data) => {
-            // Filter logic: Only show if tailored for this user/role
             let shouldShow = false;
-
-            if (user?.role === 'doctor' && data.doctorId == user._id) {
-                shouldShow = true;
-            } else if (user?.role === 'superadmin' && !data.doctorId) {
-                // System wide or admin specific events
-                shouldShow = true;
-            }
+            if (user?.role === 'doctor' && data.doctorId == user._id) shouldShow = true;
+            else if (user?.role === 'superadmin' && !data.doctorId) shouldShow = true;
 
             if (shouldShow) {
                 const newNotification = {
@@ -138,41 +150,21 @@ const NotificationPanel = ({ onClose }) => {
                     time: 'Just now',
                     unread: true
                 };
-
                 setRealtimeNotifications(prev => [newNotification, ...prev]);
-
-                // Show toast
                 toast(newNotification.title, {
                     icon: '🔔',
-                    style: {
-                        borderRadius: '12px',
-                        background: '#333',
-                        color: '#fff',
-                    },
+                    style: { borderRadius: '12px', background: '#333', color: '#fff' },
                 });
             }
         };
 
         socket.on('notification', onNotification);
-
-        return () => {
-            socket.off('notification', onNotification);
-        };
+        return () => socket.off('notification', onNotification);
     }, [user]);
 
-    // Role-based notification logic
-    const getNotifications = () => {
-        return realtimeNotifications;
-    };
-
-    const notifications = getNotifications();
-
     const handleViewAll = () => {
-        if (user?.role === 'superadmin') {
-            navigate('/admin/logs');
-        } else if (user?.role === 'doctor') {
-            navigate('/doctor/patients');
-        }
+        if (user?.role === 'superadmin') navigate('/admin/logs');
+        else if (user?.role === 'doctor') navigate('/doctor/patients');
         onClose();
     };
 
@@ -183,13 +175,10 @@ const NotificationPanel = ({ onClose }) => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 top-full mt-4 w-96 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50"
+                className="absolute right-0 top-full mt-4 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-w-[calc(100vw-2rem)]"
             >
                 <div className="absolute top-3 right-3 z-10">
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-secondary-900"
-                    >
+                    <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-secondary-900">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -202,8 +191,8 @@ const NotificationPanel = ({ onClose }) => {
                 </div>
 
                 <div className="max-h-[400px] overflow-y-auto">
-                    {notifications.length > 0 ? (
-                        notifications.map(n => (
+                    {realtimeNotifications.length > 0 ? (
+                        realtimeNotifications.map(n => (
                             <div key={n.id} className={`p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors ${n.unread ? 'bg-primary-50/30' : ''}`}>
                                 <div className="flex justify-between items-start mb-1">
                                     <span className={`text-xs font-black uppercase tracking-tight ${n.unread ? 'text-secondary-900' : 'text-slate-500'}`}>{n.title}</span>
@@ -249,23 +238,20 @@ const ProfileDropdown = ({ onClose }) => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 top-full mt-4 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50"
+                className="absolute right-0 top-full mt-4 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-w-[calc(100vw-2rem)]"
             >
                 <div className="absolute top-2 right-2 z-10">
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-secondary-900"
-                    >
+                    <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-secondary-900">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 <div className="p-5 border-b border-slate-50">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center text-lg font-black text-primary-600 shadow-sm border border-primary-100">
+                        <div className="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center text-lg font-black text-primary-600 shadow-sm border border-primary-100 shrink-0">
                             {user?.name?.charAt(0)}
                         </div>
-                        <div className="pr-4">
+                        <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-slate-900 leading-tight truncate">{user?.name}</h3>
                             <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">{user?.role}</p>
                         </div>
@@ -276,10 +262,7 @@ const ProfileDropdown = ({ onClose }) => {
                 </div>
 
                 <div className="p-2">
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all group"
-                    >
+                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all group">
                         <div className="p-1.5 bg-red-50 text-red-500 rounded-lg group-hover:bg-red-100 transition-colors">
                             <LogOut className="w-4 h-4" />
                         </div>
@@ -291,13 +274,29 @@ const ProfileDropdown = ({ onClose }) => {
     );
 };
 
-const Header = () => {
+const Header = ({ onMenuClick }) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showAccount, setShowAccount] = useState(false);
     const { user } = useAuth();
 
     return (
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-20">
+        <header className="h-16 md:h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={onMenuClick}
+                    className="md:hidden p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
+                <div className="md:hidden">
+                    <img
+                        src="/images/venus-logo.webp"
+                        alt="Venus Logo"
+                        className="h-8 w-auto object-contain"
+                    />
+                </div>
+            </div>
+
             <div className="flex-1"></div>
             <div className="flex items-center gap-3 relative">
                 {user?.role !== 'patient' && (
@@ -312,7 +311,6 @@ const Header = () => {
                             <Bell className="w-5 h-5" />
                             <span className="absolute top-2.5 right-3 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
                         </button>
-
                         <AnimatePresence>
                             {showNotifications && <NotificationPanel onClose={() => setShowNotifications(false)} />}
                         </AnimatePresence>
@@ -338,12 +336,38 @@ const Header = () => {
 };
 
 const DashboardLayout = ({ children, links }) => {
+    const [sidebarOpen, setSidebarOpen] = useState(() => {
+        if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            const saved = localStorage.getItem('sidebarOpen');
+            return saved !== null ? JSON.parse(saved) : true;
+        }
+        return false;
+    });
+
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+            localStorage.setItem('sidebarOpen', JSON.stringify(sidebarOpen));
+        }
+    }, [sidebarOpen]);
+
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
-            <Sidebar links={links} />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-y-auto p-8 scroll-smooth">
+        <div className="flex h-[100dvh] bg-slate-50 overflow-hidden">
+            {/* Desktop Sidebar */}
+            <Sidebar links={links} isOpen={sidebarOpen} />
+
+            {/* Mobile Sidebar */}
+            <Sidebar
+                links={links}
+                isOpen={mobileMenuOpen}
+                mobile
+                onClose={() => setMobileMenuOpen(false)}
+            />
+
+            <div className="flex-1 flex flex-col overflow-hidden w-full relative">
+                <Header onMenuClick={() => setMobileMenuOpen(true)} />
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth w-full">
                     {children}
                 </main>
             </div>
