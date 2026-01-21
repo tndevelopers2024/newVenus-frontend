@@ -59,7 +59,7 @@ const AdminDashboard = () => {
 
     const stats = [
         { label: 'Total Patients', value: patientCount, change: '+12%', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        { label: 'System Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: 'Live', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+        // { label: 'System Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: 'Live', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100' },
         { label: 'System Users', value: totalUsers, change: '+8%', icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
         { label: 'Security Events', value: 'Active', change: 'Audit Log', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-100' },
     ];
@@ -82,7 +82,7 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mb-6 md:mb-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 mb-6 md:mb-10">
                     {stats.map((stat, i) => (
                         <div key={i} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-default group border-b-4 border-b-slate-50 hover:border-b-primary-200">
                             <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color} shrink-0`}>
