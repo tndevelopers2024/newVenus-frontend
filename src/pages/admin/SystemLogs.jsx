@@ -100,7 +100,7 @@ const SystemLogs = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto py-10 px-4">
+            <div className="max-w-8xl mx-auto py-2 px-4">
                 <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
                         <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter flex items-center gap-4">
@@ -347,13 +347,6 @@ const SystemLogs = () => {
                 )}
             </AnimatePresence>
 
-            <style jsx>{`
-                .glass-card {
-                    background: rgba(255, 255, 255, 0.7);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                }
-            `}</style>
         </DashboardLayout>
     );
 };

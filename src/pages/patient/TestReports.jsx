@@ -296,7 +296,7 @@ const TestReports = () => {
                                             ) : (
                                                 <>
                                                     <CheckCircle2 className="w-4 h-4" />
-                                                    Finalize Upload
+                                                    Upload
                                                 </>
                                             )}
                                         </button>

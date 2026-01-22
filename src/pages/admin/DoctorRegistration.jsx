@@ -21,7 +21,8 @@ const DoctorRegistration = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        phone: ''
+        phone: '',
+        specialization: ''
     });
 
     const [error, setError] = useState('');
@@ -51,7 +52,7 @@ const DoctorRegistration = () => {
                         <ChevronLeft className="w-5 h-5" />
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Onboard Doctor</h1>
+                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Add New Doctor</h1>
                         <p className="text-slate-500 font-medium">Professional Enrollment & System Access</p>
                     </div>
                 </div>
@@ -94,6 +95,20 @@ const DoctorRegistration = () => {
                                         required
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialization</label>
+                                <div className="relative">
+                                    <Stethoscope className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                        placeholder="General Medicine"
+                                        required
+                                        value={formData.specialization}
+                                        onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
                                     />
                                 </div>
                             </div>

@@ -108,6 +108,16 @@ const Appointments = () => {
         setCurrentPage(1);
     };
 
+    const getDisplayId = (user) => {
+        if (!user) return 'XXX-000';
+        if (user.displayId) return user.displayId;
+        if (!user.name || !user._id) return 'XXX-000';
+        const prefix = user.name.slice(0, 3).toUpperCase();
+        const decimal = parseInt(user._id.slice(-4), 16);
+        const suffix = (decimal % 1000).toString().padStart(3, '0');
+        return `${prefix}-${suffix}`;
+    };
+
     const tabs = ['All', 'Upcoming', 'Completed', 'Cancelled'];
 
     const getStatusColor = (status) => {
@@ -132,15 +142,15 @@ const Appointments = () => {
     return (
         <>
             <DashboardLayout>
-                <div className="max-w-7xl mx-auto py-10 px-4 print:hidden">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 ">
+                <div className="max-w-8xl mx-auto py-6 px-4 print:hidden">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
                         <div>
-                            <h1 className="text-4xl font-black text-secondary-900 uppercase tracking-tighter">Appointment Manager</h1>
-                            <p className="text-slate-500 mt-1 font-medium">Coordinate patient consultations and schedule logistics</p>
+                            <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Appointment Manager</h1>
+                            <p className="text-slate-500 mt-0.5 font-medium text-sm">Coordinate patient consultations and schedule logistics</p>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 mb-8">
+                    <div className="flex flex-wrap gap-3 mb-4">
                         {tabs.map(tab => (
                             <button
                                 key={tab}
@@ -148,8 +158,8 @@ const Appointments = () => {
                                     setActiveTab(tab);
                                     setCurrentPage(1);
                                 }}
-                                className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab
-                                    ? 'bg-secondary-900 text-white shadow-xl shadow-secondary-200 scale-105'
+                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
+                                    ? 'bg-secondary-900 text-white shadow-lg shadow-secondary-200 scale-105'
                                     : 'bg-white text-slate-400 border border-slate-100 hover:border-primary-200 hover:text-primary-600'
                                     }`}
                             >
@@ -158,14 +168,14 @@ const Appointments = () => {
                         ))}
                     </div>
 
-                    <div className="glass-card mb-8">
-                        <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="glass-card mb-6">
+                        <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="relative w-full md:w-96">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                                 <input
                                     type="text"
                                     placeholder="Search by patient name or ID..."
-                                    className="input-field pl-11 py-2 text-sm shadow-sm"
+                                    className="input-field pl-10 py-2 text-xs shadow-sm"
                                     value={searchQuery}
                                     onChange={(e) => {
                                         setSearchQuery(e.target.value);
@@ -173,135 +183,150 @@ const Appointments = () => {
                                     }}
                                 />
                             </div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                <Filter className="w-4 h-4" />
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                <Filter className="w-3.5 h-3.5" />
                                 Showing {filteredAppointments.length} Appointments
                             </div>
                         </div>
 
-                        <div className="divide-y divide-slate-50">
-                            {isLoading ? (
-                                [1, 2, 3].map(i => (
-                                    <div key={i} className="p-8 animate-pulse flex items-center gap-6">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-2xl"></div>
-                                        <div className="flex-1 space-y-3">
-                                            <div className="h-4 bg-slate-50 rounded-full w-1/4"></div>
-                                            <div className="h-3 bg-slate-50 rounded-full w-1/2"></div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : filteredAppointments.length === 0 ? (
-                                <div className="p-20 text-center">
-                                    <Calendar className="w-16 h-16 text-slate-100 mx-auto mb-4" />
-                                    <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No {activeTab.toLowerCase()} appointments found</p>
-                                </div>
-                            ) : (
-                                paginatedAppointments.map((appt) => (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        key={appt._id}
-                                        className="p-8 flex flex-col md:flex-row md:items-center gap-8 group hover:bg-slate-50/30 transition-all"
-                                    >
-                                        <div className="w-20 h-20 bg-white rounded-[24px] flex flex-col items-center justify-center shadow-sm border border-slate-100 shrink-0 group-hover:border-primary-200 transition-colors">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                                                {new Date(appt.date).toLocaleString('default', { month: 'short' })}
-                                            </span>
-                                            <span className="text-2xl font-black text-secondary-900 leading-none">
-                                                {new Date(appt.date).getDate()}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase">
-                                                {new Date(appt.date).toLocaleDateString('en-GB').split('/')[2]}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <span className={`px-2.5 py-0.5 rounded-lg border text-[10px] font-black uppercase tracking-tight ${getStatusColor(appt.status)}`}>
-                                                    {appt.status}
-                                                </span>
-                                                <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                                                    <Clock className="w-3.5 h-3.5" />
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    <th className="px-6 py-4 font-black">Date</th>
+                                    <th className="px-6 py-4 font-black">Patient</th>
+                                    <th className="px-6 py-4 font-black">Schedule Time</th>
+                                    <th className="px-6 py-4 font-black">Started Time</th>
+                                    <th className="px-6 py-4 font-black">Reason</th>
+                                    <th className="px-6 py-4 font-black text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {isLoading ? (
+                                    [1, 2, 3].map(i => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td className="px-6 py-4"><div className="h-4 w-12 bg-slate-50 rounded"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 w-32 bg-slate-50 rounded"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-50 rounded"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-50 rounded"></div></td>
+                                            <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-50 rounded"></div></td>
+                                            <td className="px-6 py-4 text-right"><div className="h-8 w-8 bg-slate-50 rounded inline-block"></div></td>
+                                        </tr>
+                                    ))
+                                ) : filteredAppointments.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="6" className="p-16 text-center">
+                                            <Calendar className="w-12 h-12 text-slate-100 mx-auto mb-4" />
+                                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No {activeTab.toLowerCase()} appointments found</p>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    paginatedAppointments.map((appt) => (
+                                        <motion.tr
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            key={appt._id}
+                                            className="group hover:bg-slate-50/50 transition-colors"
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-secondary-900">
+                                                        {new Date(appt.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                        {new Date(appt.date).getFullYear()}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="text-sm font-bold text-secondary-900 uppercase">{appt.patient?.name}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 tracking-wider">#{getDisplayId(appt.patient)}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-xs font-bold text-slate-500 font-mono">
                                                     {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
-                                            </div>
-                                            <h4 className="text-xl font-black text-secondary-900 uppercase tracking-tighter mb-1 truncate">
-                                                {appt.patient?.name}
-                                            </h4>
-                                            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-slate-500 font-medium">
-                                                <span className="flex items-center gap-1.5 uppercase text-[10px] font-bold tracking-widest text-slate-400">
-                                                    ID: {appt.patient?._id?.slice(-8)}
-                                                </span>
-                                                <span className="flex items-center gap-1.5">
-                                                    <Activity className="w-3.5 h-3.5 text-primary-500" />
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {appt.sessionStartTime ? (
+                                                    <span className="text-xs font-bold text-emerald-600 font-mono">
+                                                        {new Date(appt.sessionStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-[10px] font-bold uppercase tracking-tight text-slate-500 border border-slate-100">
+                                                    <Activity className="w-3 h-3 text-primary-500" />
                                                     {appt.reason || 'Symptomatic Review'}
                                                 </span>
-                                                {/* <div className="flex items-center gap-2">
-                                                    <div className={`px-2 py-0.5 rounded-lg border text-[9px] font-black uppercase tracking-tight flex items-center gap-1.5 ${getPaymentStatusColor(appt.paymentStatus)}`}>
-                                                        <CreditCard className="w-3 h-3" />
-                                                        {appt.paymentStatus || 'Unpaid'}
-                                                    </div>
-                                                </div> */}
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            {(appt.status === 'Pending' || appt.status === 'Cancelled') && (
-                                                <>
-                                                    <button
-                                                        onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
-                                                        className="p-3 bg-white border border-slate-100 text-rose-500 rounded-2xl hover:border-rose-100 hover:bg-rose-50 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        title="Cancel Appointment"
-                                                        disabled={appt.status === 'Cancelled'}
-                                                    >
-                                                        <XCircle className="w-5 h-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => updateStatusMutation.mutate({ id: appt._id, status: 'Accepted' })}
-                                                        className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 flex items-center gap-2"
-                                                    >
-                                                        <CheckCircle2 className="w-4 h-4" />
-                                                        {appt.status === 'Cancelled' ? 'Re-Accept' : 'Accept'}
-                                                    </button>
-                                                </>
-                                            )}
-                                            {(appt.status === 'Accepted' || appt.status === 'Rescheduled') && (
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => navigate(`/doctor/session/${appt._id}`)}
-                                                        className="px-8 py-3 bg-secondary-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-secondary-200 hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-2"
-                                                    >
-                                                        <Activity className="w-4 h-4" />
-                                                        Start Session
-                                                    </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {(appt.status === 'Pending' || appt.status === 'Cancelled') && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
+                                                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                                                                title="Cancel Appointment"
+                                                                disabled={appt.status === 'Cancelled'}
+                                                            >
+                                                                <XCircle className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateStatusMutation.mutate({ id: appt._id, status: 'Accepted' })}
+                                                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-2"
+                                                            >
+                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                {appt.status === 'Cancelled' ? 'Re-Accept' : 'Accept'}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {(appt.status === 'Accepted' || appt.status === 'Rescheduled') && (
+                                                        <button
+                                                            onClick={() => {
+                                                                if (!appt.sessionStartTime) {
+                                                                    // Save start time if not already started
+                                                                    doctorApi.updateAppointment(appt._id, { sessionStartTime: new Date() });
+                                                                }
+                                                                navigate(`/doctor/session/${appt._id}`);
+                                                            }}
+                                                            className="px-4 py-2 bg-secondary-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
+                                                        >
+                                                            <Activity className="w-3 h-3" />
+                                                            Start Session
+                                                        </button>
+                                                    )}
+                                                    {appt.status === 'Completed' && (
+                                                        <button
+                                                            onClick={() => setViewingPrescription(appt._id)}
+                                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            title="View Prescription"
+                                                        >
+                                                            <ClipboardList className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            )}
-                                            {appt.status === 'Completed' && (
-                                                <button
-                                                    onClick={() => setViewingPrescription(appt._id)}
-                                                    className="px-6 py-3 bg-blue-50 text-blue-600 rounded-2xl text-xs font-black uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all active:scale-95 flex items-center gap-2 shadow-sm"
-                                                >
-                                                    <ClipboardList className="w-4 h-4" />
-                                                    View Prescription
-                                                </button>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                ))
-                            )}
-                        </div>
-
-                        {!isLoading && (
-                            <TablePagination
-                                currentPage={currentPage}
-                                totalPages={totalPages || 1}
-                                totalItems={filteredAppointments?.length || 0}
-                                itemsPerPage={itemsPerPage}
-                                onPageChange={handlePageChange}
-                                onItemsPerPageChange={handleItemsPerPageChange}
-                            />
-                        )}
+                                            </td>
+                                        </motion.tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
+
+                    {!isLoading && (
+                        <TablePagination
+                            currentPage={currentPage}
+                            totalPages={totalPages || 1}
+                            totalItems={filteredAppointments?.length || 0}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={handlePageChange}
+                            onItemsPerPageChange={handleItemsPerPageChange}
+                        />
+                    )}
                 </div>
             </DashboardLayout>
 

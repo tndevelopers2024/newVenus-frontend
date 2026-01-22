@@ -38,6 +38,7 @@ export const doctorApi = {
     searchMedications: (query) => api.get(`/doctor/medications/search?query=${query}`),
     getPrescriptionByAppointment: (id) => api.get(`/doctor/appointments/${id}/prescription`),
     updatePaymentStatus: (id, status) => api.patch(`/doctor/appointments/${id}/payment`, { status }),
+    reorderAppointments: (orderedIds) => api.put('/doctor/appointments/reorder', { orderedIds }),
 };
 
 // Admin API
@@ -55,6 +56,7 @@ export const adminApi = {
     assignAppointment: (data) => api.post('/admin/appointments', data),
     deleteAppointment: (id) => api.delete(`/admin/appointments/${id}`),
     updateInvoiceStatus: (id, status) => api.patch(`/admin/invoices/${id}/status`, { status }),
+    getPrescriptionByAppointment: (id) => api.get(`/admin/appointments/${id}/prescription`),
 };
 
 // Auth API

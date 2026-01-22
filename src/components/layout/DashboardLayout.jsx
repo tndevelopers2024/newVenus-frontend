@@ -367,7 +367,7 @@ const DashboardLayout = ({ children, links }) => {
 
             <div className="flex-1 flex flex-col overflow-hidden w-full relative">
                 <Header onMenuClick={() => setMobileMenuOpen(true)} />
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth w-full">
+                <main className="flex-1 overflow-y-auto p-4 md:px-6 scroll-smooth w-full">
                     {children}
                 </main>
             </div>

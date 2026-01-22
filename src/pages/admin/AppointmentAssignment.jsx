@@ -21,7 +21,7 @@ const AppointmentAssignment = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [formData, setFormData] = useState({
-        patientId: '',
+        patientIds: [],
         doctorId: '',
         reasons: [],
         additionalNotes: ''
@@ -32,17 +32,82 @@ const AppointmentAssignment = () => {
         doctor: ''
     });
 
+    const getDisplayId = (user) => {
+        if (!user) return 'XXX-000';
+        if (user.displayId) return user.displayId;
+        if (!user.name || !user._id) return 'XXX-000';
+        const prefix = user.name.slice(0, 3).toUpperCase();
+        const decimal = parseInt(user._id.slice(-4), 16);
+        const suffix = (decimal % 1000).toString().padStart(3, '0');
+        return `${prefix}-${suffix}`;
+    };
+
     const { data: users } = useQuery({
         queryKey: ['adminUsersAssignment'],
         queryFn: () => adminApi.getUsers().then(res => res.data)
     });
 
     const assignMutation = useMutation({
-        mutationFn: adminApi.assignAppointment,
-        onSuccess: () => {
+        mutationFn: adminApi.assignAppointment
+    });
+
+    const patients = (users || [])
+        .filter(u => u.role === 'patient')
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    const doctors = (users || []).filter(u => u.role === 'doctor');
+
+    const filteredPatients = searchTerms.patient
+        ? patients.filter(p => {
+            const displayId = getDisplayId(p);
+            return (
+                p.name?.toLowerCase().includes(searchTerms.patient.toLowerCase()) ||
+                displayId.toLowerCase().includes(searchTerms.patient.toLowerCase())
+            );
+        })
+        : patients.slice(0, 5);
+
+    const filteredDoctors = doctors.filter(d => {
+        const displayId = getDisplayId(d);
+        return (
+            d.name.toLowerCase().includes(searchTerms.doctor.toLowerCase()) ||
+            displayId.toLowerCase().includes(searchTerms.doctor.toLowerCase())
+        );
+    });
+
+    const togglePatient = (id) => {
+        setFormData(prev => {
+            const isSelected = prev.patientIds.includes(id);
+            return {
+                ...prev,
+                patientIds: isSelected
+                    ? prev.patientIds.filter(pid => pid !== id)
+                    : [...prev.patientIds, id]
+            };
+        });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (formData.patientIds.length === 0 || !formData.doctorId) return;
+
+        const combinedReason = [
+            ...formData.reasons,
+            ...(formData.additionalNotes ? [formData.additionalNotes] : [])
+        ].join('. ');
+
+        try {
+            await Promise.all(formData.patientIds.map(patientId =>
+                assignMutation.mutateAsync({
+                    patientId,
+                    doctorId: formData.doctorId,
+                    reason: combinedReason || 'Scheduled Visit'
+                })
+            ));
+
             queryClient.invalidateQueries(['adminInvoicesSummary']);
             queryClient.invalidateQueries(['adminAppointmentsAll']);
-            toast.success('Patient assigned successfully!', {
+            toast.success('Appointments assigned successfully!', {
                 icon: '🏥',
                 style: {
                     borderRadius: '20px',
@@ -54,57 +119,26 @@ const AppointmentAssignment = () => {
                     letterSpacing: '1px'
                 },
             });
-            // Reset form for next assignment
+
+            // Reset form
             setFormData({
-                patientId: '',
+                patientIds: [],
                 doctorId: '',
                 reasons: [],
                 additionalNotes: ''
             });
+        } catch (error) {
+            toast.error('Failed to assign some appointments');
         }
-    });
-
-    const patients = (users || [])
-        .filter(u => u.role === 'patient')
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    const doctors = (users || []).filter(u => u.role === 'doctor');
-
-    const filteredPatients = searchTerms.patient
-        ? patients.filter(p =>
-            p.name?.toLowerCase().includes(searchTerms.patient.toLowerCase()) ||
-            p.email?.toLowerCase().includes(searchTerms.patient.toLowerCase())
-        )
-        : patients.slice(0, 5);
-
-    const filteredDoctors = doctors.filter(d =>
-        d.name.toLowerCase().includes(searchTerms.doctor.toLowerCase()) ||
-        d.email.toLowerCase().includes(searchTerms.doctor.toLowerCase())
-    );
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const combinedReason = [
-            ...formData.reasons,
-            ...(formData.additionalNotes ? [formData.additionalNotes] : [])
-        ].join('. ');
-
-        assignMutation.mutate({
-            patientId: formData.patientId,
-            doctorId: formData.doctorId,
-            reason: combinedReason || 'Scheduled Visit'
-        });
     };
 
     const commonReasons = [
-        'General Checkup',
-        'Fever & Cold',
-        'Blood Test',
-        'Follow-up Visit',
-        'Vaccination',
-        'Physiotherapy',
-        'Post-Op Review',
-        'Consultation'
+        'CONSULTATION',
+        'ECG',
+        'ECHO [2D ECHO CARDIOGRAM]',
+        'TMT',
+        'MASTER HEALTH CHECK UP (basic)',
+        'MASTER HEALTH CHECK UP (ADVANCED)'
     ];
 
     const toggleReason = (reason) => {
@@ -119,7 +153,7 @@ const AppointmentAssignment = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto pb-20">
+            <div className="max-w-8xl mx-auto pb-20">
                 <div className="mb-10 flex items-center gap-4">
                     <Link to="/admin" className="p-3 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-slate-400 hover:text-primary-600">
                         <ChevronLeft className="w-5 h-5" />
@@ -131,7 +165,7 @@ const AppointmentAssignment = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Patient Selection */}
                         <div className="glass-card p-8">
                             <div className="flex items-center gap-3 mb-6">
@@ -145,19 +179,19 @@ const AppointmentAssignment = () => {
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary-500/20"
-                                    placeholder="Search by name or email..."
+                                    placeholder="Search by name or ID..."
                                     value={searchTerms.patient}
                                     onChange={(e) => setSearchTerms({ ...searchTerms, patient: e.target.value })}
                                 />
                             </div>
 
-                            <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-2">
+                            <div className="max-h-[500px] overflow-y-auto custom-scrollbar space-y-2">
                                 {filteredPatients.map(p => (
                                     <button
                                         key={p._id}
                                         type="button"
-                                        onClick={() => setFormData({ ...formData, patientId: p._id })}
-                                        className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${formData.patientId === p._id
+                                        onClick={() => togglePatient(p._id)}
+                                        className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all ${formData.patientIds.includes(p._id)
                                             ? 'bg-primary-50 border-primary-200 ring-1 ring-primary-100'
                                             : 'bg-white border-slate-100 hover:border-slate-200'
                                             }`}
@@ -167,11 +201,15 @@ const AppointmentAssignment = () => {
                                                 {p.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black text-secondary-900 uppercase">{p.name}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold">{p.email}</p>
+                                                <p className="text-xs font-bold text-secondary-900 uppercase">{p.name}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold tracking-wider">#{getDisplayId(p)}</p>
                                             </div>
                                         </div>
-                                        {formData.patientId === p._id && <Check className="w-4 h-4 text-primary-600" />}
+                                        <div className="flex flex-col items-end gap-0.5">
+                                            <span className="text-[9px] font-black text-slate-700 uppercase tracking-wider">Reg. Date</span>
+                                            <span className="text-[9px] font-bold text-slate-500">{new Date(p.createdAt).toLocaleDateString('en-GB')}</span>
+                                            {formData.patientIds.includes(p._id) && <Check className="w-4 h-4 text-primary-600 mt-1" />}
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -191,7 +229,6 @@ const AppointmentAssignment = () => {
                                 <input
                                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-emerald-500/20"
                                     placeholder="Search specialists..."
-                                    value={searchTerms.doctor}
                                     onChange={(e) => setSearchTerms({ ...searchTerms, doctor: e.target.value })}
                                 />
                             </div>
@@ -212,8 +249,8 @@ const AppointmentAssignment = () => {
                                                 Dr.
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black text-secondary-900 uppercase">{d.name}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold">{d.email}</p>
+                                                <p className="text-xs font-bold text-secondary-900 uppercase">{d.name}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold tracking-wider">{d.specialization || 'General Medicine'}</p>
                                             </div>
                                         </div>
                                         {formData.doctorId === d._id && <Check className="w-4 h-4 text-emerald-600" />}
@@ -221,65 +258,66 @@ const AppointmentAssignment = () => {
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    <div className="glass-card p-10 space-y-8">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                                <Calendar className="w-5 h-5" />
+                        {/* Consultation Details */}
+                        <div className="glass-card p-8 flex flex-col h-full">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                    <Calendar className="w-5 h-5" />
+                                </div>
+                                <h3 className="font-black text-secondary-900 uppercase tracking-tight">Details</h3>
                             </div>
-                            <h3 className="font-black text-secondary-900 uppercase tracking-tight">Consultation Details</h3>
-                        </div>
 
-                        <div className="space-y-4">
-                            <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Common Reasons</label>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                                {commonReasons.map(reason => (
-                                    <button
-                                        key={reason}
-                                        type="button"
-                                        onClick={() => toggleReason(reason)}
-                                        className={`px-4 py-3 rounded-2xl text-[13px] font-black uppercase tracking-tight border transition-all ${formData.reasons.includes(reason)
-                                            ? 'bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-200'
-                                            : 'bg-white border-slate-100 text-[#2c2c2c] hover:border-slate-200'
-                                            }`}
-                                    >
-                                        {reason}
-                                    </button>
-                                ))}
+                            <div className="space-y-4 flex-1">
+                                <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Common Reasons</label>
+                                <div className="grid grid-cols-2 gap-2 mt-4">
+                                    {commonReasons.map(reason => (
+                                        <button
+                                            key={reason}
+                                            type="button"
+                                            onClick={() => toggleReason(reason)}
+                                            className={`px-2 py-3 rounded-2xl text-[11px] font-black uppercase tracking-tight border transition-all ${formData.reasons.includes(reason)
+                                                ? 'bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-200'
+                                                : 'bg-white border-slate-100 text-[#2c2c2c] hover:border-slate-200'
+                                                }`}
+                                        >
+                                            {reason}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Additional Medical Notes (Optional)</label>
-                            <div className="relative mt-4">
-                                <MessageSquare className="absolute left-4 top-5 w-4 h-4 text-slate-400" />
-                                <textarea
-                                    className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold min-h-[100px] focus:ring-2 focus:ring-primary-500/20"
-                                    placeholder="Any specific symptoms or context..."
-                                    value={formData.additionalNotes}
-                                    onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
-                                />
+                            <div className="space-y-2 mt-6">
+                                <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Notes (Optional)</label>
+                                <div className="relative mt-2">
+                                    <MessageSquare className="absolute left-4 top-4 w-4 h-4 text-slate-400" />
+                                    <textarea
+                                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm font-bold min-h-[80px] focus:ring-2 focus:ring-primary-500/20"
+                                        placeholder="Symptoms..."
+                                        value={formData.additionalNotes}
+                                        onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        <button
-                            type="submit"
-                            disabled={assignMutation.isPending || !formData.patientId || !formData.doctorId}
-                            className="w-full py-5 bg-secondary-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-primary-600 transition-all shadow-xl shadow-secondary-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98]"
-                        >
-                            {assignMutation.isPending ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Creating Record...
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle2 className="w-5 h-5" />
-                                    Finalize Assignment
-                                </>
-                            )}
-                        </button>
+                            <button
+                                type="submit"
+                                disabled={assignMutation.isPending || formData.patientIds.length === 0 || !formData.doctorId}
+                                className="w-full mt-6 py-4 bg-secondary-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-primary-600 transition-all shadow-xl shadow-secondary-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98]"
+                            >
+                                {assignMutation.isPending ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Creating Record...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 className="w-5 h-5" />
+                                        Book Appointment
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

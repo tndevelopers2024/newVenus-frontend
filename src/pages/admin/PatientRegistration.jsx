@@ -51,7 +51,7 @@ const PatientRegistration = () => {
                         <ChevronLeft className="w-5 h-5" />
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Onboard Patient</h1>
+                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Add New Patient</h1>
                         <p className="text-slate-500 font-medium">Clerical Enrollment & Governance</p>
                     </div>
                 </div>

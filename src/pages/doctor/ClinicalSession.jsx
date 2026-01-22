@@ -9,10 +9,14 @@ import {
     Send,
     ArrowLeft,
     Search,
-    User
+    User,
+    Printer,
+    Calendar
 } from 'lucide-react';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { getUnifiedDocumentHTML } from '../../components/shared/UnifiedDocument';
+import CalendarDatePicker from '../../components/ui/CalendarDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ClinicalSession = () => {
@@ -21,9 +25,10 @@ const ClinicalSession = () => {
     const queryClient = useQueryClient();
 
     // Vitals and clinical state
-    const [medications, setMedications] = useState([{ name: '', frequency: '', duration: '' }]);
+    const [medications, setMedications] = useState([{ name: '', frequency: '', duration: '', instruction: 'After Food' }]);
     const [medicationToDelete, setMedicationToDelete] = useState(null);
     const [notes, setNotes] = useState('');
+    const [followUpDate, setFollowUpDate] = useState('');
     const [diagnosis, setDiagnosis] = useState('');
     const [clinicalNotes, setClinicalNotes] = useState('');
     const [vitals, setVitals] = useState({
@@ -44,14 +49,38 @@ const ClinicalSession = () => {
 
     const prescribeMutation = useMutation({
         mutationFn: (data) => doctorApi.createPrescription(data),
-        onSuccess: () => {
+        onSuccess: (data) => {
+            // Trigger Print
+            const printData = {
+                createdAt: new Date(),
+                appointmentId: appointment?._id,
+                prescription: {
+                    doctor: appointment?.doctor,
+                    patient: appointment?.patient,
+                    medications: medications,
+                    notes: notes,
+                    followUpDate: followUpDate
+                },
+                clinicalDetails: {
+                    vitals: vitals,
+                    diagnosis: diagnosis
+                }
+            };
+
+            const html = getUnifiedDocumentHTML(printData, 'prescription');
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(html);
+                printWindow.document.close();
+            }
+
             queryClient.invalidateQueries(['doctorAppointments']);
             navigate('/doctor/appointments');
         }
     });
 
     const addMedication = () => {
-        setMedications([...medications, { name: '', frequency: '', duration: '' }]);
+        setMedications([...medications, { name: '', frequency: '', duration: '', instruction: 'After Food' }]);
     };
 
     const removeMedication = (index) => {
@@ -83,7 +112,8 @@ const ClinicalSession = () => {
             notes,
             diagnosis,
             clinicalNotes,
-            vitals
+            vitals,
+            followUpDate
         });
     };
 
@@ -111,127 +141,130 @@ const ClinicalSession = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto py-10 px-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                    <div className="flex items-center gap-6">
+            <div className="max-w-7xl mx-auto py-6 px-4">
+                {/* Header & Patient Info Combined */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <div className="flex items-center gap-4">
                         <button
                             onClick={() => navigate('/doctor/appointments')}
-                            className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-secondary-900 shadow-sm transition-all active:scale-95"
+                            className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors text-slate-500"
                         >
-                            <ArrowLeft className="w-6 h-6" />
+                            <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <h1 className="text-4xl font-black text-secondary-900 uppercase tracking-tighter">Clinical Session</h1>
-                            <div className="flex items-center gap-4 mt-1">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">Patient: {appointment.patient?.name}</span>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">ID: {appointment._id?.slice(-8).toUpperCase()}</span>
+                            <h1 className="text-xl font-black text-secondary-900 uppercase tracking-tight">Clinical Session</h1>
+                            <div className="flex items-center gap-3">
+                                <p className="text-sm font-bold text-slate-700">{appointment.patient?.name}</p>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">#{appointment.patient?.displayId}</span>
                             </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6 text-sm text-slate-500">
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] uppercase font-bold text-slate-300 tracking-widest">Appointment Date</span>
+                            <span className="font-bold text-secondary-900">{new Date(appointment.date).toLocaleDateString('en-GB')}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] uppercase font-bold text-slate-300 tracking-widest">Reason</span>
+                            <span className="font-bold text-secondary-900">{appointment.reason || 'General'}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-10">
+                <div className="flex flex-col gap-6">
 
-                    {/* 1. Patient Profile */}
-                    <div className="bg-secondary-900 rounded-[32px] p-8 text-white relative overflow-hidden shadow-xl shadow-secondary-900/20">
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
-                            <div className="flex items-center gap-6">
-                                <div className="w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-3xl font-black">
-                                    {appointment.patient?.name?.charAt(0)}
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Patient Profile</p>
-                                    <h4 className="text-3xl font-black uppercase tracking-tight">{appointment.patient?.name}</h4>
-                                    <p className="text-sm text-slate-400 mt-1">{appointment.patient?.email}</p>
-                                </div>
+                    {/* Vitals Grid - Compact */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {Object.entries(vitals).map(([key, value]) => (
+                            <div key={key} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                                <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block tracking-widest">{key.replace(/([A-Z])/g, ' $1')}</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                                    placeholder={key === 'bloodPressure' ? '120/80' : '-'}
+                                    value={value}
+                                    onChange={(e) => setVitals({ ...vitals, [key]: e.target.value })}
+                                />
                             </div>
-                            <div className="h-px md:h-16 w-full md:w-px bg-white/10" />
-                            <div className="grid grid-cols-2 gap-8">
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Appointment Date</p>
-                                    <p className="text-base font-bold">{new Date(appointment.date).toLocaleDateString()}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Reason</p>
-                                    <p className="text-base font-bold truncate max-w-[200px]">{appointment.reason || 'General Checkup'}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <User className="absolute bottom-[-40px] right-[-40px] w-64 h-64 text-white/5 opacity-5" />
+                        ))}
                     </div>
 
-                    {/* 2. Medication Details */}
-                    <section className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-xl shadow-slate-200/50 relative">
-                        {/* RX Watermark */}
-                        <div className="absolute top-10 right-10 text-[200px] font-black text-slate-50 opacity-[0.5] select-none pointer-events-none leading-none">Rx</div>
-
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-12">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-secondary-50 rounded-2xl">
-                                        <Activity className="w-6 h-6 text-secondary-900" />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Medications - Compact List */}
+                        <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-secondary-50 rounded-xl">
+                                        <Activity className="w-5 h-5 text-secondary-900" />
                                     </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Medications</h3>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Prescription Details</p>
-                                    </div>
+                                    <h3 className="text-lg font-black text-secondary-900 uppercase tracking-tight">Medications</h3>
                                 </div>
                                 <button
                                     onClick={addMedication}
-                                    className="flex items-center gap-3 px-6 py-3 bg-secondary-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-secondary-200"
+                                    className="px-4 py-2 bg-secondary-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2"
                                 >
-                                    <Plus className="w-4 h-4" />
+                                    <Plus className="w-3 h-3" />
                                     Add Drug
                                 </button>
                             </div>
 
-                            <div className="space-y-6">
+                            <div className="space-y-4">
                                 <AnimatePresence mode="popLayout">
                                     {medications.map((med, index) => (
                                         <motion.div
                                             key={index}
-                                            initial={{ opacity: 0, y: 10 }}
+                                            initial={{ opacity: 0, y: 5 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, x: -20 }}
-                                            className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end pb-8 border-b border-slate-50 last:border-0 group relative bg-secondary-50/30 p-6 rounded-3xl"
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50/50 rounded-2xl border border-slate-100"
                                         >
-                                            <div className="md:col-span-11 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                <div className="relative">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Drugs</label>
-                                                    <input
-                                                        value={med.name}
-                                                        onChange={(e) => handleMedChange(index, 'name', e.target.value)}
-                                                        className="w-full bg-white border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary-500/10 transition-all shadow-sm"
-                                                        placeholder="Drug Name"
-                                                    />
-                                                    <DrugAutosuggest
-                                                        query={med.name}
-                                                        onSelect={(val) => handleMedChange(index, 'name', val)}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Frequency</label>
-                                                    <input
-                                                        value={med.frequency}
-                                                        onChange={(e) => handleMedChange(index, 'frequency', e.target.value)}
-                                                        className="w-full bg-white border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary-500/10 transition-all shadow-sm"
-                                                        placeholder="1-0-1"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Duration (Days)</label>
-                                                    <input
-                                                        value={med.duration}
-                                                        onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
-                                                        className="w-full bg-white border-none rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary-500/10 transition-all shadow-sm"
-                                                        placeholder="5 Days"
-                                                    />
-                                                </div>
+                                            <div className="col-span-4 relative">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Drug Name</label>
+                                                <input
+                                                    value={med.name}
+                                                    onChange={(e) => handleMedChange(index, 'name', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
+                                                    placeholder="Enter name"
+                                                />
+                                                <DrugAutosuggest
+                                                    query={med.name}
+                                                    onSelect={(val) => handleMedChange(index, 'name', val)}
+                                                />
                                             </div>
-                                            <div className="md:col-span-1 pb-1 flex justify-end">
+                                            <div className="col-span-2">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Freq</label>
+                                                <input
+                                                    value={med.frequency}
+                                                    onChange={(e) => handleMedChange(index, 'frequency', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
+                                                    placeholder="1-0-1"
+                                                />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Days</label>
+                                                <input
+                                                    value={med.duration}
+                                                    onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
+                                                    placeholder="5"
+                                                />
+                                            </div>
+                                            <div className="col-span-3">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Instruction</label>
+                                                <select
+                                                    value={med.instruction || 'After Food'}
+                                                    onChange={(e) => handleMedChange(index, 'instruction', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
+                                                >
+                                                    <option value="After Food">After Food</option>
+                                                    <option value="Before Food">Before Food</option>
+                                                    <option value="With Food">With Food</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-1 flex justify-center pb-1">
                                                 {medications.length > 1 && (
-                                                    <button onClick={() => removeMedication(index)} className="p-3 text-slate-400 hover:text-white hover:bg-rose-500 transition-all rounded-xl">
-                                                        <Trash2 className="w-5 h-5" />
+                                                    <button onClick={() => removeMedication(index)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>
@@ -240,97 +273,69 @@ const ClinicalSession = () => {
                                 </AnimatePresence>
                             </div>
                         </div>
-                    </section>
 
-                    {/* 3. Clinical Vitals */}
-                    <section className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3 bg-primary-50 rounded-2xl">
-                                <Activity className="w-6 h-6 text-primary-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Clinical Vitals</h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Patient Vitals Record</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            {Object.entries(vitals).map(([key, value]) => (
-                                <div key={key}>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">{key.replace(/([A-Z])/g, ' $1')}</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border border-transparent rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-primary-500/10 transition-all shadow-inner"
-                                        placeholder={key === 'bloodPressure' ? '120/80' : '-'}
-                                        value={value}
-                                        onChange={(e) => setVitals({ ...vitals, [key]: e.target.value })}
-                                    />
+                        {/* Diagnosis & Submit - Sidebar Style */}
+                        <div className="flex flex-col gap-4">
+                            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex-1">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-emerald-50 rounded-xl">
+                                        <Stethoscope className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                    <h3 className="text-lg font-black text-secondary-900 uppercase tracking-tight">Diagnosis</h3>
                                 </div>
-                            ))}
-                        </div>
-                    </section>
 
-                    {/* 4. Diagnosis and Notes */}
-                    <section className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3 bg-emerald-50 rounded-2xl">
-                                <Stethoscope className="w-6 h-6 text-emerald-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Diagnosis</h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Medical Conclusion</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-8">
-                            <div>
-                                <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Medical Diagnosis</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-slate-50 border border-transparent rounded-2xl px-6 py-4 text-base font-bold outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/10 shadow-inner"
-                                    placeholder="Principal diagnosis..."
-                                    value={diagnosis}
-                                    onChange={(e) => setDiagnosis(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Clinical Observations</label>
-                                    <textarea
-                                        className="w-full bg-slate-50 border border-transparent rounded-[24px] px-6 py-5 text-sm font-medium outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/10 h-40 resize-none shadow-inner"
-                                        placeholder="Detailed clinical findings..."
-                                        value={clinicalNotes}
-                                        onChange={(e) => setClinicalNotes(e.target.value)}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block tracking-widest">Physician's Closing Advice</label>
-                                    <textarea
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        className="w-full bg-slate-50 border border-transparent rounded-[24px] px-6 py-5 text-sm font-medium outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/10 h-40 resize-none shadow-inner"
-                                        placeholder="Instructions for the patient..."
-                                    />
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block tracking-widest">Medical Diagnosis</label>
+                                        <input
+                                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-1 focus:ring-emerald-500"
+                                            placeholder="Primary finding..."
+                                            value={diagnosis}
+                                            onChange={(e) => setDiagnosis(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block tracking-widest">Clinical Notes</label>
+                                        <textarea
+                                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-emerald-500 h-24 resize-none"
+                                            placeholder="Observations..."
+                                            value={clinicalNotes}
+                                            onChange={(e) => setClinicalNotes(e.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <textarea
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-emerald-500 h-24 resize-none"
+                                            placeholder="Instructions..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block tracking-widest">Follow-up Date</label>
+                                        <CalendarDatePicker
+                                            value={followUpDate}
+                                            onChange={setFollowUpDate}
+                                            label="Select Date"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="mt-12 pt-10 border-t border-slate-100 flex justify-end">
                             <button
                                 onClick={handleSubmit}
                                 disabled={prescribeMutation.isPending}
-                                className="group relative overflow-hidden px-12 py-5 bg-secondary-900 text-white rounded-[24px] text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-secondary-900/40 hover:bg-black transition-all active:scale-95 flex items-center gap-4"
+                                className="w-full py-4 bg-secondary-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none"></div>
-                                {prescribeMutation.isPending ? 'Syncing...' : (
+                                {prescribeMutation.isPending ? 'Saving...' : (
                                     <>
-                                        <Send className="w-5 h-5" />
-                                        Create Prescription
+                                        <Printer className="w-4 h-4" />
+                                        Print Prescription
                                     </>
                                 )}
                             </button>
                         </div>
-                    </section>
+                    </div>
 
                 </div>
             </div>

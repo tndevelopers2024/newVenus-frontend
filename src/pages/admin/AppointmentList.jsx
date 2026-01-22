@@ -14,12 +14,14 @@ import {
     XCircle,
     ChevronLeft,
     ChevronRight,
-    X
+    X,
+    Printer
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
+import { getUnifiedDocumentHTML } from '../../components/shared/UnifiedDocument';
 
 const AppointmentList = () => {
     const queryClient = useQueryClient();
@@ -58,6 +60,48 @@ const AppointmentList = () => {
             toast.error(err.response?.data?.message || 'Failed to remove assignment');
         }
     });
+
+    const handlePrint = async (appt) => {
+        try {
+            const toastId = toast.loading('Fetching prescription...');
+            const res = await adminApi.getPrescriptionByAppointment(appt._id);
+            const { prescription, clinicalDetails } = res.data;
+
+            if (!prescription) {
+                toast.dismiss(toastId);
+                toast.error('No prescription found for this appointment');
+                return;
+            }
+
+            const printData = {
+                createdAt: new Date(),
+                appointmentId: appt._id,
+                prescription: {
+                    doctor: appt.doctor,
+                    patient: appt.patient,
+                    medications: prescription.medications,
+                    notes: prescription.notes,
+                    followUpDate: prescription.followUpDate
+                },
+                clinicalDetails: {
+                    vitals: clinicalDetails?.vitals || prescription.vitals, // Handle both structures just in case
+                    diagnosis: clinicalDetails?.diagnosis || prescription.diagnosis,
+                    clinicalNotes: clinicalDetails?.clinicalNotes || prescription.clinicalNotes
+                }
+            };
+
+            const html = getUnifiedDocumentHTML(printData, 'prescription');
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.write(html);
+                printWindow.document.close();
+            }
+            toast.dismiss(toastId);
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to print prescription');
+        }
+    };
 
 
     const filteredAppointments = appointments?.filter(appt => {
@@ -106,17 +150,17 @@ const AppointmentList = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto py-10 px-4">
+            <div className="max-w-8xl mx-auto py-0 px-4">
                 <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
                         <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter flex items-center gap-3">
                             <Calendar className="w-8 h-8 text-primary-500" />
-                            Active Assignments
+                            Active Appointments
                         </h1>
                         <p className="text-slate-500 mt-1 font-bold">Monitor and manage all patient-doctor links</p>
                     </div>
                     <Link to="/admin/appointments" className="px-6 py-3 bg-secondary-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:bg-primary-600 transition-all flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" /> New Assignment
+                        <CheckCircle2 className="w-4 h-4" /> New Appointment
                     </Link>
                 </div>
 
@@ -351,9 +395,13 @@ const AppointmentList = () => {
                                                         <XCircle className="w-5 h-5" />
                                                     </button>
                                                 ) : (
-                                                    <div className="w-9 h-9 flex items-center justify-center text-emerald-500 bg-emerald-50 rounded-xl mx-auto md:mr-0 ml-auto" title="Historical Record">
-                                                        <CheckCircle2 className="w-4 h-4" />
-                                                    </div>
+                                                    <button
+                                                        onClick={() => handlePrint(appt)}
+                                                        className="w-9 h-9 flex items-center justify-center text-primary-500 bg-primary-50 hover:bg-primary-100 hover:text-primary-700 transition-colors rounded-xl mx-auto md:mr-0 ml-auto"
+                                                        title="Print Prescription"
+                                                    >
+                                                        <Printer className="w-4 h-4" />
+                                                    </button>
                                                 )}
                                             </td>
                                         </tr>

@@ -50,6 +50,16 @@ const UserManager = () => {
         setCurrentPage(1);
     };
 
+    const getDisplayId = (user) => {
+        if (!user) return 'XXX-000';
+        if (user.displayId) return user.displayId;
+        if (!user.name || !user._id) return 'XXX-000';
+        const prefix = user.name.slice(0, 3).toUpperCase();
+        const decimal = parseInt(user._id.slice(-4), 16);
+        const suffix = (decimal % 1000).toString().padStart(3, '0');
+        return `${prefix}-${suffix}`;
+    };
+
     const deleteMutation = useMutation({
         mutationFn: (id) => adminApi.deleteUser(id),
         onSuccess: () => {
@@ -68,8 +78,8 @@ const UserManager = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto py-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 ">
+            <div className="max-w-8xl mx-auto py-0">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 ">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900 uppercase">User Management</h1>
                         <p className="text-slate-500 mt-1">Control access levels and manage profiles</p>
@@ -80,7 +90,7 @@ const UserManager = () => {
                             className="btn-secondary flex items-center justify-center gap-2 border-2 border-slate-200 px-6 py-3 rounded-2xl font-bold text-sm tracking-tight hover:bg-slate-50 transition-all"
                         >
                             <UserPlus className="w-4 h-4" />
-                            Onboard Patient
+                            Add New Patient
                         </button>
                         <button
                             onClick={() => navigate('/admin/doctors/register')}
@@ -149,7 +159,7 @@ const UserManager = () => {
                                                     </div>
                                                     <div>
                                                         <p className={`font-bold ${user.isDeleted ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{user.name}</p>
-                                                        <p className="text-xs text-slate-400">ID: {user._id.slice(-8)}</p>
+                                                        <p className="text-xs text-slate-400">#{getDisplayId(user)}</p>
                                                     </div>
                                                 </div>
                                             </td>

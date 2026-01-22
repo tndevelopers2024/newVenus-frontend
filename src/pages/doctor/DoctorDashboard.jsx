@@ -1,19 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-    ClipboardList,
     Calendar,
-    Users,
-    FileEdit,
-    MessageSquare,
     Search,
-    ArrowRight
+    ArrowRight,
+    GripVertical
 } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    TouchSensor,
+    MouseSensor
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
+
+// Sortable Item Component
+const SortableItem = ({ appt, navigate, setConfirmModal }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: appt._id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 5 : 1,
+        position: 'relative',
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 p-4 md:p-6 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all group">
+            <div className="flex items-center gap-4 sm:block w-full sm:w-16 relative">
+                {/* Drag Handle - Global Left */}
+                <div {...attributes} {...listeners} className="absolute -left-8 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-slate-500 cursor-grab hidden sm:block">
+                    <GripVertical className="w-5 h-5" />
+                </div>
+
+                {/* Mobile Drag Handle (Top Right) */}
+                <div {...attributes} {...listeners} className="sm:hidden absolute top-4 right-4 p-2 text-slate-300 cursor-grab">
+                    <GripVertical className="w-5 h-5" />
+                </div>
+
+                <div className="w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-slate-100 shrink-0">
+                    <span className="text-xs font-bold text-slate-400 uppercase">
+                        {new Date(appt.date).toLocaleString('default', { month: 'short' })}
+                    </span>
+                    <span className="text-xl font-extrabold text-slate-900">
+                        {new Date(appt.date).getDate()}
+                    </span>
+                </div>
+                {/* Mobile-only time display next to date box */}
+                <div className="sm:hidden">
+                    <p className="font-bold text-slate-900">{new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{appt.status}</p>
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-hidden w-full">
+                <h4
+                    onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
+                    className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors text-lg"
+                >
+                    {appt.patient?.name}
+                </h4>
+                <p className="text-sm text-slate-500 hidden sm:block">{appt.reason || 'Checkup'} • {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="text-sm text-slate-500 sm:hidden">{appt.reason || 'Checkup'}</p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                    onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-white text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={() => navigate('/doctor/appointments')}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 shadow-md transition-shadow active:shadow-inner"
+                >
+                    View
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const DoctorDashboard = () => {
     const { user } = useAuth();
@@ -21,6 +112,7 @@ const DoctorDashboard = () => {
     const queryClient = useQueryClient();
     const [dashSearch, setDashSearch] = useState('');
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
+    const [orderedAppointments, setOrderedAppointments] = useState([]);
 
     const { data: appointments, isLoading } = useQuery({
         queryKey: ['doctorAppointments'],
@@ -30,16 +122,57 @@ const DoctorDashboard = () => {
         }
     });
 
+    // Initialize local state when data loads
+    useEffect(() => {
+        if (appointments) {
+            const pending = appointments.filter(a => ['Pending', 'Accepted', 'Rescheduled'].includes(a.status));
+            // Sort by order field if it exists, otherwise preserve backend sort (usually date)
+            const sorted = [...pending].sort((a, b) => (a.order || 0) - (b.order || 0));
+            // If all orders are 0 (legacy), fallback to date? No, let's trust backend or default.
+            // Actually, if we want drag and drop to work, we should just use the array order.
+            // If the backend sends them sorted by date by default, we just use that.
+            setOrderedAppointments(sorted);
+        }
+    }, [appointments]);
+
     const updateStatusMutation = useMutation({
         mutationFn: ({ id, status }) => doctorApi.updateAppointment(id, { status }),
         onSuccess: () => {
             queryClient.invalidateQueries(['doctorAppointments']);
-            setConfirmModal({ isOpen: false, id: null }); // Close modal on success
+            setConfirmModal({ isOpen: false, id: null });
         }
     });
 
+    const reorderMutation = useMutation({
+        mutationFn: (orderedIds) => doctorApi.reorderAppointments(orderedIds),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['doctorAppointments']);
+        }
+    });
 
-    const upcomingAppointments = appointments?.filter(a => ['Pending', 'Accepted', 'Rescheduled'].includes(a.status)) || [];
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+        useSensor(TouchSensor),
+        useSensor(MouseSensor)
+    );
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+
+        if (active.id !== over.id) {
+            setOrderedAppointments((items) => {
+                const oldIndex = items.findIndex((item) => item._id === active.id);
+                const newIndex = items.findIndex((item) => item._id === over.id);
+                const newItems = arrayMove(items, oldIndex, newIndex);
+
+                // Trigger API update
+                reorderMutation.mutate(newItems.map(item => item._id));
+
+                return newItems;
+            });
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -75,55 +208,30 @@ const DoctorDashboard = () => {
                                 {[1, 2].map(i => <div key={i} className="h-24 bg-slate-50 rounded-2xl"></div>)}
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                {upcomingAppointments.length === 0 && (
-                                    <p className="text-slate-400 text-center py-10">No appointments for today yet.</p>
-                                )}
-                                {upcomingAppointments.map((appt) => (
-                                    <div key={appt._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 p-4 md:p-6 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all">
-                                        <div className="flex items-center gap-4 sm:block w-full sm:w-16">
-                                            <div className="w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-slate-100 shrink-0">
-                                                <span className="text-xs font-bold text-slate-400 uppercase">
-                                                    {new Date(appt.date).toLocaleString('default', { month: 'short' })}
-                                                </span>
-                                                <span className="text-xl font-extrabold text-slate-900">
-                                                    {new Date(appt.date).getDate()}
-                                                </span>
-                                            </div>
-                                            {/* Mobile-only time display next to date box */}
-                                            <div className="sm:hidden">
-                                                <p className="font-bold text-slate-900">{new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{appt.status}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex-1 overflow-hidden w-full">
-                                            <h4
-                                                onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
-                                                className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors text-lg"
-                                            >
-                                                {appt.patient?.name}
-                                            </h4>
-                                            <p className="text-sm text-slate-500 hidden sm:block">{appt.reason || 'Checkup'} • {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                            <p className="text-sm text-slate-500 sm:hidden">{appt.reason || 'Checkup'}</p>
-                                        </div>
-                                        <div className="flex gap-2 w-full sm:w-auto">
-                                            <button
-                                                onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
-                                                className="flex-1 sm:flex-none px-4 py-2 bg-white text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:bg-slate-50"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={() => navigate('/doctor/appointments')}
-                                                className="flex-1 sm:flex-none px-4 py-2 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 shadow-md transition-shadow active:shadow-inner"
-                                            >
-                                                View
-                                            </button>
-                                        </div>
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext
+                                    items={orderedAppointments.map(a => a._id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-4">
+                                        {orderedAppointments.length === 0 && (
+                                            <p className="text-slate-400 text-center py-10">No appointments for today yet.</p>
+                                        )}
+                                        {orderedAppointments.map((appt) => (
+                                            <SortableItem
+                                                key={appt._id}
+                                                appt={appt}
+                                                navigate={navigate}
+                                                setConfirmModal={setConfirmModal}
+                                            />
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </SortableContext>
+                            </DndContext>
                         )}
                     </div>
 
@@ -167,7 +275,7 @@ const DoctorDashboard = () => {
                                                 </div>
                                                 <div className="flex-1 overflow-hidden">
                                                     <p className="text-xs font-bold text-slate-900 truncate">{patient.name}</p>
-                                                    <p className="text-[10px] text-slate-400 font-medium truncate">{patient.email}</p>
+                                                    <p className="text-xs text-slate-500 font-medium truncate">{patient.email}</p>
                                                 </div>
                                                 <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
                                             </button>

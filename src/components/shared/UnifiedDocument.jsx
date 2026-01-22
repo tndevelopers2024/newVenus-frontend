@@ -1,164 +1,150 @@
 import React from 'react';
 
-const Logo = () => (
-    <div className="flex flex-col items-start gap-2">
-        <img src="/images/venus-logo.webp" alt="Venus Clinic" className="h-16 w-auto" />
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none">Healthcare Excellence Registry</p>
-    </div>
-);
-
 export const UnifiedDocument = ({ data, type = 'prescription' }) => {
     const isPrescription = type === 'prescription';
-    const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB');
-    const title = isPrescription ? 'Prescription' : 'Invoice';
-    const referenceLabel = isPrescription ? 'Appointment Index' : 'Invoice Reference';
-    const referenceValue = isPrescription ? (data.appointmentId?.slice(-8).toUpperCase() || 'N/A') : data.invoiceNumber;
+    const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
     const { prescription, clinicalDetails } = data;
     const doctorName = prescription?.doctor?.name || data.doctor?.name || 'Medical Officer';
     const patientName = prescription?.patient?.name || data.patient?.name || 'Patient';
-    const patientEmail = prescription?.patient?.email || data.patient?.email || '';
+    const patientId = prescription?.patient?.displayId || data.patient?.displayId || 'N/A';
+    const patientGender = prescription?.patient?.gender ? `(${prescription.patient.gender[0]})` : '';
+    const patientAge = prescription?.patient?.age ? `/ ${prescription.patient.age} Y` : '';
 
     return (
-        <div className="page-content bg-white min-h-screen p-12 relative flex flex-col font-['Inter'] text-[#080c2e]">
-            {isPrescription && (
-                <div className="absolute top-[280px] left-[70px] text-[160px] font-black text-[#00ddcb] opacity-[0.05] pointer-events-none select-none z-0">
-                    Rx
+        <div className="page-content bg-white min-h-screen p-8 relative flex flex-col font-sans text-black">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
+                <div className="w-1/2">
+                    <h1 className="text-xl font-bold uppercase">Dr. {doctorName}</h1>
                 </div>
-            )}
+                <div className="w-1/2 text-right flex flex-col items-end">
+                    <div className="flex items-start justify-end gap-3">
 
-            <div className="flex justify-between items-start border-b-[5px] border-[#00ddcb] pb-8 mb-10 relative z-10">
-                <Logo />
-                <div className="text-right">
-                    <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{title}</h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">{referenceLabel}: {referenceValue}</p>
-                    {isPrescription && (
-                        <div className="text-sm font-black text-[#00ddcb] uppercase tracking-widest mt-2">Dr. {doctorName}</div>
-                    )}
+                        <div className="text-right">
+                            <img src="/images/venus-logo.webp" alt="Logo" className="h-12 w-auto" />
+                            <p className="text-xs max-w-[250px] leading-tight text-gray-800">
+                                200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073
+                            </p>
+                            <p className="text-xs mt-1">Ph: 7708317826, 7010315857</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex justify-between items-end border-b border-slate-100 pb-8 mb-10 relative z-10">
-                <div className="space-y-1">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">{isPrescription ? 'Patient Details' : 'Bill To'}</span>
-                    <h3 className="text-2xl font-black leading-none">{patientName}</h3>
-                    <p className="text-sm font-semibold text-slate-500">{patientEmail || 'No contact on record'}</p>
-                </div>
-                <div className="text-right">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">{isPrescription ? 'Consultation Date' : 'Billing Date'}</span>
-                    <p className="text-lg font-black">{dateStr}</p>
-                </div>
-            </div>
-
-            {isPrescription ? (
-                <div className="relative z-10 space-y-10">
-                    {clinicalDetails?.vitals && (
-                        <div className="grid grid-cols-4 gap-6 bg-slate-50 p-8 rounded-[32px] border border-slate-100">
-                            {Object.entries(clinicalDetails.vitals).map(([key, value]) => value && (
-                                <div key={key}>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{key.replace(/([A-Z])/g, ' $1')}</p>
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-xl font-black">{value}</span>
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase">
-                                            {key === 'temperature' ? '°C' : key === 'weight' ? 'KG' : key === 'pulse' ? 'BPM' : ''}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="space-y-3">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinical Diagnosis</span>
-                        <div className="text-4xl font-black leading-tight tracking-tight">
-                            {clinicalDetails?.diagnosis || 'Symptomatic Review'}
-                        </div>
+            {/* Patient Info Strip */}
+            <div className="mb-4">
+                <div className="flex justify-between items-end mb-2">
+                    <div className="font-bold text-sm uppercase">
+                        ID: {patientId} - {patientName} {patientGender} {patientAge} <span className="ml-4">Mob. No.: {prescription?.patient?.phone || ''}</span>
                     </div>
-
-                    <div className="space-y-4">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Medication Schedule</span>
-                        <div className="overflow-hidden border border-slate-100 rounded-[24px]">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-slate-50">
-                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Medicine</th>
-                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Dosage</th>
-                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Frequency</th>
-                                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Duration</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {prescription?.medications?.map((med, idx) => (
-                                        <tr key={idx}>
-                                            <td className="px-6 py-4 text-sm font-black border-b border-slate-50">{med.name}</td>
-                                            <td className="px-6 py-4 text-sm font-bold text-slate-600 border-b border-slate-50">{med.dosage}</td>
-                                            <td className="px-6 py-4 text-sm font-bold text-slate-600 border-b border-slate-50">{med.frequency}</td>
-                                            <td className="px-6 py-4 text-sm font-black text-[#00ddcb] border-b border-slate-50">{med.duration}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="font-bold text-sm">
+                        Date: {dateStr}
                     </div>
-
-                    {prescription?.notes && (
-                        <div className="space-y-3">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Doctor's Advice</span>
-                            <div className="p-8 bg-[#fffcf0] border border-[#fef3c7] rounded-[32px] italic text-sm font-medium text-[#78350f]">
-                                "{prescription.notes}"
-                            </div>
-                        </div>
-                    )}
                 </div>
-            ) : (
-                <div className="relative z-10 space-y-8">
-                    <div className="text-right">
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${data.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                            {data.status}
+                {clinicalDetails?.vitals && (
+                    <div className="text-xs border-b-2 border-black pb-2 mb-2 uppercase font-semibold">
+                        <span>
+                            Weight (Kg): {clinicalDetails.vitals.weight || '-'},
+                            Height (Cm): {clinicalDetails.vitals.height || '-'},
+                            BP: {clinicalDetails.vitals.bloodPressure || '-'} mmHg
                         </span>
                     </div>
+                )}
+            </div>
 
-                    <div className="overflow-hidden border border-slate-100 rounded-[24px]">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-slate-50">
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Description</th>
-                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Amount</th>
+            {/* Clinical Details */}
+            {isPrescription && (
+                <div className="flex-1">
+                    {/* Diagnosis / Complaints */}
+                    <div className="grid grid-cols-2 gap-4 border-b-2 border-black pb-4 mb-4">
+                        <div>
+                            <h3 className="font-bold text-sm underline mb-1 uppercase">Chief Complaints</h3>
+                            <ul className="list-none text-xs uppercase font-semibold pl-2">
+                                {clinicalDetails?.diagnosis ?
+                                    (<li>{clinicalDetails.diagnosis}</li>) :
+                                    (<li>-</li>)
+                                }
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-sm underline mb-1 uppercase">Clinical Findings</h3>
+                            <p className="text-xs uppercase font-semibold pl-2">
+                                {clinicalDetails?.clinicalNotes || '-'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Rx Symbol */}
+                    <div className="mb-2 font-bold text-lg">Rx</div>
+
+                    {/* Medicine Table */}
+                    <table className="w-full text-left border-collapse border-b-2 border-black mb-4">
+                        <thead>
+                            <tr className="border-b-2 border-black">
+                                <th className="py-1 text-sm font-bold w-1/2 uppercase">Medicine Name</th>
+                                <th className="py-1 text-sm font-bold uppercase">Frequency</th>
+                                <th className="py-1 text-sm font-bold uppercase">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-xs font-semibold uppercase">
+                            {prescription?.medications?.map((med, idx) => (
+                                <tr key={idx} className="border-b border-gray-400 last:border-0">
+                                    <td className="py-3 pr-2 align-top">
+                                        <div className="font-bold text-sm">{idx + 1}) {med.name}</div>
+                                    </td>
+                                    <td className="py-3 align-top">
+                                        {med.frequency}
+                                        <div className="text-[10px] text-gray-500 mt-0.5">({med.instruction || 'After Food'})</div>
+                                    </td>
+                                    <td className="py-3 align-top">
+                                        {med.duration} Days
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {data.items?.map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td className="px-6 py-4 text-sm font-black border-b border-slate-50">{item.description}</td>
-                                        <td className="px-6 py-4 text-sm font-black border-b border-slate-50 text-right">₹{item.amount}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
 
-                    <div className="flex flex-col items-end gap-2">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Payable Amount</span>
-                        <span className="text-5xl font-black">₹{data.totalAmount}</span>
-                    </div>
+                    {/* Advice */}
+                    {prescription?.notes && (
+                        <div className="mb-4">
+                            <h3 className="font-bold text-sm underline mb-1 uppercase">Advice:</h3>
+                            <ul className="text-xs uppercase font-bold list-none pl-2">
+                                {prescription.notes.split('\n').map((note, i) => (
+                                    <li key={i}>{note}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Follow Up */}
+                    {prescription?.followUpDate && (
+                        <div className="font-bold text-xs uppercase mt-6">
+                            Follow Up: {new Date(prescription.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                    )}
                 </div>
             )}
 
-            <div className="mt-auto pt-12 relative z-10">
-                <div className="flex flex-col items-end gap-2">
-                    <div className="w-64 h-1 bg-[#080c2e]" />
-                    <p className="text-[11px] font-black uppercase tracking-widest">{isPrescription ? 'Authenticated Digital Signature' : 'Authorized Signature'}</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] italic">Validated by New Venus Digital Portal</p>
+            {/* Footer */}
+            {!isPrescription && (
+                <div className="border p-4 mb-4">
+                    <p>Invoice Total: ₹{data.totalAmount}</p>
                 </div>
+            )}
 
-                <div className="mt-10 pt-6 border-t border-slate-100 text-center text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">
-                    Computer Generated Document • System Authenticated • Venus Healthcare © 2026
+            <div className="mt-auto flex flex-col items-center">
+                <div className="text-center text-[10px] text-gray-500 mb-2 uppercase font-bold">
+                    Substitute with equivalent Generics as required.
+                </div>
+                <div className="w-full border-t border-black pt-2 text-center text-xs font-bold uppercase tracking-widest text-blue-800">
+                    newvenusclinic.com
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 @media print {
-                    .page-content { padding: 50px 70px !important; }
+                    .page-content { padding: 40px !important; }
                     body { -webkit-print-color-adjust: exact; }
                 }
             `}</style>
@@ -167,197 +153,165 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
 };
 
 export const getUnifiedDocumentHTML = (data, type = 'prescription') => {
-    // We can't easily render the React component to string here without extra deps,
-    // so we'll maintain a synced HTML template if needed, OR we can use the technique of 
-    // rendering the component into a hidden div and copying its innerHTML.
-    // Given the constraints, I'll provide a synced HTML string for print window.
-
-    // Actually, I'll use the HTML string I already wrote but make it look IDENTICAL to the React component above.
-
     const isPrescription = type === 'prescription';
-    const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB');
+    const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     const logoUrl = window.location.origin + '/images/venus-logo.webp';
-    const title = isPrescription ? 'Prescription' : 'Invoice';
-    const referenceLabel = isPrescription ? 'Appointment Index' : 'Invoice Reference';
-    const referenceValue = isPrescription ? (data.appointmentId?.slice(-8).toUpperCase() || 'N/A') : data.invoiceNumber;
 
     const { prescription, clinicalDetails } = data;
     const doctorName = prescription?.doctor?.name || data.doctor?.name || 'Medical Officer';
     const patientName = prescription?.patient?.name || data.patient?.name || 'Patient';
-    const patientEmail = prescription?.patient?.email || data.patient?.email || '';
+    const patientId = prescription?.patient?.displayId || data.patient?.displayId || 'N/A';
+    const patientGender = prescription?.patient?.gender ? '(' + prescription.patient.gender[0] + ')' : '';
+    const patientAge = prescription?.patient?.age ? '/ ' + prescription.patient.age + ' Y' : '';
+    const patientPhone = prescription?.patient?.phone || '';
 
     return `
         <html>
             <head>
-                <title>${title} - ${referenceValue}</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+                <title>Prescription - ${patientName}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
                 <style>
                     @page { size: A4; margin: 0; }
-                    body { font-family: 'Inter', sans-serif; padding: 0; margin: 0; color: #080c2e; background: white; -webkit-print-color-adjust: exact; }
-                    .page-content { padding: 50px 70px; position: relative; display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box; }
-                    .header { display: flex; justify-content: space-between; border-bottom: 5px solid #00ddcb; padding-bottom: 30px; margin-bottom: 40px; align-items: flex-start; }
-                    .logo-area img { height: 70px; width: auto; margin-bottom: 5px; }
-                    .logo-area p { margin: 0; color: #94a3b8; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; }
-                    .doc-info { text-align: right; }
-                    .doc-info h2 { margin: 0; font-weight: 900; color: #080c2e; font-size: 36px; line-height: 1; text-transform: uppercase; letter-spacing: -2px; }
-                    .doc-info .ref { margin: 10px 0 0 0; color: #64748b; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
-                    .doc-info .doc { margin-top: 5px; font-size: 14px; font-weight: 900; color: #00ddcb; text-transform: uppercase; letter-spacing: 1px; }
-                    .details-section { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 35px; margin-bottom: 40px; }
-                    .label-small { color: #94a3b8; text-transform: uppercase; font-size: 9px; font-weight: 900; letter-spacing: 1.5px; display: block; margin-bottom: 8px; }
-                    .main-val h3 { margin: 0 0 5px 0; font-size: 24px; font-weight: 900; color: #080c2e; line-height: 1; }
-                    .main-val p { margin: 0; font-size: 13px; color: #64748b; font-weight: 600; }
-                    .meta-val { text-align: right; }
-                    .meta-val p { margin: 0; font-weight: 900; color: #080c2e; font-size: 18px; }
-                    .watermark { position: absolute; top: 280px; left: 70px; font-size: 160px; font-weight: 900; color: #00ddcb; opacity: 0.05; pointer-events: none; z-index: 0; }
-                    .vitals-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; background: #f8fafc; padding: 25px; border-radius: 24px; margin-bottom: 40px; border: 1px solid #e2e8f0; }
-                    .vital-item p { margin: 0; font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-                    .vital-item b { font-size: 18px; font-weight: 900; color: #080c2e; }
-                    .vital-item i { font-size: 9px; color: #94a3b8; font-style: normal; margin-left: 3px; font-weight: 700; }
-                    .content-section { margin-bottom: 40px; position: relative; z-index: 1; }
-                    .section-label { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; display: block; }
-                    .big-text { font-size: 28px; font-weight: 900; color: #080c2e; line-height: 1.2; letter-spacing: -0.5px; }
-                    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 40px; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; background: white; }
-                    th { text-align: left; padding: 18px 20px; background: #f8fafc; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; font-weight: 900; border-bottom: 1px solid #e2e8f0; }
-                    td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #080c2e; font-size: 13px; }
-                    .notes-box { padding: 25px; background: #fffcf0; border: 1px solid #fef3c7; border-radius: 24px; font-size: 14px; font-weight: 500; color: #78350f; font-style: italic; line-height: 1.6; }
-                    .total-area { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-                    .total-area label { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; }
-                    .total-area span { font-size: 48px; font-weight: 900; color: #080c2e; letter-spacing: -2px; }
-                    .status-tag { padding: 6px 15px; border-radius: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; margin-bottom: 20px; display: inline-block; }
-                    .status-paid { background: #e0fcf5; color: #009384; border: 1px solid #ccfcf5; }
-                    .status-unpaid { background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; }
-                    .footer-part { margin-top: auto; padding-top: 40px; }
-                    .sig-block { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-                    .sig-line { width: 250px; height: 3px; background: #080c2e; margin-bottom: 5px; }
-                    .sig-tag { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
-                    .sig-sub { font-size: 9px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-                    .legal { margin-top: 40px; padding-top: 30px; border-top: 1px solid #f1f5f9; font-size: 9px; color: #cbd5e1; text-align: center; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; }
+                    body { font-family: 'Inter', sans-serif; padding: 0; margin: 0; color: #000; background: white; -webkit-print-color-adjust: exact; }
+                    .page-content { padding: 40px 50px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+                    
+                    /* Header */
+                    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 20px; }
+                    .doc-info { width: 50%; }
+                    .doc-name { font-size: 18px; font-weight: 700; text-transform: uppercase; margin: 0; }
+                    
+                    .clinic-info { width: 50%; text-align: right; display: flex; justify-content: flex-end; gap: 10px; }
+                    .clinic-details h2 { font-size: 16px; font-weight: 700; color: #1e40af; text-transform: uppercase; margin: 0 0 5px 0; }
+                    .clinic-details p { font-size: 10px; margin: 2px 0; color: #1f2937; line-height: 1.25; font-weight: 500; }
+                    
+                    /* Patient Info */
+                    .patient-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+                    .patient-details { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+                    
+                    /* Clinical Grid */
+                    .clinical-grid { display: flex; gap: 20px; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px; }
+                    .col { flex: 1; }
+                    .col h3 { font-size: 12px; font-weight: 700; text-decoration: underline; margin: 0 0 5px 0; text-transform: uppercase; }
+                    .colcontent { font-size: 11px; text-transform: uppercase; font-weight: 600; padding-left: 5px; }
+                    .colcontent p { margin: 2px 0; }
+                    
+                    /* Table */
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 2px solid #000; }
+                    th { text-align: left; border-bottom: 2px solid #000; padding: 5px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+                    td { padding: 12px 0; border-bottom: 1px solid #9ca3af; font-size: 12px; vertical-align: top; }
+                    tr:last-child td { border-bottom: none; }
+                    .med-name { font-weight: 700; text-transform: uppercase; font-size: 13px; margin-right: 5px; }
+                    .instruction { font-size: 10px; color: #6b7280; font-weight: 500; }
+                    
+                    .advice h3 { font-size: 12px; font-weight: 700; text-decoration: underline; margin: 0 0 5px 0; text-transform: uppercase; }
+                    .advice ul { margin: 0; padding: 0; list-style: none; }
+                    .advice li { font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 3px; padding-left: 5px; }
+                    
+                    .footer-note { margin-top: auto; padding-top: 10px; text-align: center; }
+                    .sub-note { font-size: 10px; color: #6b7280; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+                    .site-link { font-size: 12px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; border-top: 1px solid #000; padding-top: 10px; width: 100%; display: block; }
                 </style>
             </head>
             <body>
                 <div class="page-content">
-                    ${isPrescription ? '<div class="watermark">Rx</div>' : ''}
                     <div class="header">
-                        <div class="logo-area">
-                            <img src="${logoUrl}" alt="Logo" id="logoImg" />
-                            <p>${isPrescription ? 'Clinical Excellence Registry' : 'Financial Operations Wing'}</p>
-                        </div>
                         <div class="doc-info">
-                            <h2>${title}</h2>
-                            <div class="ref">${referenceLabel}: ${referenceValue}</div>
-                            ${isPrescription ? `<div class="doc">Dr. ${doctorName}</div>` : ''}
+                            <h1 class="doc-name">Dr. ${doctorName}</h1>
+                        </div>
+                        <div class="clinic-info">
+                            
+                            <div class="clinic-details">
+                                <img src="${logoUrl}" style="height: 50px; margin-right: 15px;" />
+                                <p style="max-width: 250px; margin-left: auto;">200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073</p>
+                                <p>Ph: 7708317826, 7010315857</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="details-section">
-                        <div class="main-val">
-                            <span class="label-small">${isPrescription ? 'Patient Details' : 'Bill To'}</span>
-                            <h3>${patientName}</h3>
-                            <p>${patientEmail}</p>
-                        </div>
-                        <div class="meta-val">
-                            <span class="label-small">${isPrescription ? 'Consultation Date' : 'Billing Date'}</span>
-                            <p>${dateStr}</p>
-                        </div>
+                    <div class="patient-row">
+                        <div>ID: ${patientId} - ${patientName} ${patientGender} ${patientAge} <span style="margin-left: 20px;">Mob. No.: ${patientPhone}</span></div>
+                        <div>Date: ${dateStr}</div>
                     </div>
+                    ${clinicalDetails?.vitals ? `
+                        <div class="patient-details">
+                             <span>
+                                 Weight (Kg): ${clinicalDetails.vitals.weight || '-'}, 
+                                 Height (Cm): ${clinicalDetails.vitals.height || '-'}, 
+                                 BP: ${clinicalDetails.vitals.bloodPressure || '-'} mmHg
+                             </span>
+                        </div>
+                    ` : '<div style="margin-bottom: 20px;"></div>'}
 
                     ${isPrescription ? `
-                        ${clinicalDetails?.vitals ? `
-                            <div class="vitals-grid">
-                                ${Object.entries(clinicalDetails.vitals).map(([key, value]) => value ? `
-                                    <div class="vital-item">
-                                        <p>${key.replace(/([A-Z])/g, ' $1')}</p>
-                                        <b>${value}</b>
-                                        <i>${key === 'temperature' ? '°C' : key === 'weight' ? 'KG' : key === 'pulse' ? 'BPM' : ''}</i>
-                                    </div>
-                                ` : '').join('')}
+                        <div class="clinical-grid">
+                            <div class="col">
+                                <h3>Chief Complaints</h3>
+                                <div class="colcontent">
+                                    ${clinicalDetails?.diagnosis ? `<p>${clinicalDetails.diagnosis}</p>` : '<p>-</p>'}
+                                </div>
                             </div>
-                        ` : ''}
-
-                        <div class="content-section">
-                            <span class="section-label">Clinical Diagnosis</span>
-                            <div class="big-text">${clinicalDetails?.diagnosis || 'Symptomatic Review'}</div>
-                        </div>
-
-                        <div class="content-section">
-                            <span class="section-label">Medication Schedule</span>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Medicine</th>
-                                        <th>Dosage</th>
-                                        <th>Frequency</th>
-                                        <th>Duration</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${prescription?.medications?.map(med => `
-                                        <tr>
-                                            <td style="font-weight: 900;">${med.name}</td>
-                                            <td>${med.dosage}</td>
-                                            <td>${med.frequency}</td>
-                                            <td style="color: #00ddcb; font-weight: 900;">${med.duration}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        ${prescription?.notes ? `
-                            <div class="content-section">
-                                <span class="section-label">Doctor's Advice</span>
-                                <div class="notes-box">"${prescription.notes}"</div>
+                            <div class="col">
+                                <h3>Clinical Findings</h3>
+                                <div class="colcontent">
+                                    <p>${clinicalDetails?.clinicalNotes || '-'}</p>
+                                </div>
                             </div>
-                        ` : ''}
-                    ` : `
-                        <div style="text-align: right;">
-                             <div class="status-tag ${data.status === 'Paid' ? 'status-paid' : 'status-unpaid'}">
-                                ${data.status}
-                             </div>
                         </div>
+
+                        <div style="font-weight: 700; font-size: 18px; margin-bottom: 10px;">Rx</div>
+
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Description</th>
-                                    <th style="text-align: right;">Amount</th>
+                                    <th style="width: 45%;">Medicine Name</th>
+                                    <th style="width: 35%;">Frequency</th>
+                                    <th style="width: 20%;">Duration</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${data.items?.map(item => `
+                                ${prescription?.medications?.map((med, idx) => `
                                     <tr>
-                                        <td style="font-weight: 900;">${item.description}</td>
-                                        <td style="text-align: right; font-weight: 900;">₹${item.amount}</td>
+                                        <td>
+                                            <span class="med-name">${idx + 1}) ${med.name}</span>
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 600;">${med.frequency}</div>
+                                            <div class="instruction">(${med.instruction || 'After Food'})</div>
+                                        </td>
+                                        <td>
+                                            <div style="font-weight: 700;">${med.duration} Days</div>
+                                        </td>
                                     </tr>
                                 `).join('')}
                             </tbody>
                         </table>
-                        <div class="total-area">
-                            <label>Net Payable Amount</label>
-                            <span>₹${data.totalAmount}</span>
-                        </div>
-                    `}
 
-                    <div class="footer-part">
-                        <div class="sig-block">
-                            <div class="sig-line"></div>
-                            <div class="sig-tag">${isPrescription ? 'Authenticated Digital Signature' : 'Authorized Signature'}</div>
-                            <div class="sig-sub">Validated by New Venus Digital Portal</div>
-                        </div>
-                        <div class="legal">
-                            This is a digitally generated document • System Authenticated • Venus Healthcare © 2026
-                        </div>
+                        ${prescription?.notes ? `
+                            <div class="advice">
+                                <h3>Advice:</h3>
+                                <ul>
+                                    ${prescription.notes.split('\n').map(n => `<li>${n}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+
+                         ${prescription?.followUpDate ? `
+                             <div style="font-weight: 700; font-size: 12px; margin-top: 20px; text-transform: uppercase;">
+                                Follow Up: ${new Date(prescription.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </div>
+                        ` : ''}
+                    ` : ''}
+                    
+                    <div class="footer-note">
+                        <div class="sub-note">Substitute with equivalent Generics as required.</div>
+                        <div class="site-link">newvenusclinic.com</div>
                     </div>
                 </div>
-
+                </div>
                 <script>
                     window.onload = function() {
-                        const img = document.getElementById('logoImg');
-                        const trigger = () => {
-                            setTimeout(() => { window.print(); }, 500);
-                        };
-                        if (img.complete) trigger();
-                        else { img.onload = trigger; img.onerror = trigger; setTimeout(trigger, 3000); }
-                    };
+                        window.print();
+                    }
                 </script>
             </body>
         </html>

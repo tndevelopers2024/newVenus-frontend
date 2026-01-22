@@ -15,11 +15,11 @@ import {
 
 export const ADMIN_LINKS = [
     { label: 'Dashboard', path: '/admin', icon: Activity },
+    { label: 'Add New Patient', path: '/admin/patients/register', icon: UserSquare2 },
+    { label: 'Add New Doctor', path: '/admin/doctors/register', icon: UserSquare2 },
     { label: 'User Directory', path: '/admin/users', icon: Users },
-    { label: 'Onboard Patient', path: '/admin/patients/register', icon: UserSquare2 },
-    { label: 'Add Doctor', path: '/admin/doctors/register', icon: UserSquare2 },
-    { label: 'New Assignment', path: '/admin/appointments', icon: CalendarCheck2 },
-    { label: 'Active Assignments', path: '/admin/appointments/list', icon: ClipboardList },
+    { label: 'New Appointment', path: '/admin/appointments', icon: CalendarCheck2 },
+    { label: 'Active Appointments', path: '/admin/appointments/list', icon: ClipboardList },
     // { label: 'Finance Hub', path: '/admin/billing', icon: BarChart3 },
     { label: 'Audit Logs', path: '/admin/logs', icon: History },
 ];
