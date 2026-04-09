@@ -1,10 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 });
 
 // Add interceptor for JWT
@@ -23,9 +20,7 @@ export const patientApi = {
     getDepartments: () => api.get('/patient/departments'),
     getAppointments: () => api.get('/patient/appointments'),
     // bookAppointment: (data) => api.post('/patient/appointments', data), // Disabled
-    uploadReport: (formData) => api.post('/patient/reports', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    uploadReport: (formData) => api.post('/patient/reports', formData),
 };
 
 // Doctor API
