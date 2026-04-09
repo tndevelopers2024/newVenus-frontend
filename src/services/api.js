@@ -35,10 +35,7 @@ export const doctorApi = {
     getPatients: () => api.get('/doctor/patients'),
     getPatientHistory: (id) => api.get(`/doctor/patients/${id}/history`),
     createPrescription: (data) => {
-        const isFormData = data instanceof FormData;
-        return api.post('/doctor/prescriptions', data, isFormData ? {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        } : {});
+        return api.post('/doctor/prescriptions', data);
     },
     searchMedications: (query) => api.get(`/doctor/medications/search?query=${query}`),
     getPrescriptionByAppointment: (id) => api.get(`/doctor/appointments/${id}/prescription`),
