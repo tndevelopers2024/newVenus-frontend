@@ -3,10 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import PatientDashboard from './pages/patient/PatientDashboard';
-// import BookAppointment from './pages/patient/BookAppointment'; // Removed
-import MedicalHistory from './pages/patient/MedicalHistory';
-import TestReports from './pages/patient/TestReports';
+// Removed: import PatientDashboard from './pages/patient/PatientDashboard';
+// Removed: import MedicalHistory from './pages/patient/MedicalHistory';
+// Removed: import TestReports from './pages/patient/TestReports';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import Appointments from './pages/doctor/Appointments';
 import Patients from './pages/doctor/Patients';
@@ -56,19 +55,18 @@ function App() {
             {/* <Route path="/register" element={<Register />} /> */}
             <Route path="/" element={<Navigate to="/login" />} />
 
-            {/* Patient Portal */}
+            {/* Patient Portal Disabled */}
+            {/* 
             <Route path="/patient" element={
               <PrivateRoute role="patient"><PatientDashboard /></PrivateRoute>
             } />
-            {/* <Route path="/patient/book" element={
-              <PrivateRoute role="patient"><BookAppointment /></PrivateRoute>
-            } /> */}
             <Route path="/patient/history" element={
               <PrivateRoute role="patient"><MedicalHistory /></PrivateRoute>
             } />
             <Route path="/patient/reports" element={
               <PrivateRoute role="patient"><TestReports /></PrivateRoute>
-            } />
+            } /> 
+            */}
 
             {/* Doctor Portal */}
             <Route path="/doctor" element={

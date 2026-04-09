@@ -15,13 +15,16 @@ import {
     ChevronLeft,
     ChevronRight,
     X,
-    Printer
+    Printer,
+    Mail,
+    Share2,
+    Send
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
-import { getUnifiedDocumentHTML } from '../../components/shared/UnifiedDocument';
+import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 
 const AppointmentList = () => {
     const queryClient = useQueryClient();
@@ -32,6 +35,8 @@ const AppointmentList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(8);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareData, setShareData] = useState({ id: '', email: '' });
 
     const { data: appointments, isLoading } = useQuery({
         queryKey: ['adminAppointmentsFullList'],
@@ -81,6 +86,7 @@ const AppointmentList = () => {
                     patient: appt.patient,
                     medications: prescription.medications,
                     notes: prescription.notes,
+                    image: prescription.image,
                     followUpDate: prescription.followUpDate
                 },
                 clinicalDetails: {
@@ -103,11 +109,46 @@ const AppointmentList = () => {
         }
     };
 
+    const shareMutation = useMutation({
+        mutationFn: ({ id, email }) => adminApi.sharePrescription(id, email),
+        onSuccess: () => {
+            toast.success('Prescription shared with patient');
+            setShowShareModal(false);
+        },
+        onError: () => toast.error('Failed to share prescription')
+    });
+
+    const handleShareClick = async (appt) => {
+        try {
+            const toastId = toast.loading('Checking prescription...');
+            const res = await adminApi.getPrescriptionByAppointment(appt._id);
+            toast.dismiss(toastId);
+
+            if (!res.data.prescription) {
+                toast.error('No prescription found for this appointment');
+                return;
+            }
+
+            setShareData({
+                id: res.data.prescription._id,
+                email: appt.patient?.email || ''
+            });
+            setShowShareModal(true);
+        } catch (error) {
+            toast.error('Failed to check prescription status');
+        }
+    };
+
+    const handleFinalShare = () => {
+        if (!shareData.email) return toast.error('Enter recipient email');
+        shareMutation.mutate({ id: shareData.id, email: shareData.email });
+    };
 
     const filteredAppointments = appointments?.filter(appt => {
-        const matchesSearch = appt.patient?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            appt.doctor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            appt.reason?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = 
+            (appt.patient?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (appt.doctor?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (appt.reason?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
         const apptDate = new Date(appt.createdAt).toISOString().split('T')[0];
 
@@ -395,13 +436,22 @@ const AppointmentList = () => {
                                                         <XCircle className="w-5 h-5" />
                                                     </button>
                                                 ) : (
-                                                    <button
-                                                        onClick={() => handlePrint(appt)}
-                                                        className="w-9 h-9 flex items-center justify-center text-primary-500 bg-primary-50 hover:bg-primary-100 hover:text-primary-700 transition-colors rounded-xl mx-auto md:mr-0 ml-auto"
-                                                        title="Print Prescription"
-                                                    >
-                                                        <Printer className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            onClick={() => handleShareClick(appt)}
+                                                            className="w-9 h-9 flex items-center justify-center text-secondary-400 bg-secondary-50 hover:bg-primary-100 hover:text-primary-600 transition-colors rounded-xl"
+                                                            title="Share to Email"
+                                                        >
+                                                            <Mail className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handlePrint(appt)}
+                                                            className="w-9 h-9 flex items-center justify-center text-primary-500 bg-primary-50 hover:bg-primary-100 hover:text-primary-700 transition-colors rounded-xl"
+                                                            title="Print Prescription"
+                                                        >
+                                                            <Printer className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </td>
                                         </tr>
@@ -435,6 +485,71 @@ const AppointmentList = () => {
                 type="danger"
                 isLoading={deleteMutation.isPending}
             />
+
+            {/* Share Modal */}
+            <AnimatePresence>
+                {showShareModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowShareModal(false)}
+                            className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-md bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-4">
+                                <button onClick={() => setShowShareModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex flex-col items-center text-center">
+                                <div className="w-16 h-16 bg-primary-50 rounded-[22px] flex items-center justify-center mb-6">
+                                    <Mail className="w-8 h-8 text-primary-600" />
+                                </div>
+                                <h2 className="text-xl font-black text-secondary-900 uppercase tracking-tight mb-2">Resend Prescription</h2>
+                                <p className="text-sm text-slate-500 mb-8 max-w-[280px]">
+                                    Send a digital copy to the patient's registered email.
+                                </p>
+
+                                <div className="w-full space-y-4 text-left">
+                                    <div>
+                                        <label className="text-[10px] font-black text-secondary-900 uppercase tracking-widest mb-1.5 ml-1 block">Patient Email</label>
+                                        <input
+                                            type="email"
+                                            value={shareData.email}
+                                            onChange={(e) => setShareData({ ...shareData, email: e.target.value })}
+                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-secondary-900"
+                                            placeholder="patient@email.com"
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={handleFinalShare}
+                                        disabled={shareMutation.isPending}
+                                        className="w-full py-5 bg-primary-600 text-white rounded-[20px] font-black uppercase text-xs tracking-widest shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                                    >
+                                        {shareMutation.isPending ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <Send className="w-4 h-4" />
+                                                Send Now
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </DashboardLayout >
     );
 };

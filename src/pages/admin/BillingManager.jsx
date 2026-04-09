@@ -40,8 +40,8 @@ const BillingManager = () => {
     });
 
     const filteredInvoices = invoices?.filter(inv =>
-        inv.invoiceNumber.toLowerCase().includes(filterText.toLowerCase()) ||
-        inv.patient?.name?.toLowerCase().includes(filterText.toLowerCase())
+        (inv.invoiceNumber?.toLowerCase() || '').includes(filterText.toLowerCase()) ||
+        (inv.patient?.name?.toLowerCase() || '').includes(filterText.toLowerCase())
     ) || [];
 
     // Pagination Logic

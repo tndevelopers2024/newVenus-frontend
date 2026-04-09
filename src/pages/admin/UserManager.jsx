@@ -31,8 +31,10 @@ const UserManager = () => {
         // For other tabs (all, doctor, patient), exclude deleted users
         const isNotDeleted = !user.isDeleted;
         const matchesRole = filter === 'all' || user.role === filter;
-        const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = 
+            (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase());
         return isNotDeleted && matchesRole && matchesSearch;
     });
 
@@ -108,7 +110,7 @@ const UserManager = () => {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Search by name or email..."
+                                placeholder="Search by name, email or phone..."
                                 className="input-field pl-11 py-2 text-sm"
                                 value={searchTerm}
                                 onChange={(e) => {
@@ -149,6 +151,20 @@ const UserManager = () => {
                             <tbody className="divide-y divide-slate-50">
                                 {isLoading ? (
                                     [1, 2, 3].map(i => <tr key={i} className="animate-pulse h-20"></tr>)
+                                ) : !paginatedUsers || paginatedUsers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="4" className="px-8 py-20 text-center">
+                                            <div className="flex flex-col items-center justify-center grayscale opacity-30">
+                                                <Users className="w-12 h-12 mb-4" />
+                                                <p className="text-xs font-black uppercase tracking-widest">
+                                                    {filter === 'all' ? 'No users found' :
+                                                        filter === 'doctor' ? 'No doctors found' :
+                                                            filter === 'patient' ? 'No patients found' :
+                                                                'No archived records found'}
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 ) : (
                                     paginatedUsers?.map((user) => (
                                         <tr key={user._id} className="hover:bg-slate-50/30 transition-colors">

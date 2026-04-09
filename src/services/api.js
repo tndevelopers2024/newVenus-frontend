@@ -34,11 +34,17 @@ export const doctorApi = {
     updateAppointment: (id, data) => api.put(`/doctor/appointments/${id}`, data),
     getPatients: () => api.get('/doctor/patients'),
     getPatientHistory: (id) => api.get(`/doctor/patients/${id}/history`),
-    createPrescription: (data) => api.post('/doctor/prescriptions', data),
+    createPrescription: (data) => {
+        const isFormData = data instanceof FormData;
+        return api.post('/doctor/prescriptions', data, isFormData ? {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        } : {});
+    },
     searchMedications: (query) => api.get(`/doctor/medications/search?query=${query}`),
     getPrescriptionByAppointment: (id) => api.get(`/doctor/appointments/${id}/prescription`),
     updatePaymentStatus: (id, status) => api.patch(`/doctor/appointments/${id}/payment`, { status }),
     reorderAppointments: (orderedIds) => api.put('/doctor/appointments/reorder', { orderedIds }),
+    sharePrescription: (id, email) => api.post(`/doctor/prescriptions/${id}/share`, { email }),
 };
 
 // Admin API
@@ -57,6 +63,7 @@ export const adminApi = {
     deleteAppointment: (id) => api.delete(`/admin/appointments/${id}`),
     updateInvoiceStatus: (id, status) => api.patch(`/admin/invoices/${id}/status`, { status }),
     getPrescriptionByAppointment: (id) => api.get(`/admin/appointments/${id}/prescription`),
+    sharePrescription: (id, email) => api.post(`/doctor/prescriptions/${id}/share`, { email }),
 };
 
 // Auth API

@@ -20,8 +20,7 @@ const Login = () => {
 
         try {
             const user = await login(email, password);
-            if (user.role === 'patient') navigate('/patient');
-            else if (user.role === 'doctor') navigate('/doctor');
+            if (user.role === 'doctor') navigate('/doctor');
             else if (user.role === 'superadmin') navigate('/admin');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to login. Please check your credentials.');

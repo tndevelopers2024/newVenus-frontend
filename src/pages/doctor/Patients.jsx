@@ -79,8 +79,9 @@ const Patients = () => {
     };
 
     const filteredPatients = patients?.filter(p => {
-        const matchesSearch = p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = 
+            (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             p._id?.includes(searchQuery);
 
         if (!dateRange.start) return matchesSearch;
@@ -608,6 +609,7 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                     <UnifiedDocument
                         data={{
                             ...prescriptionData,
+                            image: prescriptionData.prescription?.image || prescriptionData.image,
                             appointmentId,
                             createdAt: prescriptionData.prescription?.createdAt
                         }}

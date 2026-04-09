@@ -22,7 +22,8 @@ import {
     Printer,
     Stethoscope,
     CreditCard,
-    DollarSign
+    DollarSign,
+    Mail
 } from 'lucide-react';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
 import { printDocument } from '../../utils/printHelper';
@@ -32,6 +33,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import TablePagination from '../../components/shared/TablePagination';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
+import { toast } from 'react-hot-toast';
 
 const Appointments = () => {
     const { user } = useAuth();
@@ -44,6 +46,8 @@ const Appointments = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(6);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [shareData, setShareData] = useState({ id: '', email: '' });
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -76,6 +80,39 @@ const Appointments = () => {
             setConfirmModal({ isOpen: false, id: null });
         }
     });
+
+    const shareMutation = useMutation({
+        mutationFn: ({ id, email }) => doctorApi.sharePrescription(id, email),
+        onSuccess: () => {
+            toast.success('Prescription shared with patient');
+            setShowShareModal(false);
+        },
+        onError: () => toast.error('Failed to share prescription')
+    });
+
+    const handleQuickShare = async (appt) => {
+        try {
+            const res = await doctorApi.getPrescriptionByAppointment(appt._id);
+            if (!res.data.prescription) return toast.error('Prescription record not found');
+            
+            setShareData({
+                id: res.data.prescription._id,
+                email: appt.patient?.email || ''
+            });
+            setShowShareModal(true);
+        } catch (error) {
+            toast.error('Failed to fetch prescription');
+        }
+    };
+
+    const handleFinalShare = () => {
+        if (!shareData.email) return toast.error('Enter recipient email');
+        const toastId = toast.loading('Sending prescription email...');
+        shareMutation.mutate(
+            { id: shareData.id, email: shareData.email },
+            { onSettled: () => toast.dismiss(toastId) }
+        );
+    };
 
 
 
@@ -299,14 +336,23 @@ const Appointments = () => {
                                                             Start Session
                                                         </button>
                                                     )}
-                                                    {appt.status === 'Completed' && (
-                                                        <button
-                                                            onClick={() => setViewingPrescription(appt._id)}
-                                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                            title="View Prescription"
-                                                        >
-                                                            <ClipboardList className="w-4 h-4" />
-                                                        </button>
+                                                     {appt.status === 'Completed' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleQuickShare(appt)}
+                                                                className="p-2 text-primary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                                                title="Share via Email"
+                                                            >
+                                                                <Mail className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setViewingPrescription(appt._id)}
+                                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                title="View Prescription"
+                                                            >
+                                                                <ClipboardList className="w-4 h-4" />
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>
@@ -363,6 +409,15 @@ const Appointments = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            <EmailShareModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                data={shareData}
+                onShare={handleFinalShare}
+                isPending={shareMutation.isPending}
+                onChangeEmail={(email) => setShareData({ ...shareData, email })}
+            />
         </>
     );
 };
@@ -400,6 +455,7 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                     <UnifiedDocument
                         data={{
                             ...prescriptionData,
+                            image: prescriptionData.prescription?.image || prescriptionData.image,
                             appointmentId,
                             createdAt: prescriptionData.prescription?.createdAt
                         }}
@@ -430,5 +486,72 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
         </div>
     );
 };
+
+
+const EmailShareModal = ({ isOpen, onClose, data, onShare, isPending, onChangeEmail }) => (
+    <AnimatePresence>
+        {isOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm"
+                />
+                <motion.div
+                    initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                    className="relative w-full max-w-md bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-4">
+                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                            <XCircle className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-primary-50 rounded-[22px] flex items-center justify-center mb-6">
+                            <Mail className="w-8 h-8 text-primary-600" />
+                        </div>
+                        <h2 className="text-xl font-black text-secondary-900 uppercase tracking-tight mb-2">Share Prescription</h2>
+                        <p className="text-sm text-slate-500 mb-8 max-w-[280px]">
+                            Send a professional digital copy to the patient.
+                        </p>
+
+                        <div className="w-full space-y-4 text-left">
+                            <div>
+                                <label className="text-[10px] font-black text-secondary-900 uppercase tracking-widest mb-1.5 ml-1 block">Patient Email Address</label>
+                                <input
+                                    type="email"
+                                    value={data.email}
+                                    onChange={(e) => onChangeEmail(e.target.value)}
+                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-secondary-900"
+                                    placeholder="Enter email..."
+                                />
+                            </div>
+
+                            <button
+                                onClick={onShare}
+                                disabled={isPending}
+                                className="w-full py-5 bg-primary-600 text-white rounded-[20px] font-black uppercase text-xs tracking-widest shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                            >
+                                {isPending ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="w-4 h-4" />
+                                        Send Email Now
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        )}
+    </AnimatePresence>
+);
 
 export default Appointments;

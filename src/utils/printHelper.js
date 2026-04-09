@@ -1,4 +1,4 @@
-import { getUnifiedDocumentHTML } from '../components/shared/UnifiedDocument';
+import { getUnifiedDocumentHTML } from './documentGenerator';
 
 export const printDocument = (data, type = 'prescription') => {
     const printWindow = window.open('', '_blank');

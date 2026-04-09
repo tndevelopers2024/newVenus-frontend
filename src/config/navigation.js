@@ -30,11 +30,7 @@ export const DOCTOR_LINKS = [
     { label: 'My Patients', path: '/doctor/patients', icon: Users },
 ];
 
-export const PATIENT_LINKS = [
-    { label: 'Dashboard', path: '/patient', icon: ClipboardList },
-    { label: 'Medical History', path: '/patient/history', icon: HistoryIcon },
-    { label: 'Test Reports', path: '/patient/reports', icon: Upload },
-];
+// Removed PATIENT_LINKS
 
 export const getLinksByRole = (role) => {
     switch (role) {
@@ -42,8 +38,8 @@ export const getLinksByRole = (role) => {
             return ADMIN_LINKS;
         case 'doctor':
             return DOCTOR_LINKS;
-        case 'patient':
-            return PATIENT_LINKS;
+        // case 'patient':
+        //     return PATIENT_LINKS;
         default:
             return [];
     }
