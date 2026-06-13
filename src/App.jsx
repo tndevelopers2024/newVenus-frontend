@@ -37,7 +37,15 @@ const PrivateRoute = ({ children, role }) => {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 ">Loading New Venus Clinic...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (role && user.role !== role) return <Navigate to="/" />;
+  
+  if (role) {
+    const roles = Array.isArray(role) ? role : [role];
+    if (!roles.includes(user.role)) {
+      if (user.role === 'doctor') return <Navigate to="/doctor" />;
+      if (user.role === 'superadmin' || user.role === 'admin') return <Navigate to="/admin" />;
+      return <Navigate to="/login" />;
+    }
+  }
 
   return children;
 };
@@ -70,33 +78,39 @@ function App() {
 
             {/* Doctor Portal */}
             <Route path="/doctor" element={
-              <PrivateRoute role="doctor"><DoctorDashboard /></PrivateRoute>
+              <PrivateRoute role={['doctor', 'superadmin']}><DoctorDashboard /></PrivateRoute>
             } />
             <Route path="/doctor/appointments" element={
-              <PrivateRoute role="doctor"><Appointments /></PrivateRoute>
+              <PrivateRoute role={['doctor', 'superadmin']}><Appointments /></PrivateRoute>
             } />
             <Route path="/doctor/patients" element={
-              <PrivateRoute role="doctor"><Patients /></PrivateRoute>
+              <PrivateRoute role={['doctor', 'superadmin']}><Patients /></PrivateRoute>
             } />
             <Route path="/doctor/session/:appointmentId" element={
-              <PrivateRoute role="doctor"><ClinicalSession /></PrivateRoute>
+              <PrivateRoute role={['doctor', 'superadmin']}><ClinicalSession /></PrivateRoute>
             } />
 
             {/* Admin Portal */}
             <Route path="/admin" element={
-              <PrivateRoute role="superadmin"><AdminDashboard /></PrivateRoute>
+              <PrivateRoute role={['superadmin', 'admin']}><AdminDashboard /></PrivateRoute>
             } />
             <Route path="/admin/users" element={
-              <PrivateRoute role="superadmin"><UserManager /></PrivateRoute>
+              <PrivateRoute role="superadmin"><UserManager defaultFilter="all" /></PrivateRoute>
+            } />
+            <Route path="/admin/doctors" element={
+              <PrivateRoute role="superadmin"><UserManager defaultFilter="doctor" /></PrivateRoute>
+            } />
+            <Route path="/admin/patients" element={
+              <PrivateRoute role="superadmin"><UserManager defaultFilter="patient" /></PrivateRoute>
             } />
             <Route path="/admin/patients/register" element={
-              <PrivateRoute role="superadmin"><PatientRegistration /></PrivateRoute>
+              <PrivateRoute role={['superadmin', 'admin']}><PatientRegistration /></PrivateRoute>
             } />
             <Route path="/admin/appointments" element={
-              <PrivateRoute role="superadmin"><AppointmentAssignment /></PrivateRoute>
+              <PrivateRoute role={['superadmin', 'admin']}><AppointmentAssignment /></PrivateRoute>
             } />
             <Route path="/admin/appointments/list" element={
-              <PrivateRoute role="superadmin"><AppointmentList /></PrivateRoute>
+              <PrivateRoute role={['superadmin', 'admin']}><AppointmentList /></PrivateRoute>
             } />
             <Route path="/admin/billing" element={
               <PrivateRoute role="superadmin"><BillingManager /></PrivateRoute>

@@ -162,7 +162,7 @@ const ResetPassword = () => {
                                     type={showPassword ? "text" : "password"}
                                     required
                                     className="block w-full pl-11 pr-12 py-4 bg-white border border-slate-100 rounded-2xl text-base sm:text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                                    placeholder="••••••••"
+                                    placeholder="Password"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 />
@@ -190,7 +190,7 @@ const ResetPassword = () => {
                                     type={showConfirmPassword ? "text" : "password"}
                                     required
                                     className="block w-full pl-11 pr-12 py-4 bg-white border border-slate-100 rounded-2xl text-base sm:text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                                    placeholder="••••••••"
+                                    placeholder="Re-enter Password"
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                 />

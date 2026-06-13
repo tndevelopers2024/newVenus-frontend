@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw } from 'lucide-react';
+import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import TablePagination from '../../components/shared/TablePagination';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 
-const UserManager = () => {
+const UserManager = ({ defaultFilter = 'all' }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [filter, setFilter] = useState('all');
+    const [filter, setFilter] = useState(defaultFilter);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(8);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
+
+    useEffect(() => {
+        setFilter(defaultFilter);
+        setCurrentPage(1);
+    }, [defaultFilter]);
 
     const { data: users, isLoading } = useQuery({
         queryKey: ['adminUsersList'],
@@ -83,8 +88,12 @@ const UserManager = () => {
             <div className="max-w-8xl mx-auto py-0">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 ">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 uppercase">User Management</h1>
-                        <p className="text-slate-500 mt-1">Control access levels and manage profiles</p>
+                        <h1 className="text-3xl font-bold text-slate-900 uppercase">
+                            {filter === 'doctor' ? 'Doctors Directory' : filter === 'patient' ? 'Patients Directory' : 'User Management'}
+                        </h1>
+                        <p className="text-slate-500 mt-1">
+                            {filter === 'doctor' ? 'Manage medical professionals and access their dashboards' : filter === 'patient' ? 'Manage registered patients and active profiles' : 'Control access levels and manage profiles'}
+                        </p>
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -119,23 +128,25 @@ const UserManager = () => {
                                 }}
                             />
                         </div>
-                        <div className="flex gap-2">
-                            {['all', 'doctor', 'patient', 'archived'].map(role => (
-                                <button
-                                    key={role}
-                                    onClick={() => {
-                                        setFilter(role);
-                                        setCurrentPage(1);
-                                    }}
-                                    className={`px-4 py-2 text-xs font-bold capitalize rounded-xl border transition-all ${filter === role
-                                        ? 'bg-secondary-900 text-white border-secondary-900'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                        }`}
-                                >
-                                    {role === 'all' ? role : role === 'archived' ? 'Archived' : `${role}s`}
-                                </button>
-                            ))}
-                        </div>
+                        {defaultFilter === 'all' && (
+                            <div className="flex gap-2">
+                                {['all', 'doctor', 'patient', 'archived'].map(role => (
+                                    <button
+                                        key={role}
+                                        onClick={() => {
+                                            setFilter(role);
+                                            setCurrentPage(1);
+                                        }}
+                                        className={`px-4 py-2 text-xs font-bold capitalize rounded-xl border transition-all ${filter === role
+                                            ? 'bg-secondary-900 text-white border-secondary-900'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                            }`}
+                                    >
+                                        {role === 'all' ? role : role === 'archived' ? 'Archived' : `${role}s`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="overflow-x-auto">
@@ -194,6 +205,7 @@ const UserManager = () => {
                                             <td className="px-8 py-6">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
                                                     user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                    user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                                         user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                                                             'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                     }`}>
@@ -201,23 +213,37 @@ const UserManager = () => {
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6">
-                                                {user.isDeleted ? (
-                                                    <button
-                                                        onClick={() => restoreMutation.mutate(user._id)}
-                                                        className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                                                        title="Restore User"
-                                                    >
-                                                        <RotateCcw className="w-5 h-5" />
-                                                    </button>
-                                                ) : user.role !== 'superadmin' && (
-                                                    <button
-                                                        onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
-                                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                                        title="Delete User"
-                                                    >
-                                                        <Trash2 className="w-5 h-5" />
-                                                    </button>
-                                                )}
+                                                <div className="flex items-center gap-2">
+                                                    {user.role === 'doctor' && !user.isDeleted && (
+                                                        <button
+                                                            onClick={() => {
+                                                                localStorage.setItem('viewAsDoctorId', user._id);
+                                                                navigate('/doctor');
+                                                            }}
+                                                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
+                                                            title="View Doctor Dashboard"
+                                                        >
+                                                            <LayoutDashboard className="w-5 h-5" />
+                                                        </button>
+                                                    )}
+                                                    {user.isDeleted ? (
+                                                        <button
+                                                            onClick={() => restoreMutation.mutate(user._id)}
+                                                            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                                                            title="Restore User"
+                                                        >
+                                                            <RotateCcw className="w-5 h-5" />
+                                                        </button>
+                                                    ) : user.role !== 'superadmin' && (
+                                                        <button
+                                                            onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
+                                                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                            title="Delete User"
+                                                        >
+                                                            <Trash2 className="w-5 h-5" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

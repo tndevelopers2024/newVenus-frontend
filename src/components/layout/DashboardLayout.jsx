@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { socket } from '../../services/socket';
 import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
+import { adminApi } from '../../services/api';
 
 import { getLinksByRole } from '../../config/navigation';
 
@@ -27,7 +29,9 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const links = propLinks || getLinksByRole(user?.role);
+    const viewAsDoctorId = localStorage.getItem('viewAsDoctorId');
+    const isDoctorView = viewAsDoctorId && user?.role === 'superadmin';
+    const links = propLinks || getLinksByRole(isDoctorView ? 'doctor' : user?.role);
 
     const handleLogout = () => {
         logout();
@@ -140,7 +144,7 @@ const NotificationPanel = ({ onClose }) => {
         const onNotification = (data) => {
             let shouldShow = false;
             if (user?.role === 'doctor' && data.doctorId == user._id) shouldShow = true;
-            else if (user?.role === 'superadmin' && !data.doctorId) shouldShow = true;
+            else if ((user?.role === 'superadmin' || user?.role === 'admin') && !data.doctorId) shouldShow = true;
 
             if (shouldShow) {
                 const newNotification = {
@@ -164,6 +168,7 @@ const NotificationPanel = ({ onClose }) => {
 
     const handleViewAll = () => {
         if (user?.role === 'superadmin') navigate('/admin/logs');
+        else if (user?.role === 'admin') navigate('/admin/appointments');
         else if (user?.role === 'doctor') navigate('/doctor/patients');
         onClose();
     };
@@ -334,8 +339,21 @@ const Header = ({ onMenuClick }) => {
         </header>
     );
 };
-
 const DashboardLayout = ({ children, links }) => {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const viewAsDoctorId = localStorage.getItem('viewAsDoctorId');
+    const isDoctorView = viewAsDoctorId && user?.role === 'superadmin';
+
+    const { data: targetDoctor } = useQuery({
+        queryKey: ['targetDoctor', viewAsDoctorId],
+        queryFn: async () => {
+            const res = await adminApi.getUserById(viewAsDoctorId);
+            return res.data;
+        },
+        enabled: !!isDoctorView
+    });
+
     const [sidebarOpen, setSidebarOpen] = useState(() => {
         if (typeof window !== 'undefined' && window.innerWidth >= 768) {
             const saved = localStorage.getItem('sidebarOpen');
@@ -367,6 +385,23 @@ const DashboardLayout = ({ children, links }) => {
 
             <div className="flex-1 flex flex-col overflow-hidden w-full relative">
                 <Header onMenuClick={() => setMobileMenuOpen(true)} />
+                {isDoctorView && (
+                    <div className="bg-amber-500 text-white px-6 py-3.5 flex items-center justify-between text-xs font-black uppercase tracking-wider shadow-md z-30 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <span className="bg-white/20 px-2.5 py-0.5 rounded text-[10px] font-black">Superadmin Impersonation</span>
+                            <span>Viewing Portal of Dr. {targetDoctor?.name || '...'}</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('viewAsDoctorId');
+                                navigate('/admin/users');
+                            }}
+                            className="bg-white text-slate-900 px-4 py-2 rounded-2xl text-[10px] font-black hover:bg-slate-100 transition-colors shadow-sm cursor-pointer"
+                        >
+                            Exit Doctor View
+                        </button>
+                    </div>
+                )}
                 <main className="flex-1 overflow-y-auto p-4 md:px-6 scroll-smooth w-full">
                     {children}
                 </main>

@@ -10,6 +10,13 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Impersonate doctor ID for superadmin if set in localStorage
+    const viewAsDoctorId = localStorage.getItem('viewAsDoctorId');
+    if (viewAsDoctorId) {
+        config.headers['X-Doctor-Id'] = viewAsDoctorId;
+    }
+    
     return config;
 });
 
@@ -42,6 +49,7 @@ export const doctorApi = {
 // Admin API
 export const adminApi = {
     getUsers: () => api.get('/admin/users'),
+    getUserById: (id) => api.get(`/admin/users/${id}`),
     deleteUser: (id) => api.delete(`/admin/users/${id}`),
     restoreUser: (id) => api.put(`/admin/users/${id}/restore`),
     createDoctor: (data) => api.post('/admin/doctors', data),

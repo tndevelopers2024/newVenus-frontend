@@ -21,7 +21,7 @@ const Login = () => {
         try {
             const user = await login(email, password);
             if (user.role === 'doctor') navigate('/doctor');
-            else if (user.role === 'superadmin') navigate('/admin');
+            else if (user.role === 'superadmin' || user.role === 'admin') navigate('/admin');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to login. Please check your credentials.');
         } finally {
@@ -120,7 +120,7 @@ const Login = () => {
                                     type="email"
                                     required
                                     className="block w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-base sm:text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                                    placeholder="doctor@venus.com"
+                                    placeholder="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -142,7 +142,7 @@ const Login = () => {
                                     type={showPassword ? "text" : "password"}
                                     required
                                     className="block w-full pl-11 pr-12 py-4 bg-white border border-slate-100 rounded-2xl text-base sm:text-xs font-bold text-secondary-900 placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                                    placeholder="••••••••"
+                                    placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />

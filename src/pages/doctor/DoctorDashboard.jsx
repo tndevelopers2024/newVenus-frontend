@@ -27,7 +27,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { doctorApi } from '../../services/api';
+import { doctorApi, adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 
@@ -114,6 +114,20 @@ const DoctorDashboard = () => {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
     const [orderedAppointments, setOrderedAppointments] = useState([]);
 
+    const viewAsDoctorId = localStorage.getItem('viewAsDoctorId');
+    const isDoctorView = viewAsDoctorId && user?.role === 'superadmin';
+
+    const { data: targetDoctor } = useQuery({
+        queryKey: ['targetDoctor', viewAsDoctorId],
+        queryFn: async () => {
+            const res = await adminApi.getUserById(viewAsDoctorId);
+            return res.data;
+        },
+        enabled: !!isDoctorView
+    });
+
+    const displayDoctorName = isDoctorView ? (targetDoctor?.name || '...') : user?.name;
+
     const { data: appointments, isLoading } = useQuery({
         queryKey: ['doctorAppointments'],
         queryFn: async () => {
@@ -179,7 +193,7 @@ const DoctorDashboard = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 md:mb-10">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dr. {user?.name}'s Portal</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dr. {displayDoctorName}'s Portal</h1>
                         <p className="text-slate-500 mt-1 text-sm md:text-base">Manage your consultations and patient records</p>
                     </div>
                     <button

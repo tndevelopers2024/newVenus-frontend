@@ -224,6 +224,7 @@ const SystemLogs = () => {
                                                         <p className="text-xs font-black text-secondary-900 uppercase tracking-tight">{log.user?.name || 'System Engine'}</p>
                                                         <div className="flex items-center gap-1.5">
                                                             <div className={`w-1.5 h-1.5 rounded-full ${log.user?.role === 'superadmin' ? 'bg-rose-500' :
+                                                                log.user?.role === 'admin' ? 'bg-amber-500' :
                                                                 log.user?.role === 'doctor' ? 'bg-primary-500' : 'bg-emerald-500'
                                                                 }`} />
                                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{log.user?.role || 'Service Instance'}</p>

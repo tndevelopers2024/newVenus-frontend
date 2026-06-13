@@ -10,14 +10,16 @@ import {
     Calendar,
     FileEdit,
     History as HistoryIcon,
-    Upload
+    Upload,
+    Stethoscope
 } from 'lucide-react';
 
 export const ADMIN_LINKS = [
     { label: 'Dashboard', path: '/admin', icon: Activity },
     { label: 'Add New Patient', path: '/admin/patients/register', icon: UserSquare2 },
     { label: 'Add New Doctor', path: '/admin/doctors/register', icon: UserSquare2 },
-    { label: 'User Directory', path: '/admin/users', icon: Users },
+    { label: 'Doctors List', path: '/admin/doctors', icon: Stethoscope },
+    { label: 'Patients List', path: '/admin/patients', icon: Users },
     { label: 'New Appointment', path: '/admin/appointments', icon: CalendarCheck2 },
     { label: 'Active Appointments', path: '/admin/appointments/list', icon: ClipboardList },
     // { label: 'Finance Hub', path: '/admin/billing', icon: BarChart3 },
@@ -36,6 +38,10 @@ export const getLinksByRole = (role) => {
     switch (role) {
         case 'superadmin':
             return ADMIN_LINKS;
+        case 'admin':
+            return ADMIN_LINKS.filter(link => 
+                ['/admin', '/admin/patients/register', '/admin/appointments', '/admin/appointments/list'].includes(link.path)
+            );
         case 'doctor':
             return DOCTOR_LINKS;
         // case 'patient':

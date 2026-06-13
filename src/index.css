@@ -24,6 +24,13 @@
   --color-secondary-700: #1c1d4d;
   --color-secondary-800: #0f103d;
   --color-secondary-900: #080c2e;
+  /* Override Slate Colors to be extremely dark for maximum readability */
+  --color-slate-300: #475569; /* default 600 */
+  --color-slate-400: #334155; /* default 700 */
+  --color-slate-500: #1e293b; /* default 800 */
+  --color-slate-600: #0f172a; /* default 900 */
+  --color-slate-700: #020617; /* default 950 */
+  --color-slate-800: #000000; /* pure black */
 
   --font-sans: "Inter", system-ui, sans-serif;
 

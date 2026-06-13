@@ -19,7 +19,13 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 const AdminDashboard = () => {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
+
     const { data: users, isLoading: usersLoading } = useQuery({
         queryKey: ['adminUsers'],
         queryFn: async () => {
@@ -28,16 +34,14 @@ const AdminDashboard = () => {
         }
     });
 
-    const { data: invoices, isLoading: invoicesLoading } = useQuery({
-        queryKey: ['adminInvoicesSummary'],
+    const { data: appointments, isLoading: appointmentsLoading } = useQuery({
+        queryKey: ['adminAppointmentsSummary'],
         queryFn: async () => {
-            const res = await adminApi.getInvoices();
+            const res = await adminApi.getAppointments();
             return res.data;
-        }
+        },
+        enabled: user?.role === 'admin' || user?.role === 'superadmin'
     });
-
-    const queryClient = useQueryClient();
-    const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
 
     const deleteMutation = useMutation({
         mutationFn: (id) => adminApi.deleteUser(id),
@@ -51,20 +55,23 @@ const AdminDashboard = () => {
         }
     });
 
-
     // Calculate real stats
     const patientCount = users?.filter(u => u.role === 'patient').length || 0;
-    const totalRevenue = invoices?.reduce((acc, inv) => acc + inv.totalAmount, 0) || 0;
     const totalUsers = users?.length || 0;
+    const doctorCount = users?.filter(u => u.role === 'doctor').length || 0;
+    const activeAppointmentsCount = appointments?.filter(appt => appt.status !== 'Completed' && appt.status !== 'Cancelled').length || 0;
 
-    const stats = [
-        { label: 'Total Patients', value: patientCount, change: '+12%', icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        // { label: 'System Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: 'Live', icon: BarChart3, color: 'text-indigo-600', bg: 'bg-indigo-100' },
-        { label: 'System Users', value: totalUsers, change: '+8%', icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
-        { label: 'Security Events', value: 'Active', change: 'Audit Log', icon: Activity, color: 'text-rose-600', bg: 'bg-rose-100' },
+    const stats = user?.role === 'superadmin' ? [
+        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
+        { label: 'Registered Doctors', value: doctorCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
+        { label: 'System Users', value: totalUsers, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    ] : [
+        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
     ];
 
-    const isLoading = usersLoading || invoicesLoading;
+    const isLoading = usersLoading || ((user?.role === 'admin' || user?.role === 'superadmin') && appointmentsLoading);
 
     return (
         <DashboardLayout>
@@ -82,7 +89,7 @@ const AdminDashboard = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 mb-6 md:mb-10">
+                <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'superadmin' ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-4 md:gap-8 mb-6 md:mb-10`}>
                     {stats.map((stat, i) => (
                         <div key={i} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-default group border-b-4 border-b-slate-50 hover:border-b-primary-200">
                             <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color} shrink-0`}>
@@ -101,34 +108,44 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     <div className="lg:col-span-2 glass-card p-4 md:p-8">
                         <div className="flex items-center justify-between mb-6 md:mb-8">
-                            <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter">Recent Patient Registrations</h3>
-                            <Link to="/admin/users" className="text-primary-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline">Directory</Link>
+                            <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter">
+                                {user?.role === 'superadmin' ? 'Recent Registrations' : 'Recent Patient Registrations'}
+                            </h3>
+                            {user?.role === 'superadmin' && (
+                                <Link to="/admin/users" className="text-primary-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline">Directory</Link>
+                            )}
                         </div>
                         <div className="space-y-3 md:space-y-4">
                             {isLoading ? (
                                 [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />)
                             ) : (
-                                users?.filter(u => u.role === 'patient').slice(-5).reverse().map((u, i) => (
-                                    <div key={u._id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
-                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-100 flex items-center justify-center text-primary-600 font-black group-hover:bg-primary-100/50 group-hover:rotate-12 transition-all shrink-0">
-                                            {u.name.charAt(0)}
+                                users
+                                    ?.filter(u => user?.role === 'superadmin' ? (u.role === 'doctor' || u.role === 'patient') : u.role === 'patient')
+                                    .slice(-5)
+                                    .reverse()
+                                    .map((u, i) => (
+                                        <div key={u._id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
+                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-100 flex items-center justify-center text-primary-600 font-black group-hover:bg-primary-100/50 group-hover:rotate-12 transition-all shrink-0">
+                                                {u.name.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 overflow-hidden">
+                                                <p className="text-xs md:text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
+                                                    {u.name}
+                                                </p>
+                                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest truncate">
+                                                    {u.role} • {new Date(u.createdAt).toLocaleDateString('en-GB')}
+                                                </p>
+                                            </div>
+                                            {user?.role === 'superadmin' && u.role !== 'superadmin' && (
+                                                <button
+                                                    onClick={() => setConfirmModal({ isOpen: true, id: u._id, name: u.name })}
+                                                    className="text-slate-200 hover:text-rose-500 transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 p-2"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <p className="text-xs md:text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
-                                                {u.name}
-                                            </p>
-                                            <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest truncate">
-                                                {new Date(u.createdAt).toLocaleDateString('en-GB')}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => setConfirmModal({ isOpen: true, id: u._id, name: u.name })}
-                                            className="text-slate-200 hover:text-rose-500 transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 p-2"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))
+                                    ))
                             )}
                         </div>
                     </div>
@@ -136,38 +153,76 @@ const AdminDashboard = () => {
                     <div className="glass-card p-4 md:p-8">
                         <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter mb-6 md:mb-8">Admin Directives</h3>
                         <div className="grid gap-4">
-                            <Link to="/admin/users" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                <div className="flex items-center gap-4">
-                                    <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                    <span className="font-black text-xs uppercase tracking-widest">User Directory</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                            </Link>
-                            <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                <div className="flex items-center gap-4">
-                                    <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                    <span className="font-black text-xs uppercase tracking-widest">Add New Patient</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                            </Link>
-                            {/* <Link to="/admin/billing" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                <div className="flex items-center gap-4">
-                                    <BarChart3 className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                    <span className="font-black text-xs uppercase tracking-widest">Financial Audit</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                            </Link> */}
-                            <Link to="/admin/logs" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-rose-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                <div className="flex items-center gap-4">
-                                    <History className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                    <span className="font-black text-xs uppercase tracking-widest">System Security</span>
-                                </div>
-                                <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                            </Link>
-                            {/* <button className="flex items-center justify-center gap-3 p-5 border-2 border-dashed border-slate-200 rounded-3xl transition-all hover:border-primary-400 hover:text-primary-600 mt-4 group">
-                                <CalendarCheck2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                <span className="font-black text-[10px] uppercase tracking-widest">System Maintenance</span>
-                            </button> */}
+                            {user?.role === 'superadmin' ? (
+                                <>
+                                    <Link to="/admin/users" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">User Directory</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">Add New Patient</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/doctors/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">Add New Doctor</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/appointments" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">New Appointment</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/appointments/list" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-amber-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">Active Appointments</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/logs" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-rose-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <History className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">System Security</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">Add New Patient</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/appointments" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">New Appointment</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                    <Link to="/admin/appointments/list" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-amber-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
+                                        <div className="flex items-center gap-4">
+                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
+                                            <span className="font-black text-xs uppercase tracking-widest">Active Appointments</span>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
