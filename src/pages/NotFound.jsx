@@ -47,13 +47,6 @@ const NotFound = () => {
                         <ArrowLeft className="w-4 h-4" />
                         Go Back
                     </button>
-                    <Link
-                        to="/login"
-                        className="w-full sm:w-auto px-8 py-4 bg-primary-600 text-white font-bold uppercase tracking-widest text-xs rounded-xl hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20"
-                    >
-                        <Home className="w-4 h-4" />
-                        Back to Home
-                    </Link>
                 </motion.div>
             </div>
         </div>
