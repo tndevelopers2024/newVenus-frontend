@@ -18,6 +18,7 @@ import {
     Download
 } from 'lucide-react';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
+import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -558,14 +559,14 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                 className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col no-print"
             >
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <UnifiedDocument
-                        data={{
+                    <iframe 
+                        srcDoc={getUnifiedDocumentHTML({
                             ...prescriptionData,
                             image: prescriptionData.prescription?.image || prescriptionData.image,
                             appointmentId,
                             createdAt: prescriptionData.prescription?.createdAt
-                        }}
-                        type="prescription"
+                        }, 'prescription', true)}
+                        className="w-full h-full min-h-[600px] border-0 rounded-[24px]"
                     />
                 </div>
 

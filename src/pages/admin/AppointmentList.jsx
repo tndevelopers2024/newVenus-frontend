@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../services/api';
+import { adminApi, doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import TablePagination from '../../components/shared/TablePagination';
 import {
@@ -18,16 +18,20 @@ import {
     Printer,
     Mail,
     Share2,
-    Send
+    Send,
+    UploadCloud
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
+import { printDocument } from '../../utils/printHelper';
 
 const AppointmentList = () => {
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+    const filterParam = searchParams.get('filter');
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -66,6 +70,37 @@ const AppointmentList = () => {
         }
     });
 
+    const uploadPrescriptionMutation = useMutation({
+        mutationFn: doctorApi.createPrescription,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['adminAppointmentsFullList']);
+            queryClient.invalidateQueries(['adminAppointmentsAll']);
+            toast.success('Handwritten prescription uploaded successfully');
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to upload prescription');
+        }
+    });
+
+    const handleFileUpload = async (e, appt) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('appointmentId', appt._id);
+        formData.append('patientId', appt.patient?._id);
+        if (appt.doctor?._id) formData.append('doctorId', appt.doctor._id);
+
+        const toastId = toast.loading('Uploading prescription...');
+        try {
+            await uploadPrescriptionMutation.mutateAsync(formData);
+            toast.dismiss(toastId);
+        } catch (error) {
+            toast.dismiss(toastId);
+        }
+    };
+
     const handlePrint = async (appt) => {
         try {
             const toastId = toast.loading('Fetching prescription...');
@@ -96,12 +131,7 @@ const AppointmentList = () => {
                 }
             };
 
-            const html = getUnifiedDocumentHTML(printData, 'prescription');
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.write(html);
-                printWindow.document.close();
-            }
+            printDocument(printData, 'prescription');
             toast.dismiss(toastId);
         } catch (error) {
             console.error(error);
@@ -151,12 +181,19 @@ const AppointmentList = () => {
             (appt.reason?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
         const apptDate = new Date(appt.createdAt).toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
 
         let matchesDate = true;
-        if (dateRange.start && dateRange.end) {
-            matchesDate = apptDate >= dateRange.start && apptDate <= dateRange.end;
-        } else if (dateRange.start) {
-            matchesDate = apptDate === dateRange.start;
+        if (filterParam === 'today') {
+            matchesDate = apptDate === todayStr;
+        } else if (filterParam === 'previous') {
+            matchesDate = apptDate < todayStr;
+        } else {
+            if (dateRange.start && dateRange.end) {
+                matchesDate = apptDate >= dateRange.start && apptDate <= dateRange.end;
+            } else if (dateRange.start) {
+                matchesDate = apptDate === dateRange.start;
+            }
         }
 
         return matchesSearch && matchesDate;
@@ -196,7 +233,7 @@ const AppointmentList = () => {
                     <div>
                         <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter flex items-center gap-3">
                             <Calendar className="w-8 h-8 text-primary-500" />
-                            Active Appointments
+                            {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : 'Active Appointments'}
                         </h1>
                         <p className="text-slate-500 mt-1 font-bold">Monitor and manage all patient-doctor links</p>
                     </div>
@@ -427,14 +464,20 @@ const AppointmentList = () => {
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 {appt.status !== 'Completed' ? (
-                                                    <button
-                                                        onClick={() => setConfirmModal({ isOpen: true, id: appt._id, name: appt.patient?.name })}
-                                                        disabled={deleteMutation.isPending}
-                                                        className="p-2 text-slate-300 hover:text-rose-600 transition-colors disabled:opacity-50"
-                                                        title="Remove Assignment"
-                                                    >
-                                                        <XCircle className="w-5 h-5" />
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <label className={`p-2 text-slate-300 hover:text-emerald-600 transition-colors cursor-pointer ${uploadPrescriptionMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Handwritten Prescription">
+                                                            <UploadCloud className="w-5 h-5" />
+                                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, appt)} />
+                                                        </label>
+                                                        <button
+                                                            onClick={() => setConfirmModal({ isOpen: true, id: appt._id, name: appt.patient?.name })}
+                                                            disabled={deleteMutation.isPending}
+                                                            className="p-2 text-slate-300 hover:text-rose-600 transition-colors disabled:opacity-50"
+                                                            title="Remove Assignment"
+                                                        >
+                                                            <XCircle className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
                                                 ) : (
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button

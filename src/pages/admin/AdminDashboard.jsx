@@ -12,6 +12,7 @@ import {
     Trash2,
     ChevronRight,
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -73,6 +74,18 @@ const AdminDashboard = () => {
 
     const isLoading = usersLoading || ((user?.role === 'admin' || user?.role === 'superadmin') && appointmentsLoading);
 
+    // Chart Data (Last 7 days)
+    const chartData = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const count = appointments?.filter(a => new Date(a.date).toISOString().split('T')[0] === dateStr).length || 0;
+        return {
+            name: d.toLocaleDateString('en-US', { weekday: 'short' }),
+            count
+        };
+    }).reverse();
+
     return (
         <DashboardLayout>
             <div className="max-w-7xl mx-auto">
@@ -107,47 +120,60 @@ const AdminDashboard = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     <div className="lg:col-span-2 glass-card p-4 md:p-8">
-                        <div className="flex items-center justify-between mb-6 md:mb-8">
-                            <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter">
-                                {user?.role === 'superadmin' ? 'Recent Registrations' : 'Recent Patient Registrations'}
-                            </h3>
-                            {user?.role === 'superadmin' && (
-                                <Link to="/admin/users" className="text-primary-600 text-[10px] md:text-xs font-black uppercase tracking-widest hover:underline">Directory</Link>
-                            )}
-                        </div>
-                        <div className="space-y-3 md:space-y-4">
-                            {isLoading ? (
-                                [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />)
-                            ) : (
-                                users
-                                    ?.filter(u => user?.role === 'superadmin' ? (u.role === 'doctor' || u.role === 'patient') : u.role === 'patient')
-                                    .slice(-5)
-                                    .reverse()
-                                    .map((u, i) => (
-                                        <div key={u._id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
-                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-100 flex items-center justify-center text-primary-600 font-black group-hover:bg-primary-100/50 group-hover:rotate-12 transition-all shrink-0">
-                                                {u.name.charAt(0)}
-                                            </div>
-                                            <div className="flex-1 overflow-hidden">
-                                                <p className="text-xs md:text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
-                                                    {u.name}
-                                                </p>
-                                                <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest truncate">
-                                                    {u.role} • {new Date(u.createdAt).toLocaleDateString('en-GB')}
-                                                </p>
-                                            </div>
-                                            {user?.role === 'superadmin' && u.role !== 'superadmin' && (
-                                                <button
-                                                    onClick={() => setConfirmModal({ isOpen: true, id: u._id, name: u.name })}
-                                                    className="text-slate-200 hover:text-rose-500 transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 p-2"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))
-                            )}
-                        </div>
+                        {user?.role === 'superadmin' ? (
+                            <>
+                                <h3 className="text-lg md:text-xl font-bold mb-6">Appointments This Week</h3>
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={chartData}>
+                                            <defs>
+                                                <linearGradient id="colorCountAdmin" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3}/>
+                                                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                            <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                                            <Area type="monotone" dataKey="count" stroke="#0d9488" strokeWidth={3} fillOpacity={1} fill="url(#colorCountAdmin)" activeDot={{r: 6, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2}} />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-between mb-6 md:mb-8">
+                                    <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter">
+                                        Recent Patient Registrations
+                                    </h3>
+                                </div>
+                                <div className="space-y-3 md:space-y-4">
+                                    {isLoading ? (
+                                        [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />)
+                                    ) : (
+                                        users
+                                            ?.filter(u => u.role === 'patient')
+                                            .slice(-5)
+                                            .reverse()
+                                            .map((u, i) => (
+                                                <div key={u._id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
+                                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-100 flex items-center justify-center text-primary-600 font-black group-hover:bg-primary-100/50 group-hover:rotate-12 transition-all shrink-0">
+                                                        {u.name.charAt(0)}
+                                                    </div>
+                                                    <div className="flex-1 overflow-hidden">
+                                                        <p className="text-xs md:text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
+                                                            {u.name}
+                                                        </p>
+                                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest truncate">
+                                                            {u.role} • {new Date(u.createdAt).toLocaleDateString('en-GB')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="glass-card p-4 md:p-8">

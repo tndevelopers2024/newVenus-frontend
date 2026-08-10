@@ -40,6 +40,11 @@ export const doctorApi = {
         return api.post('/doctor/prescriptions', data);
     },
     searchMedications: (query) => api.get(`/doctor/medications/search?query=${query}`),
+    saveDraft: (appointmentId, data) => api.post(`/doctor/appointments/${appointmentId}/draft`, data),
+    saveTemplate: (data) => api.post('/doctor/templates', data),
+    getTemplates: (doctorId) => api.get(`/doctor/templates${doctorId ? `?doctorId=${doctorId}` : ''}`),
+    updateTemplate: (id, data) => api.put(`/doctor/templates/${id}`, data),
+    deleteTemplate: (id) => api.delete(`/doctor/templates/${id}`),
     getPrescriptionByAppointment: (id) => api.get(`/doctor/appointments/${id}/prescription`),
     updatePaymentStatus: (id, status) => api.patch(`/doctor/appointments/${id}/payment`, { status }),
     reorderAppointments: (orderedIds) => api.put('/doctor/appointments/reorder', { orderedIds }),

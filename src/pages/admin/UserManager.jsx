@@ -30,16 +30,18 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     });
 
     const filteredUsers = users?.filter(user => {
-        if (filter === 'archived') {
-            return user.isDeleted;
-        }
-        // For other tabs (all, doctor, patient), exclude deleted users
-        const isNotDeleted = !user.isDeleted;
-        const matchesRole = filter === 'all' || user.role === filter;
         const matchesSearch = 
             (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (user.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+        if (filter === 'archived') {
+            return user.isDeleted && matchesSearch;
+        }
+        // For other tabs (all, doctor, patient), exclude deleted users
+        const isNotDeleted = !user.isDeleted;
+        const matchesRole = filter === 'all' || user.role === filter;
+        
         return isNotDeleted && matchesRole && matchesSearch;
     });
 
@@ -108,7 +110,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                             className="bg-secondary-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-600 transition-all shadow-lg shadow-secondary-900/10 flex items-center gap-3"
                         >
                             <UserPlus className="w-5 h-5 text-primary-400" />
-                            Add Professional
+                            Add Doctor
                         </button>
                     </div>
                 </div>
@@ -155,6 +157,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                 <tr className="bg-slate-50/50">
                                     <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">User Details</th>
                                     <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Contact</th>
+                                    <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Basic Details</th>
                                     <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Role</th>
                                     <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                                 </tr>
@@ -164,7 +167,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                     [1, 2, 3].map(i => <tr key={i} className="animate-pulse h-20"></tr>)
                                 ) : !paginatedUsers || paginatedUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan="4" className="px-8 py-20 text-center">
+                                        <td colSpan="5" className="px-8 py-20 text-center">
                                             <div className="flex flex-col items-center justify-center grayscale opacity-30">
                                                 <Users className="w-12 h-12 mb-4" />
                                                 <p className="text-xs font-black uppercase tracking-widest">
@@ -203,13 +206,26 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">Age:</span> {user.age || 'N/A'}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">Gender:</span> {user.gender || 'N/A'}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">Job:</span> {user.occupation || 'N/A'}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
                                                 <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
                                                     user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                                     user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                                         user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                                                             'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                     }`}>
-                                                    {user.isDeleted ? 'Deleted' : user.role}
+                                                    {user.isDeleted ? `Deleted ${user.role}` : user.role}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6">

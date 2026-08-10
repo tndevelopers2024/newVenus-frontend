@@ -39,8 +39,8 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
     };
 
     const containerClasses = mobile
-        ? `fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
-        : `hidden md:flex flex-col h-screen bg-white border-r border-slate-200 transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`;
+        ? `fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+        : `hidden md:flex flex-col h-screen bg-white border-r border-slate-200 transition-all duration-300 ${isOpen ? 'w-72' : 'w-20'}`;
 
     const content = (
         <div className="flex flex-col h-full">
@@ -78,7 +78,7 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
                         >
                             <link.icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
                             {(isOpen || mobile) && (
-                                <span className={`font-bold text-sm ${isActive ? 'text-white' : 'font-medium'}`}>{link.label}</span>
+                                <span className={`font-bold text-sm text-left truncate ${isActive ? 'text-white' : 'font-medium'}`}>{link.label}</span>
                             )}
                         </button>
                     );

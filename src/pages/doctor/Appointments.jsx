@@ -26,6 +26,7 @@ import {
     Mail
 } from 'lucide-react';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
+import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorApi } from '../../services/api';
@@ -116,6 +117,8 @@ const Appointments = () => {
 
 
 
+    const filterParam = new URLSearchParams(location.search).get('filter');
+
     const filteredAppointments = appointments?.filter(appt => {
         let matchesStatus = false;
         if (activeTab === 'All') {
@@ -128,7 +131,18 @@ const Appointments = () => {
 
         const matchesSearch = appt.patient?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             appt.patient?._id?.includes(searchQuery);
-        return matchesStatus && matchesSearch;
+
+        const apptDate = new Date(appt.date).toISOString().split('T')[0];
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        let matchesDate = true;
+        if (filterParam === 'today') {
+            matchesDate = apptDate === todayStr;
+        } else if (filterParam === 'previous') {
+            matchesDate = apptDate < todayStr;
+        }
+
+        return matchesStatus && matchesSearch && matchesDate;
     }).reverse() || [];
 
     // Pagination Logic
@@ -182,7 +196,9 @@ const Appointments = () => {
                 <div className="max-w-8xl mx-auto py-6 px-4 print:hidden">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
                         <div>
-                            <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Appointment Manager</h1>
+                            <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">
+                                {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : 'Appointment Manager'}
+                            </h1>
                             <p className="text-slate-500 mt-0.5 font-medium text-sm">Coordinate patient consultations and schedule logistics</p>
                         </div>
                     </div>
@@ -333,7 +349,7 @@ const Appointments = () => {
                                                             className="px-4 py-2 bg-secondary-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
                                                         >
                                                             <Activity className="w-3 h-3" />
-                                                            Start Session
+                                                            {appt.hasDraft ? 'Resume Draft' : 'Start Consultation'}
                                                         </button>
                                                     )}
                                                      {appt.status === 'Completed' && (
@@ -452,14 +468,14 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                 className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col no-print"
             >
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <UnifiedDocument
-                        data={{
+                    <iframe 
+                        srcDoc={getUnifiedDocumentHTML({
                             ...prescriptionData,
                             image: prescriptionData.prescription?.image || prescriptionData.image,
                             appointmentId,
                             createdAt: prescriptionData.prescription?.createdAt
-                        }}
-                        type="prescription"
+                        }, 'prescription', true)}
+                        className="w-full h-full min-h-[600px] border-0 rounded-[24px]"
                     />
                 </div>
 

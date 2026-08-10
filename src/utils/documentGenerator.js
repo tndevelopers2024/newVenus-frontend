@@ -1,7 +1,7 @@
 import { findImageField, resolveImageUrl, isImagePrescription } from './documentUtils';
 
 // Utility to generate HTML for printing documents
-export const getUnifiedDocumentHTML = (data, type = 'prescription') => {
+export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode = false) => {
     const isPrescription = type === 'prescription';
     const { prescription, clinicalDetails } = data;
     
@@ -31,116 +31,154 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription') => {
                 </style>
             </head>
             <body>
-                <button class="print-btn" onclick="window.print()">Print This Prescription</button>
+                ${!previewMode ? '<button class="print-btn" onclick="window.print()">Print This Prescription</button>' : ''}
                 <img src="${prescriptionImageUrl}" alt="Handwritten Prescription" />
+                ${!previewMode ? `
                 <script>
                     window.onload = function() {
                         setTimeout(() => {
                             window.print();
                         }, 1000);
                     }
-                </script>
+                </script>` : ''}
             </body>
         </html>
         `;
     }
 
     // 4. STANDARD TEMPLATE (FALLBACK)
-    const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    const doctorName = prescription?.doctor?.name || data.doctor?.name || 'Medical Officer';
-    const patientName = prescription?.patient?.name || data.patient?.name || 'Patient';
-    const patientId = prescription?.patient?.displayId || data.patient?.displayId || 'N/A';
-    const patientGender = prescription?.patient?.gender ? '(' + prescription.patient.gender[0] + ')' : '';
-    const patientAge = prescription?.patient?.age ? '/ ' + prescription.patient.age + ' Y' : '';
-    const patientPhone = prescription?.patient?.phone || '';
+    const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const patientName = prescription?.patient?.name || data.patient?.name || '';
+    const patientAgeObj = prescription?.patient?.age || data.patient?.age;
+    const patientGenderObj = prescription?.patient?.gender || data.patient?.gender;
+    const patientAge = patientAgeObj ? patientAgeObj + ' Y' : '';
+    const patientGender = patientGenderObj ? '(' + patientGenderObj[0] + ')' : '';
     const logoUrl = window.location.origin + '/images/venus-logo.webp';
 
     return `
         <html>
             <head>
                 <title>Prescription - ${patientName}</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
                 <style>
                     @page { size: A4; margin: 0; }
-                    body { font-family: 'Inter', sans-serif; padding: 0; margin: 0; color: #000; background: white; -webkit-print-color-adjust: exact; }
+                    body { font-family: Arial, Helvetica, sans-serif; padding: 0; margin: 0; color: #000; background: white; -webkit-print-color-adjust: exact; }
                     .page-content { padding: 40px 50px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
-                    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 20px; }
-                    .doc-info { width: 50%; }
-                    .doc-name { font-size: 18px; font-weight: 700; text-transform: uppercase; margin: 0; }
-                    .clinic-info { width: 50%; text-align: right; display: flex; justify-content: flex-end; gap: 10px; }
-                    .clinic-details h2 { font-size: 16px; font-weight: 700; color: #1e40af; text-transform: uppercase; margin: 0 0 5px 0; }
-                    .clinic-details p { font-size: 10px; margin: 2px 0; color: #1f2937; line-height: 1.25; font-weight: 500; }
-                    .patient-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-                    .patient-details { border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 15px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-                    .clinical-grid { display: flex; gap: 20px; border-bottom: 20px solid #000; padding-bottom: 15px; margin-bottom: 15px; }
+                    
+                    /* Header */
+                    .header-text { text-align: center; color: #004b93; line-height: 1.4; margin-bottom: 5px; }
+                    .header-title { font-size: 26px; font-weight: 900; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+                    .header-doctor { font-size: 17px; margin-bottom: 3px; }
+                    .doctor-name { font-weight: bold; }
+                    .header-tamil { font-size: 15px; margin-bottom: 3px; font-weight: normal; font-family: 'BAMINI-Tamil54', 'Latha', 'Arial Unicode MS', sans-serif; }
+                    .header-quals { font-size: 15px; margin-bottom: 3px; font-weight: normal; }
+                    .header-role { font-size: 15px; margin-bottom: 15px; text-transform: uppercase; font-weight: normal; }
+                    
+                    .header-sep { border-top: 1.5px solid #004b93; margin: 4px 0; }
+                    
+                    .header-meta { display: flex; justify-content: space-between; color: #004b93; font-size: 13px; font-weight: bold; padding: 5px 10px; }
+                    
+                    /* Patient Info */
+                    .patient-info { display: flex; justify-content: space-between; color: #004b93; font-size: 16px; font-weight: bold; margin-top: 15px; padding: 0 10px; }
+                    .patient-left { display: flex; flex-direction: column; gap: 8px; }
+                    
+                    /* Body / Clinical */
+                    .clinical-section { margin-top: 30px; flex-grow: 1; padding: 0 10px; color: #000; }
+                    .clinical-grid { display: flex; gap: 20px; padding-bottom: 15px; margin-bottom: 15px; }
                     .col { flex: 1; }
-                    .col h3 { font-size: 12px; font-weight: 700; text-decoration: underline; margin: 0 0 5px 0; text-transform: uppercase; }
-                    .colcontent { font-size: 11px; text-transform: uppercase; font-weight: 600; padding-left: 5px; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 2px solid #000; }
-                    th { text-align: left; border-bottom: 2px solid #000; padding: 5px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-                    td { padding: 12px 0; border-bottom: 1px solid #9ca3af; font-size: 12px; vertical-align: top; }
-                    .footer-note { margin-top: auto; padding-top: 10px; text-align: center; }
-                    .site-link { font-size: 12px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; border-top: 1px solid #000; padding-top: 10px; width: 100%; display: block; }
-                    .handwritten-fallback { margin-top: 20px; border: 1px dashed #ccc; padding: 20px; text-align: center; }
-                    .handwritten-fallback img { max-width: 100%; height: auto; }
+                    .col h3 { font-size: 14px; font-weight: bold; text-decoration: underline; margin: 0 0 5px 0; }
+                    .colcontent { font-size: 14px; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th { text-align: left; padding: 5px 0; font-size: 14px; font-weight: bold; border-bottom: 1px solid #000; }
+                    td { padding: 10px 0; border-bottom: 1px dashed #ccc; font-size: 14px; vertical-align: top; }
+                    
+                    /* Footer */
+                    .footer { color: #004b93; text-align: center; font-size: 13px; font-weight: bold; line-height: 1.6; padding-top: 15px; }
+                    
+                    .handwritten-fallback { margin-top: 20px; text-align: center; }
+                    .handwritten-fallback img { max-width: 100%; height: auto; mix-blend-mode: multiply; }
                 </style>
             </head>
             <body>
                 <div class="page-content">
-                    <div class="header">
-                        <div class="doc-info"><h1 class="doc-name">Dr. ${doctorName}</h1></div>
-                        <div class="clinic-info">
-                            <div class="clinic-details">
-                                <img src="${logoUrl}" style="height: 50px; margin-right: 15px;" />
-                                <p style="max-width: 250px; margin-left: auto;">200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073</p>
-                                <p>Ph: 7708317826, 7010315857</p>
-                            </div>
+                    <!-- Header -->
+                    <div class="header-text">
+                        <img src="${logoUrl}" style="height: 50px; margin-bottom: 8px; display: inline-block;" />
+                        <div class="header-doctor">Dr. <span class="doctor-name">C.R. MADHU PRABHU DOSS,</span> M.B.B.S., M.D., D.M., Cardiology</div>
+                        <div class="header-tamil">டாக்டர். சி.ஆர். மது பிரபு தாஸ், எம்.பி.பி.எஸ்., எம்.டி., டி.எம்., கார்டியாலஜி</div>
+                        <div class="header-quals">Interventions (Canada), FESC (Europe), FSCAI (US)</div>
+                        <div class="header-role">SENIOR CONSULTANT INTERVENTIONAL CARDIOLOGIST</div>
+                    </div>
+                    
+                    <div class="header-sep"></div>
+                    <div class="header-meta">
+                        <div>Regd. No. 65582</div>
+                        <div>APOLLO HOSPITALS - OMR</div>
+                    </div>
+                    <div class="header-sep"></div>
+                    
+                    <!-- Patient Info -->
+                    <div class="patient-info">
+                        <div class="patient-left">
+                            <div>Name : <span style="color:#000; font-weight:normal; margin-left: 10px;">${patientName} ${patientGender}</span></div>
+                            <div>Age : <span style="color:#000; font-weight:normal; margin-left: 20px;">${patientAge || '-'}</span></div>
+                        </div>
+                        <div>
+                            <div>Date : <span style="color:#000; font-weight:normal; margin-left: 10px;">${dateStr}</span></div>
                         </div>
                     </div>
-                    <div class="patient-row">
-                        <div>ID: ${patientId} - ${patientName} ${patientGender} ${patientAge} <span style="margin-left: 20px;">Mob. No.: ${patientPhone}</span></div>
-                        <div>Date: ${dateStr}</div>
-                    </div>
-                    ${clinicalDetails?.vitals ? `
-                        <div class="patient-details">
-                             <span>Weight (Kg): ${clinicalDetails.vitals.weight || '-'}, Height (Cm): ${clinicalDetails.vitals.height || '-'}, BP: ${clinicalDetails.vitals.bloodPressure || '-'} mmHg</span>
-                        </div>
-                    ` : '<div style="margin-bottom: 20px;"></div>'}
-
-                    ${isPrescription ? `
-                        <div class="clinical-grid">
-                            <div class="col"><h3>Chief Complaints</h3><div class="colcontent">${clinicalDetails?.diagnosis || '-'}</div></div>
-                            <div class="col"><h3>Clinical Findings</h3><div class="colcontent">${clinicalDetails?.clinicalNotes || '-'}</div></div>
-                        </div>
-                        <div style="font-weight: 700; font-size: 18px; margin-bottom: 10px;">Rx</div>
-                        <table>
-                            <thead><tr><th>Medicine Name</th><th>Frequency</th><th>Duration</th></tr></thead>
-                            <tbody>
-                                ${prescription?.medications?.length > 0 ? prescription.medications.map((med, idx) => `
-                                    <tr>
-                                        <td><span style="font-weight:700;">${idx + 1}) ${med.name}</span></td>
-                                        <td><div>${med.frequency}</div><div style="font-size:10px;">(${med.instruction || 'After Food'})</div></td>
-                                        <td>${med.duration} Days</td>
-                                    </tr>
-                                `).join('') : '<tr><td colspan="3" style="text-align:center; padding: 20px;">Digital Prescription medications not specified.</td></tr>'}
-                            </tbody>
-                        </table>
-                        ${prescriptionImageUrl ? `
-                            <div class="handwritten-fallback">
-                                <h3 style="font-size: 12px; margin-bottom: 10px; text-decoration: underline;">Handwritten Prescription Attachment:</h3>
-                                <img src="${prescriptionImageUrl}" />
+                    
+                    <!-- Clinical Info -->
+                    <div class="clinical-section">
+                        ${clinicalDetails?.vitals && (clinicalDetails.vitals.bloodPressure || clinicalDetails.vitals.pulse || clinicalDetails.vitals.spo2 || clinicalDetails.vitals.temperature || clinicalDetails.vitals.weight) ? `
+                            <div style="font-size: 13px; margin-bottom: 20px; color: #4b5563;">
+                                <strong>Vitals:</strong> BP: ${clinicalDetails.vitals.bloodPressure || '-'} mmHg, Pulse: ${clinicalDetails.vitals.pulse || '-'} bpm, SPO2: ${clinicalDetails.vitals.spo2 || '-'}%, Temp: ${clinicalDetails.vitals.temperature || '-'} °F, Weight: ${clinicalDetails.vitals.weight || '-'} Kg
                             </div>
                         ` : ''}
-                    ` : ''}
+
+                        ${isPrescription ? `
+                            ${(clinicalDetails?.diagnosis || clinicalDetails?.clinicalNotes) ? `
+                                <div class="clinical-grid">
+                                    <div class="col"><h3>Chief Complaints</h3><div class="colcontent">${clinicalDetails?.diagnosis || '-'}</div></div>
+                                    <div class="col"><h3>Clinical Findings</h3><div class="colcontent">${clinicalDetails?.clinicalNotes || '-'}</div></div>
+                                </div>
+                            ` : ''}
+                            
+                            ${prescription?.medications?.length > 0 ? `
+                                <div style="font-weight: bold; font-size: 24px; margin-bottom: 15px; font-family: 'Times New Roman', serif;">Rx</div>
+                                <table>
+                                    <thead><tr><th>Medicine Name</th><th>Frequency</th><th>Duration</th></tr></thead>
+                                    <tbody>
+                                        ${prescription.medications.map((med, idx) => `
+                                            <tr>
+                                                <td><span style="font-weight:bold;">${idx + 1}) ${med.name}</span></td>
+                                                <td><div>${med.frequency}</div><div style="font-size:11px;">(${med.instruction || 'After Food'})</div></td>
+                                                <td>${med.duration} Days</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            ` : ''}
+                            
+                            ${prescriptionImageUrl ? `
+                                <div class="handwritten-fallback">
+                                    <img src="${prescriptionImageUrl}" />
+                                </div>
+                            ` : ''}
+                        ` : ''}
+                    </div>
                     
-                    <div class="footer-note">
-                        <div style="font-size: 10px; color: #6b7280; font-weight: 700; margin-bottom: 10px;">Substitute with equivalent Generics as required.</div>
-                        <div class="site-link">newvenusclinic.com</div>
+                    <!-- Footer -->
+                    <div class="header-sep" style="margin-top: auto;"></div>
+                    <div class="footer">
+                        <div>CLINIC: 200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073.</div>
+                        <div>Ph. 70103 15857 / 77083 17826 / 81480 70207</div>
+                        <div>TIMING: Morning - 10am to 12.30 pm / Evening - 6.00 pm to 9.00 pm</div>
                     </div>
                 </div>
+                ${!previewMode ? `
                 <script>
                     window.onload = function() { window.print(); }
-                </script>
+                </script>` : ''}
             </body>
         </html>
     `;

@@ -31,8 +31,8 @@ export const findImageField = (obj) => {
 export const resolveImageUrl = (imagePath, apiBase = '') => {
     if (!imagePath) return null;
     
-    // 1. Handle absolute URLs (http://... or blob:...)
-    if (imagePath.startsWith('http') || imagePath.startsWith('blob:')) {
+    // 1. Handle absolute URLs (http://... or blob:... or data:...)
+    if (imagePath.startsWith('http') || imagePath.startsWith('blob:') || imagePath.startsWith('data:')) {
         return imagePath;
     }
     

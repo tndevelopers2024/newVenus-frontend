@@ -9,7 +9,10 @@ import {
     CheckCircle2,
     ChevronLeft,
     ShieldCheck,
-    AlertCircle
+    AlertCircle,
+    Calendar,
+    Users,
+    Briefcase
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -21,7 +24,10 @@ const PatientRegistration = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        phone: ''
+        phone: '',
+        age: '',
+        gender: '',
+        occupation: ''
     });
 
     const [error, setError] = useState('');
@@ -45,7 +51,7 @@ const PatientRegistration = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 <div className="mb-10 flex items-center gap-4">
                     <Link to="/admin" className="p-3 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-slate-400 hover:text-primary-600">
                         <ChevronLeft className="w-5 h-5" />
@@ -67,14 +73,14 @@ const PatientRegistration = () => {
                             {error}
                         </motion.div>
                     )}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 gap-6">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="grid grid-cols-1 gap-5">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                                 <div className="relative">
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
-                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
                                         placeholder="Name"
                                         required
                                         value={formData.name}
@@ -89,7 +95,7 @@ const PatientRegistration = () => {
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
                                         type="email"
-                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
                                         placeholder="Email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -102,7 +108,7 @@ const PatientRegistration = () => {
                                 <div className="relative">
                                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
-                                        className="w-full pl-11 pr-4 py-4 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
                                         placeholder="Phone Number"
                                         required
                                         value={formData.phone}
@@ -111,6 +117,54 @@ const PatientRegistration = () => {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                            placeholder="Age"
+                                            required
+                                            value={formData.age}
+                                            onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
+                                    <div className="relative">
+                                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <select
+                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20 appearance-none text-slate-600"
+                                            required
+                                            value={formData.gender}
+                                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                                        >
+                                            <option value="" disabled>Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Occupation (Optional)</label>
+                                <div className="relative">
+                                    <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                        placeholder="Occupation"
+                                        value={formData.occupation}
+                                        onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="pt-4">

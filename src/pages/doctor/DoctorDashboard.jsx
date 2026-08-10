@@ -5,8 +5,14 @@ import {
     Calendar,
     Search,
     ArrowRight,
-    GripVertical
+    GripVertical,
+    Users,
+    CheckCircle2,
+    Activity,
+    CalendarCheck2,
+    Clock
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
     DndContext,
     closestCenter,
@@ -188,6 +194,32 @@ const DoctorDashboard = () => {
         }
     };
 
+    // Calculate stats
+    const todayStr = new Date().toISOString().split('T')[0];
+    const totalAppointments = appointments?.length || 0;
+    const completedAppointments = appointments?.filter(a => a.status === 'Completed').length || 0;
+    const pendingAppointments = appointments?.filter(a => ['Pending', 'Accepted'].includes(a.status)).length || 0;
+    const todaysAppointments = appointments?.filter(a => new Date(a.date).toISOString().split('T')[0] === todayStr).length || 0;
+
+    const stats = [
+        { label: 'Today\'s Appointments', value: todaysAppointments, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100' },
+        { label: 'Pending Consultations', value: pendingAppointments, icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
+        { label: 'Completed Appointments', value: completedAppointments, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'Total Appointments', value: totalAppointments, icon: CalendarCheck2, color: 'text-purple-600', bg: 'bg-purple-100' }
+    ];
+
+    // Chart Data (Last 7 days)
+    const chartData = [...Array(7)].map((_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const count = appointments?.filter(a => new Date(a.date).toISOString().split('T')[0] === dateStr).length || 0;
+        return {
+            name: d.toLocaleDateString('en-US', { weekday: 'short' }),
+            count
+        };
+    }).reverse();
+
     return (
         <DashboardLayout>
             <div className="max-w-7xl mx-auto">
@@ -203,6 +235,42 @@ const DoctorDashboard = () => {
                         <Calendar className="w-5 h-5" />
                         Manage Schedule
                     </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mb-6 md:mb-10">
+                    {stats.map((stat, i) => (
+                        <div key={i} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-default group border-b-4 border-b-slate-50 hover:border-b-primary-200">
+                            <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color} shrink-0`}>
+                                <stat.icon className="w-6 h-6 md:w-7 md:h-7" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl md:text-2xl font-black text-secondary-900 tracking-tighter ">{stat.value}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mb-8 glass-card p-6 md:p-8">
+                    <h3 className="text-lg md:text-xl font-bold mb-6">Appointments This Week</h3>
+                    <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                                <Area type="monotone" dataKey="count" stroke="#0d9488" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" activeDot={{r: 6, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2}} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-8">

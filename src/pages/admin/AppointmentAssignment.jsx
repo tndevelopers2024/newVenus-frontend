@@ -95,7 +95,7 @@ const AppointmentAssignment = () => {
         const existingConfig = formData.patientConfigs[patient._id] || {
             reasons: [],
             notes: '',
-            vitals: { bloodPressure: '', temperature: '', pulse: '', weight: '' }
+            vitals: { bloodPressure: '', temperature: '', pulse: '', weight: '', spo2: '' }
         };
         setModalState({
             isOpen: true,
@@ -105,6 +105,15 @@ const AppointmentAssignment = () => {
     };
 
     const handleSavePatientConfig = () => {
+        const { bloodPressure, pulse } = modalState.config.vitals;
+        if (!bloodPressure || !pulse) {
+            toast.error('BP and Pulse are mandatory fields', {
+                icon: '⚠️',
+                style: { borderRadius: '15px', background: '#1e293b', color: '#fff', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }
+            });
+            return;
+        }
+
         const patientId = modalState.patient._id;
         setFormData(prev => ({
             ...prev,
@@ -268,7 +277,7 @@ const AppointmentAssignment = () => {
                                 />
                             </div>
 
-                            <div className="max-h-[500px] overflow-y-auto custom-scrollbar space-y-2">
+                            <div className="max-h-[350px] overflow-y-auto custom-scrollbar space-y-2">
                                 {filteredPatients.map(p => {
                                     const isSelected = formData.patientIds.includes(p._id);
                                     const isConfigured = formData.patientConfigs[p._id];
@@ -346,7 +355,7 @@ const AppointmentAssignment = () => {
                                 />
                             </div>
 
-                            <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-2">
+                            <div className="max-h-[350px] overflow-y-auto custom-scrollbar space-y-2">
                                 {filteredDoctors.map(d => (
                                     <button
                                         key={d._id}
@@ -511,15 +520,15 @@ const AppointmentAssignment = () => {
                                             <h3 className="text-xs font-black text-rose-600 uppercase tracking-widest">Entry Vitals</h3>
                                         </div>
 
-                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                            {['bloodPressure', 'temperature', 'pulse', 'weight'].map((field) => (
+                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                                            {['bloodPressure', 'temperature', 'pulse', 'weight', 'spo2'].map((field) => (
                                                 <div key={field}>
                                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-1 block">
-                                                        {field === 'bloodPressure' ? 'BP (mmHg)' : field === 'temperature' ? 'Temp (°F)' : field === 'pulse' ? 'Pulse (bpm)' : 'Weight (kg)'}
+                                                        {field === 'bloodPressure' ? 'BP (mmHg) *' : field === 'temperature' ? 'Temp (°F)' : field === 'pulse' ? 'Pulse (bpm) *' : field === 'weight' ? 'Weight (kg)' : 'SPO2 (%)'}
                                                     </label>
                                                     <input
-                                                        className="w-full px-4 py-3 bg-white border border-rose-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-rose-500/10 focus:border-rose-300 outline-none transition-all"
-                                                        placeholder={field === 'bloodPressure' ? '120/80' : field === 'temperature' ? '98.6' : field === 'pulse' ? '72' : '70'}
+                                                        className={`w-full px-4 py-3 bg-white border ${(!modalState.config.vitals[field] && (field === 'bloodPressure' || field === 'pulse')) ? 'border-rose-300 ring-1 ring-rose-100' : 'border-rose-100'} rounded-2xl text-sm font-bold focus:ring-2 focus:ring-rose-500/10 focus:border-rose-300 outline-none transition-all`}
+                                                        placeholder={field === 'bloodPressure' ? 'xxx/xx    ' : field === 'temperature' ? 'xx.x' : field === 'pulse' ? 'xx' : field === 'weight' ? 'xx' : 'xx'}
                                                         value={modalState.config.vitals[field]}
                                                         onChange={(e) => updateModalVitals(field, e.target.value)}
                                                     />

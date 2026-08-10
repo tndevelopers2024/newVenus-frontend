@@ -18,11 +18,15 @@ import {
     Mail,
     Share2,
     CheckCircle2,
-    X
+    X,
+    Settings,
+    Edit3,
+    Eye
 } from 'lucide-react';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
+import { printDocument } from '../../utils/printHelper';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
 import CalendarDatePicker from '../../components/ui/CalendarDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -51,8 +55,20 @@ const ClinicalSession = () => {
         bloodPressure: '',
         temperature: '',
         pulse: '',
-        weight: ''
+        weight: '',
+        spo2: ''
     });
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [showManageTemplatesModal, setShowManageTemplatesModal] = useState(false);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [templateName, setTemplateName] = useState('');
+    const [loadedTemplateId, setLoadedTemplateId] = useState(null);
+    const [editingTemplateId, setEditingTemplateId] = useState(null);
+    
+    // Refs for auto-save on unmount
+    const draftDataRef = useRef(null);
+    const isSubmittedRef = useRef(false);
+    const [editTemplateName, setEditTemplateName] = useState('');
 
     // Fetch appointment data
     const { data: appointment, isLoading: isLoadingAppt } = useQuery({
@@ -70,7 +86,8 @@ const ClinicalSession = () => {
                 bloodPressure: appointment.vitals.bloodPressure || '',
                 temperature: appointment.vitals.temperature || '',
                 pulse: appointment.vitals.pulse || '',
-                weight: appointment.vitals.weight || ''
+                weight: appointment.vitals.weight || '',
+                spo2: appointment.vitals.spo2 || ''
             });
         }
     }, [appointment]);
@@ -103,15 +120,160 @@ const ClinicalSession = () => {
                     clinicalNotes: clinicalNotes
                 }
             };
-            const html = getUnifiedDocumentHTML(printData, 'prescription');
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.write(html);
-                printWindow.document.close();
-            }
+            printDocument(printData, 'prescription');
         },
         onError: () => toast.error('Failed to finalize session')
     });
+
+    // Fetch Templates
+    const { data: templates } = useQuery({
+        queryKey: ['prescriptionTemplates', appointment?.doctor?._id || appointment?.doctor],
+        queryFn: async () => {
+            const docId = appointment?.doctor?._id || appointment?.doctor;
+            const res = await doctorApi.getTemplates(docId);
+            return res.data;
+        },
+        enabled: !!(appointment?.doctor?._id || appointment?.doctor)
+    });
+
+    // Fetch Draft (if exists)
+    const { data: draftData } = useQuery({
+        queryKey: ['prescriptionDraft', appointmentId],
+        queryFn: async () => {
+            try {
+                const res = await doctorApi.getPrescriptionByAppointment(appointmentId);
+                return res.data;
+            } catch(e) {
+                return null;
+            }
+        },
+        enabled: !!appointmentId
+    });
+
+    // Load draft if present
+    useEffect(() => {
+        if (draftData && draftData.prescription?.isDraft) {
+            const { prescription, clinicalDetails } = draftData;
+            if (prescription.medications?.length > 0) setMedications(prescription.medications);
+            if (prescription.notes) setNotes(prescription.notes);
+            if (clinicalDetails?.diagnosis) setDiagnosis(clinicalDetails.diagnosis);
+            if (clinicalDetails?.clinicalNotes) setClinicalNotes(clinicalDetails.clinicalNotes);
+        }
+    }, [draftData]);
+
+    const draftMutation = useMutation({
+        mutationFn: (data) => doctorApi.saveDraft(appointmentId, data),
+        onSuccess: () => {
+            toast.success('Draft saved successfully');
+            queryClient.invalidateQueries(['prescriptionDraft', appointmentId]);
+            queryClient.invalidateQueries(['doctorAppointments']);
+        },
+        onError: () => toast.error('Failed to save draft')
+    });
+
+    const templateMutation = useMutation({
+        mutationFn: (data) => doctorApi.saveTemplate({ ...data, doctorId: appointment?.doctor?._id }),
+        onSuccess: () => {
+            toast.success('Template saved globally');
+            queryClient.invalidateQueries(['prescriptionTemplates']);
+        },
+        onError: () => toast.error('Failed to save template')
+    });
+
+    const updateTemplateMutation = useMutation({
+        mutationFn: ({ id, data }) => doctorApi.updateTemplate(id, data),
+        onSuccess: () => {
+            toast.success('Template updated successfully');
+            queryClient.invalidateQueries(['prescriptionTemplates']);
+        },
+        onError: () => toast.error('Failed to update template')
+    });
+
+    const deleteTemplateMutation = useMutation({
+        mutationFn: (id) => doctorApi.deleteTemplate(id),
+        onSuccess: () => {
+            toast.success('Template deleted successfully');
+            queryClient.invalidateQueries(['prescriptionTemplates']);
+        },
+        onError: () => toast.error('Failed to delete template')
+    });
+
+    const handleSaveDraft = () => {
+        const payload = {
+            medications: medications.filter(m => m.name.trim() !== ''),
+            notes,
+            diagnosis,
+            clinicalNotes,
+            vitals,
+            patientId: appointment?.patient?._id
+        };
+        draftMutation.mutate(payload);
+    };
+
+    const handleSaveTemplate = () => {
+        setShowTemplateModal(true);
+    };
+
+    const confirmSaveTemplate = () => {
+        if (!templateName.trim()) return toast.error('Please enter a template name');
+        const payload = {
+            name: templateName,
+            medications: medications.filter(m => m.name.trim() !== ''),
+            notes,
+            diagnosis
+        };
+        templateMutation.mutate(payload);
+        setShowTemplateModal(false);
+        setTemplateName('');
+    };
+
+
+    const stateRef = useRef({ medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment });
+    useEffect(() => {
+        stateRef.current = { medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment };
+    }, [medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment]);
+
+    useEffect(() => {
+        const saveDraft = () => {
+            const { medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment } = stateRef.current;
+            if (isFinalized || isSubmittedRef.current || !appointment) return;
+            
+            if (medications.some(m => m.name.trim() !== '') || diagnosis || notes || clinicalNotes) {
+                const payload = {
+                    medications: medications.filter(m => m.name.trim() !== ''),
+                    notes,
+                    diagnosis,
+                    clinicalNotes,
+                    vitals,
+                    patientId: appointment.patient?._id
+                };
+                doctorApi.saveDraft(appointmentId, payload)
+                    .then(() => queryClient.invalidateQueries(['doctorAppointments']))
+                    .catch(err => console.warn('Draft save error:', err));
+            }
+        };
+
+        const interval = setInterval(saveDraft, 10000); // every 10s
+        
+        return () => {
+            clearInterval(interval);
+            saveDraft(); // Save on unmount
+        };
+    }, [appointmentId]);
+
+    const handleLoadTemplate = (e) => {
+        const templateId = e.target.value;
+        if (!templateId) return;
+        const t = templates?.find(t => t._id === templateId);
+        if (t) {
+            if (t.medications?.length > 0) setMedications(t.medications);
+            if (t.notes) setNotes(t.notes);
+            if (t.diagnosis) setDiagnosis(t.diagnosis);
+            setLoadedTemplateId(t._id);
+            toast.success(`Template "${t.name}" loaded`);
+        }
+        e.target.value = ''; // Reset dropdown
+    };
 
     const shareMutation = useMutation({
         mutationFn: ({ id, email }) => doctorApi.sharePrescription(id, email),
@@ -190,6 +352,7 @@ const ClinicalSession = () => {
     );
 
     const handleSubmit = () => {
+        isSubmittedRef.current = true;
         const toastId = toast.loading('Finalizing clinical session and generating prescription...');
         const formData = new FormData();
         formData.append('patientId', appointment.patient?._id);
@@ -270,12 +433,7 @@ const ClinicalSession = () => {
                                             clinicalNotes: prescribedData?.clinicalNotes || clinicalNotes
                                         }
                                     };
-                                    const html = getUnifiedDocumentHTML(printData, 'prescription');
-                                    const printWindow = window.open('', '_blank');
-                                    if (printWindow) {
-                                        printWindow.document.write(html);
-                                        printWindow.document.close();
-                                    }
+                                    printDocument(printData, 'prescription');
                                 }}
                                 className="flex items-center gap-3 px-8 py-5 bg-secondary-900 text-white rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95"
                             >
@@ -403,7 +561,7 @@ const ClinicalSession = () => {
                 <div className="flex flex-col gap-6">
 
                     {/* Vitals Grid - Compact */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         {Object.entries(vitals).map(([key, value]) => (
                             <div key={key} className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                                 <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block tracking-widest">{key.replace(/([A-Z])/g, ' $1')}</label>
@@ -432,6 +590,25 @@ const ClinicalSession = () => {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
+                                    <div className="flex gap-1 items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden px-1 py-1">
+                                        <select 
+                                            onChange={handleLoadTemplate}
+                                            className="text-[10px] bg-transparent font-bold text-slate-600 outline-none cursor-pointer uppercase tracking-wider h-full pl-2"
+                                            defaultValue=""
+                                        >
+                                            <option value="" disabled>Load Template</option>
+                                            {templates?.map(t => (
+                                                <option key={t._id} value={t._id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                        <button 
+                                            onClick={() => setShowManageTemplatesModal(true)}
+                                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                            title="Manage Templates"
+                                        >
+                                            <Settings className="w-3 h-3" />
+                                        </button>
+                                    </div>
                                     {prescriptionMode !== 'digital' && (
                                         <button
                                             onClick={() => setPrescriptionMode('digital')}
@@ -477,7 +654,7 @@ const ClinicalSession = () => {
                                                 />
                                             </div>
                                             <div className="col-span-3">
-                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 text-center">Freq (M-A-N)</label>
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 text-center">Freq (Morning-Afternoon-Night)</label>
                                                 <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
                                                     {[0, 1, 2].map((part) => (
                                                         <React.Fragment key={part}>
@@ -628,22 +805,63 @@ const ClinicalSession = () => {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleSubmit}
-                                disabled={prescribeMutation.isPending || !isFormValid}
-                                className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 ${
-                                    !isFormValid 
-                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
-                                    : 'bg-secondary-900 text-white hover:bg-black'
-                                }`}
-                            >
-                                {prescribeMutation.isPending ? 'Saving...' : (
-                                    <>
-                                        <Printer className="w-4 h-4" />
-                                        Print Prescription
-                                    </>
-                                )}
-                            </button>
+                            <div className="flex flex-col gap-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={handleSaveDraft}
+                                        disabled={draftMutation.isPending}
+                                        className="w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                                    >
+                                        {draftMutation.isPending ? 'Saving...' : 'Save Draft'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (loadedTemplateId) {
+                                                const payload = {
+                                                    medications: medications.filter(m => m.name.trim() !== ''),
+                                                    notes,
+                                                    diagnosis
+                                                };
+                                                updateTemplateMutation.mutate({ id: loadedTemplateId, data: payload });
+                                            } else {
+                                                handleSaveTemplate();
+                                            }
+                                        }}
+                                        disabled={templateMutation.isPending || updateTemplateMutation.isPending}
+                                        className="w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                    >
+                                        {(templateMutation.isPending || updateTemplateMutation.isPending) ? 'Saving...' : (loadedTemplateId ? 'Update Template' : 'Save Template')}
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={() => setShowPreviewModal(true)}
+                                    disabled={!isFormValid}
+                                    className={`w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${
+                                        !isFormValid 
+                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
+                                        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                    }`}
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    Preview Prescription
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={prescribeMutation.isPending || !isFormValid}
+                                    className={`w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3 ${
+                                        !isFormValid 
+                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
+                                        : 'bg-secondary-900 text-white hover:bg-black'
+                                    }`}
+                                >
+                                    {prescribeMutation.isPending ? 'Saving...' : (
+                                        <>
+                                            <Printer className="w-4 h-4" />
+                                            Print Prescription
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                             
                             {!isFormValid && (
                                 <p className="text-[9px] font-bold text-slate-400 text-center uppercase tracking-wider mt-2 px-4 leading-relaxed">
@@ -699,6 +917,209 @@ const ClinicalSession = () => {
                         </motion.div>
                     </div>
                 )}
+
+                {showTemplateModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden"
+                        >
+                            <h3 className="text-xl font-black text-secondary-900 mb-6 text-center">Save Template</h3>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Template Name</label>
+                                    <input 
+                                        type="text"
+                                        value={templateName}
+                                        onChange={(e) => setTemplateName(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-sm font-bold text-slate-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all"
+                                        placeholder="e.g. Standard Viral Fever"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 w-full">
+                                    <button 
+                                        onClick={() => setShowTemplateModal(false)}
+                                        className="py-4 px-6 rounded-2xl border-2 border-slate-100 text-slate-600 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={confirmSaveTemplate}
+                                        disabled={!templateName.trim() || templateMutation.isPending}
+                                        className="py-4 px-6 rounded-2xl bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50"
+                                    >
+                                        {templateMutation.isPending ? 'Saving...' : 'Save'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {showManageTemplatesModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-lg bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-black text-secondary-900">Manage Templates</h3>
+                                <button onClick={() => setShowManageTemplatesModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                                {!templates || templates.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400 text-sm font-medium">
+                                        No templates saved yet.
+                                    </div>
+                                ) : (
+                                    templates.map(t => (
+                                        <div key={t._id} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                            {editingTemplateId === t._id ? (
+                                                <div className="flex-1 flex gap-2 mr-4">
+                                                    <input 
+                                                        type="text" 
+                                                        value={editTemplateName}
+                                                        onChange={(e) => setEditTemplateName(e.target.value)}
+                                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-emerald-500"
+                                                        autoFocus
+                                                    />
+                                                    <button 
+                                                        onClick={() => {
+                                                            if (editTemplateName.trim()) {
+                                                                updateTemplateMutation.mutate({ id: t._id, data: { name: editTemplateName } });
+                                                                setEditingTemplateId(null);
+                                                            }
+                                                        }}
+                                                        className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"
+                                                    >
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setEditingTemplateId(null)}
+                                                        className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1 flex flex-col">
+                                                    <span className="font-bold text-sm text-slate-700">{t.name}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t.medications?.length || 0} Drugs</span>
+                                                </div>
+                                            )}
+                                            
+                                            {editingTemplateId !== t._id && (
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        onClick={() => {
+                                                            setEditingTemplateId(t._id);
+                                                            setEditTemplateName(t.name);
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Rename"
+                                                    >
+                                                        <Edit3 className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            if(window.confirm('Are you sure you want to delete this template?')) {
+                                                                deleteTemplateMutation.mutate(t._id);
+                                                                if (loadedTemplateId === t._id) setLoadedTemplateId(null);
+                                                            }
+                                                        }}
+                                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {showPreviewModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-5xl bg-slate-200 rounded-[32px] p-2 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            <div className="flex justify-between items-center bg-white p-4 rounded-[24px] mb-2 shadow-sm">
+                                <h3 className="text-xl font-black text-secondary-900 flex items-center gap-2">
+                                    <Eye className="w-6 h-6 text-blue-600" />
+                                    Prescription Preview
+                                </h3>
+                                <button onClick={() => setShowPreviewModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto bg-white rounded-[24px] shadow-inner custom-scrollbar relative">
+                                <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center opacity-5">
+                                    <span className="text-9xl font-black rotate-[-45deg] select-none uppercase">Preview</span>
+                                </div>
+                                <iframe 
+                                    srcDoc={getUnifiedDocumentHTML({
+                                        doctor: appointment?.doctor,
+                                        patient: appointment?.patient,
+                                        prescription: {
+                                            medications: medications.filter(m => m.name.trim() !== ''),
+                                            notes,
+                                            diagnosis,
+                                            image: imagePreview
+                                        },
+                                        clinicalDetails: {
+                                            bloodPressure: vitals.bloodPressure,
+                                            temperature: vitals.temperature,
+                                            pulse: vitals.pulse,
+                                            weight: vitals.weight,
+                                            spo2: vitals.spo2
+                                        }
+                                    }, 'prescription', true)}
+                                    className="w-full h-full min-h-[600px] border-0 rounded-[24px]"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 bg-white p-4 rounded-[24px] mt-2 shadow-sm">
+                                <button
+                                    onClick={() => setShowPreviewModal(false)}
+                                    className="px-6 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                >
+                                    Close Preview
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowPreviewModal(false);
+                                        handleSubmit();
+                                    }}
+                                    disabled={prescribeMutation.isPending}
+                                    className="px-8 py-3 rounded-xl text-sm font-black text-white bg-secondary-900 hover:bg-black transition-colors flex items-center gap-2"
+                                >
+                                    {prescribeMutation.isPending ? 'Saving...' : (
+                                        <>
+                                            <Printer className="w-4 h-4" />
+                                            Confirm & Submit
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
             </AnimatePresence>
         </DashboardLayout>
     );
@@ -714,16 +1135,10 @@ const DrugAutosuggest = ({ query, onSelect }) => {
         queryFn: async () => {
             if (query.length < 1) return [];
             try {
-                // Use RxTerms API which is better for clinical autosuggest
-                const response = await fetch(`https://clinicaltables.nlm.nih.gov/api/rxterms/v3/search?terms=${query}&maxList=10`);
-                const data = await response.json();
-
-                // RxTerms format: [count, [ "Name 1", "Name 2" ], ... ]
-                if (!data || !data[1]) return [];
-
-                return data[1];
+                const response = await doctorApi.searchMedications(query);
+                return response.data || [];
             } catch (error) {
-                console.error("RxTerms Search Error:", error);
+                console.error("Local Drug Search Error:", error);
                 return [];
             }
         },
@@ -771,7 +1186,7 @@ const DrugAutosuggest = ({ query, onSelect }) => {
                 <button
                     key={drug}
                     onClick={() => handleSelect(drug)}
-                    className="w-full p-5 text-left hover:bg-primary-50 text-slate-700 text-xs font-bold border-b border-slate-50 last:border-0 flex items-center gap-4 transition-colors"
+                    className="w-full p-5 py-2 text-left hover:bg-primary-50 text-slate-700 text-xs font-bold border-b border-slate-50 last:border-0 flex items-center gap-4 transition-colors"
                 >
                     <div className="w-6 h-6 rounded-lg bg-primary-100 flex items-center justify-center">
                         <Search className="w-3 h-3 text-primary-600" />
