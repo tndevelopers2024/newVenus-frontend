@@ -20,6 +20,7 @@ import SystemLogs from './pages/admin/SystemLogs';
 import DoctorRegistration from './pages/admin/DoctorRegistration';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import NotFound from './pages/NotFound';
 import { Toaster } from 'react-hot-toast';
 
 // Initialize QueryClient
@@ -121,6 +122,9 @@ function App() {
             <Route path="/admin/doctors/register" element={
               <PrivateRoute role="superadmin"><DoctorRegistration /></PrivateRoute>
             } />
+            
+            {/* 404 Route */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
       </Router>
