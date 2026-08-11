@@ -150,9 +150,9 @@ const ClinicalSession = () => {
         enabled: !!appointmentId
     });
 
-    // Load draft if present
+    // Load draft or existing prescription if present
     useEffect(() => {
-        if (draftData && draftData.prescription?.isDraft) {
+        if (draftData && draftData.prescription) {
             const { prescription, clinicalDetails } = draftData;
             if (prescription.medications?.length > 0) setMedications(prescription.medications);
             if (prescription.notes) setNotes(prescription.notes);
@@ -446,6 +446,16 @@ const ClinicalSession = () => {
                             >
                                 <Share2 className="w-5 h-5" />
                                 Share via Email
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsFinalized(false);
+                                    isSubmittedRef.current = false;
+                                }}
+                                className="flex items-center gap-3 px-8 py-5 bg-amber-50 border-2 border-amber-100 text-amber-600 rounded-[24px] font-black uppercase text-xs tracking-widest hover:border-amber-300 shadow-lg shadow-amber-50 transition-all active:scale-95"
+                            >
+                                <Edit3 className="w-5 h-5" />
+                                Edit Prescription
                             </button>
                             <button
                                 onClick={() => navigate('/doctor/appointments')}

@@ -202,10 +202,10 @@ const DoctorDashboard = () => {
     const todaysAppointments = appointments?.filter(a => new Date(a.date).toISOString().split('T')[0] === todayStr).length || 0;
 
     const stats = [
-        { label: 'Today\'s Appointments', value: todaysAppointments, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100' },
-        { label: 'Pending Consultations', value: pendingAppointments, icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100' },
-        { label: 'Completed Appointments', value: completedAppointments, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        { label: 'Total Appointments', value: totalAppointments, icon: CalendarCheck2, color: 'text-purple-600', bg: 'bg-purple-100' }
+        { label: 'Today\'s Appointments', value: todaysAppointments, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', link: '/doctor/appointments?filter=today' },
+        { label: 'Pending Consultations', value: pendingAppointments, icon: Activity, color: 'text-blue-600', bg: 'bg-blue-100', link: '/doctor/appointments' },
+        { label: 'Completed Appointments', value: completedAppointments, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/doctor/appointments?filter=previous' },
+        { label: 'Total Appointments', value: totalAppointments, icon: CalendarCheck2, color: 'text-purple-600', bg: 'bg-purple-100', link: '/doctor/appointments' }
     ];
 
     // Chart Data (Last 7 days)
@@ -239,7 +239,7 @@ const DoctorDashboard = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 mb-6 md:mb-10">
                     {stats.map((stat, i) => (
-                        <div key={i} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-default group border-b-4 border-b-slate-50 hover:border-b-primary-200">
+                        <div key={i} onClick={() => stat.link && navigate(stat.link)} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group border-b-4 border-b-slate-50 hover:border-b-primary-200">
                             <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color} shrink-0`}>
                                 <stat.icon className="w-6 h-6 md:w-7 md:h-7" />
                             </div>

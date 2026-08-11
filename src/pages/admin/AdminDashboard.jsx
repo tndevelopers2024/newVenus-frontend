@@ -11,7 +11,9 @@ import {
     CalendarCheck2,
     Trash2,
     ChevronRight,
+    Stethoscope,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -24,6 +26,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const AdminDashboard = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
 
@@ -63,13 +66,13 @@ const AdminDashboard = () => {
     const activeAppointmentsCount = appointments?.filter(appt => appt.status !== 'Completed' && appt.status !== 'Cancelled').length || 0;
 
     const stats = user?.role === 'superadmin' ? [
-        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
-        { label: 'Registered Doctors', value: doctorCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
-        { label: 'System Users', value: totalUsers, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/admin/patients' },
+        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100', link: '/admin/appointments/list' },
+        { label: 'Registered Doctors', value: doctorCount, icon: Stethoscope, color: 'text-amber-600', bg: 'bg-amber-100', link: '/admin/doctors' },
+        { label: 'System Users', value: totalUsers, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/admin/users' },
     ] : [
-        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100' },
+        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/admin/patients' },
+        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100', link: '/admin/appointments/list' },
     ];
 
     const isLoading = usersLoading || ((user?.role === 'admin' || user?.role === 'superadmin') && appointmentsLoading);
@@ -104,7 +107,7 @@ const AdminDashboard = () => {
 
                 <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'superadmin' ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-4 md:gap-8 mb-6 md:mb-10`}>
                     {stats.map((stat, i) => (
-                        <div key={i} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-default group border-b-4 border-b-slate-50 hover:border-b-primary-200">
+                        <div key={i} onClick={() => stat.link && navigate(stat.link)} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group border-b-4 border-b-slate-50 hover:border-b-primary-200">
                             <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color} shrink-0`}>
                                 <stat.icon className="w-6 h-6 md:w-7 md:h-7" />
                             </div>

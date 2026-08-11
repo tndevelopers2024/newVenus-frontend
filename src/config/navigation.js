@@ -17,14 +17,14 @@ import {
 
 export const ADMIN_LINKS = [
     { label: 'Dashboard', path: '/admin', icon: Activity },
-    { label: 'User Management', path: '/admin/users', icon: Shield },
     { label: 'Add New Patient', path: '/admin/patients/register', icon: UserSquare2 },
     { label: 'Add New Doctor', path: '/admin/doctors/register', icon: UserSquare2 },
-    { label: 'Doctors List', path: '/admin/doctors', icon: Stethoscope },
-    { label: 'Patients List', path: '/admin/patients', icon: Users },
     { label: 'New Appointment', path: '/admin/appointments', icon: CalendarCheck2 },
     { label: 'Today Appointments', path: '/admin/appointments/list?filter=today', icon: ClipboardList },
     { label: 'Previous Appointments', path: '/admin/appointments/list?filter=previous', icon: HistoryIcon },
+    { label: 'User Management', path: '/admin/users', icon: Shield },
+    { label: 'Patients List', path: '/admin/patients', icon: Users },
+    { label: 'Doctors List', path: '/admin/doctors', icon: Stethoscope },
     // { label: 'Finance Hub', path: '/admin/billing', icon: BarChart3 },
     { label: 'Audit Logs', path: '/admin/logs', icon: History },
 ];

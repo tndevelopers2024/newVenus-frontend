@@ -401,7 +401,7 @@ const AppointmentList = () => {
                                 <tr>
                                     <th className="px-8 py-5">Patient</th>
                                     <th className="px-8 py-5">Assigned Doctor</th>
-                                    <th className="px-8 py-5">Reason</th>
+                                    <th className="px-8 py-5 w-48">Reason</th>
                                     <th className="px-8 py-5">Status</th>
                                     <th className="px-8 py-5">Date Assigned</th>
                                     <th className="px-8 py-5 text-right">Actions</th>
@@ -447,7 +447,7 @@ const AppointmentList = () => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
-                                                <p className="text-xs text-slate-600 font-bold max-w-xs truncate">{appt.reason}</p>
+                                                <p className="text-xs text-slate-600 font-bold max-w-48 truncate" title={appt.reason}>{appt.reason}</p>
                                             </td>
                                             <td className="px-8 py-5">
                                                 <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${appt.status === 'Accepted' ? 'bg-emerald-100 text-emerald-600' :
