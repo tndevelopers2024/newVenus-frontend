@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -52,6 +53,48 @@ const PrivateRoute = ({ children, role }) => {
 };
 
 function App() {
+  useEffect(() => {
+
+    let protectionEnabled = true;
+
+    const handleContextMenu = (e) => {
+      if (protectionEnabled) e.preventDefault();
+    };
+    
+    const handleKeyDown = (e) => {
+      // Secret developer shortcut to toggle protection: Ctrl + Shift + X
+      if (e.ctrlKey && e.shiftKey && (e.key === 'X' || e.key === 'x')) {
+        protectionEnabled = !protectionEnabled;
+        console.log(`Developer mode ${protectionEnabled ? 'disabled' : 'enabled'}`);
+        return;
+      }
+
+      if (!protectionEnabled) return;
+
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c')) ||
+        (e.ctrlKey && (e.key === 'U' || e.key === 'u')) ||
+        (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i')) ||
+        (e.metaKey && e.altKey && (e.key === 'J' || e.key === 'j')) ||
+        (e.metaKey && e.altKey && (e.key === 'C' || e.key === 'c')) ||
+        (e.metaKey && (e.key === 'U' || e.key === 'u'))
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster position="top-right" />
