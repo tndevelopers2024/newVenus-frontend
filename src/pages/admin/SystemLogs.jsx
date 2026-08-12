@@ -167,7 +167,7 @@ const SystemLogs = () => {
                                 className="px-8 py-3 bg-secondary-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-slate-800 transition-all shadow-xl shadow-secondary-200 active:scale-95"
                             >
                                 <Download className="w-4 h-4 text-primary-400" />
-                                Export Intelligence
+                                Export Record
                             </button>
                         </div>
                     </div>
@@ -339,7 +339,7 @@ const SystemLogs = () => {
                                         onClick={() => setViewingLog(null)}
                                         className="px-8 py-3 bg-secondary-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-secondary-100 active:scale-95"
                                     >
-                                        Close Record
+                                        Close
                                     </button>
                                 </div>
                             </div>

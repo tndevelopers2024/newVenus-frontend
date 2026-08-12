@@ -463,7 +463,7 @@ const HistoryModal = ({ patient, data, isLoading, onClose, onViewNote }) => {
                             <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Syncing Clinical Data...</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="w-full">
                             <section>
                                 <div className="flex items-center gap-2 mb-6">
                                     <div className="w-1.5 h-6 bg-primary-500 rounded-full"></div>
@@ -492,31 +492,6 @@ const HistoryModal = ({ patient, data, isLoading, onClose, onViewNote }) => {
                                                         View Detailed Note
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </section>
-
-                            <section>
-                                <div className="flex items-center gap-2 mb-6">
-                                    <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
-                                    <h3 className="text-sm font-black text-secondary-900 uppercase tracking-tighter">Prescription History</h3>
-                                </div>
-                                <div className="grid grid-cols-1 gap-4">
-                                    {data?.prescriptions?.length === 0 ? (
-                                        <p className="text-slate-400 text-sm italic">No prescriptions issued.</p>
-                                    ) : (
-                                        data?.prescriptions?.map((p, i) => (
-                                            <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
-                                                        <FileText className="w-4 h-4" />
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-slate-400">{new Date(p.createdAt).toLocaleDateString('en-GB')}</span>
-                                                </div>
-                                                <p className="text-xs font-black text-secondary-900 uppercase mb-1">Total {p.medications?.length} Medications</p>
-                                                <p className="text-[10px] text-slate-500 line-clamp-1">{p.medications?.map(m => m.name).join(', ')}</p>
                                             </div>
                                         ))
                                     )}
@@ -575,7 +550,7 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                         onClick={onClose}
                         className="px-8 py-4 border border-slate-200 rounded-[20px] text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
                     >
-                        Close Registry
+                        Close
                     </button>
                     <button
                         onClick={() => printDocument({

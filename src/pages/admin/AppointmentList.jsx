@@ -489,10 +489,11 @@ const AppointmentList = () => {
                                                         </button>
                                                         <button
                                                             onClick={() => handlePrint(appt)}
-                                                            className="w-9 h-9 flex items-center justify-center text-primary-500 bg-primary-50 hover:bg-primary-100 hover:text-primary-700 transition-colors rounded-xl"
+                                                            className="p-2 text-[14px] flex items-center justify-center text-primary-900 bg-primary-100 hover:bg-primary-50 hover:text-primary-700 transition-colors rounded-xl"
                                                             title="Print Prescription"
                                                         >
-                                                            <Printer className="w-4 h-4" />
+                                                            {/* <Printer className="w-4 h-4" /> */}
+                                                            Print Prescription
                                                         </button>
                                                     </div>
                                                 )}

@@ -184,13 +184,7 @@ const AdminDashboard = () => {
                         <div className="grid gap-4">
                             {user?.role === 'superadmin' ? (
                                 <>
-                                    <Link to="/admin/users" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">User Directory</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
+                                    
                                     <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
                                         <div className="flex items-center gap-4">
                                             <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
@@ -216,13 +210,6 @@ const AdminDashboard = () => {
                                         <div className="flex items-center gap-4">
                                             <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
                                             <span className="font-black text-xs uppercase tracking-widest">Active Appointments</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link to="/admin/logs" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-rose-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <History className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">System Security</span>
                                         </div>
                                         <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
                                     </Link>

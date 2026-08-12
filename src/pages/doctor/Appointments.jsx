@@ -363,17 +363,19 @@ const Appointments = () => {
                                                             </button>
                                                             <button
                                                                 onClick={() => setViewingPrescription(appt._id)}
-                                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                className="px-3 py-1.5 text-[14px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                                                                 title="View Prescription"
                                                             >
-                                                                <ClipboardList className="w-4 h-4" />
+                                                                {/* <ClipboardList className="w-4 h-4" /> */}
+                                                                View Prescription
                                                             </button>
                                                             <button
                                                                 onClick={() => navigate(`/doctor/session/${appt._id}`)}
-                                                                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                                                className="px-3 py-1.5 text-[14px] font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
                                                                 title="Edit Prescription"
                                                             >
-                                                                <FileEdit className="w-4 h-4" />
+                                                                {/* <FileEdit className="w-4 h-4" /> */}
+                                                                Edit Prescription
                                                             </button>
                                                         </>
                                                     )}
@@ -492,7 +494,7 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                         onClick={onClose}
                         className="px-8 py-4 border border-slate-200 rounded-[20px] text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
                     >
-                        Close Registry
+                        Close
                     </button>
                     <button
                         onClick={() => printDocument({
