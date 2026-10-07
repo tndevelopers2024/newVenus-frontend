@@ -118,7 +118,7 @@ const AppointmentList = () => {
                 appointmentId: appt._id,
                 prescription: {
                     doctor: appt.doctor,
-                    patient: appt.patient,
+                    patient: prescription.patient || appt.patient,
                     medications: prescription.medications,
                     notes: prescription.notes,
                     image: prescription.image,
