@@ -159,6 +159,7 @@ const ClinicalSession = () => {
             const { prescription, clinicalDetails } = draftData;
             if (prescription.medications?.length > 0) setMedications(prescription.medications);
             if (prescription.notes) setNotes(prescription.notes);
+            if (prescription.followUpDate) setFollowUpDate(prescription.followUpDate.split('T')[0]);
             if (clinicalDetails?.diagnosis) setDiagnosis(clinicalDetails.diagnosis);
             if (clinicalDetails?.clinicalNotes) setClinicalNotes(clinicalDetails.clinicalNotes);
             draftLoadedRef.current = true;
@@ -208,6 +209,7 @@ const ClinicalSession = () => {
             notes,
             diagnosis,
             clinicalNotes,
+            followUpDate,
             vitals,
             patientId: appointment?.patient?._id
         };
@@ -232,14 +234,14 @@ const ClinicalSession = () => {
     };
 
 
-    const stateRef = useRef({ medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment });
+    const stateRef = useRef({ medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment });
     useEffect(() => {
-        stateRef.current = { medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment };
-    }, [medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment]);
+        stateRef.current = { medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment };
+    }, [medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment]);
 
     useEffect(() => {
         const saveDraft = () => {
-            const { medications, notes, diagnosis, clinicalNotes, vitals, isFinalized, appointment } = stateRef.current;
+            const { medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment } = stateRef.current;
             if (isFinalized || isSubmittedRef.current || !appointment) return;
             
             if (medications.some(m => m.name.trim() !== '') || diagnosis || notes || clinicalNotes) {
@@ -248,6 +250,7 @@ const ClinicalSession = () => {
                     notes,
                     diagnosis,
                     clinicalNotes,
+                    followUpDate,
                     vitals,
                     patientId: appointment.patient?._id
                 };
