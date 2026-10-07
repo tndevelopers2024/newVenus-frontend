@@ -159,6 +159,10 @@ const ClinicalSession = () => {
             const { prescription, clinicalDetails } = draftData;
             if (prescription.medications?.length > 0) setMedications(prescription.medications);
             if (prescription.notes) setNotes(prescription.notes);
+            if (prescription.image) {
+                setPrescriptionMode('handwritten');
+                setImagePreview(prescription.image);
+            }
             if (prescription.followUpDate) setFollowUpDate(prescription.followUpDate.split('T')[0]);
             if (clinicalDetails?.diagnosis) setDiagnosis(clinicalDetails.diagnosis);
             if (clinicalDetails?.clinicalNotes) setClinicalNotes(clinicalDetails.clinicalNotes);
@@ -210,6 +214,8 @@ const ClinicalSession = () => {
             diagnosis,
             clinicalNotes,
             followUpDate,
+            prescriptionMode,
+            clearImage: !imagePreview,
             vitals,
             patientId: appointment?.patient?._id
         };
@@ -234,14 +240,14 @@ const ClinicalSession = () => {
     };
 
 
-    const stateRef = useRef({ medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment });
+    const stateRef = useRef({ medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment, prescriptionMode, imagePreview });
     useEffect(() => {
-        stateRef.current = { medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment };
-    }, [medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment]);
+        stateRef.current = { medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment, prescriptionMode, imagePreview };
+    }, [medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment, prescriptionMode, imagePreview]);
 
     useEffect(() => {
         const saveDraft = () => {
-            const { medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment } = stateRef.current;
+            const { medications, notes, diagnosis, clinicalNotes, followUpDate, vitals, isFinalized, appointment, prescriptionMode, imagePreview } = stateRef.current;
             if (isFinalized || isSubmittedRef.current || !appointment) return;
             
             if (medications.some(m => m.name.trim() !== '') || diagnosis || notes || clinicalNotes) {
@@ -251,6 +257,8 @@ const ClinicalSession = () => {
                     diagnosis,
                     clinicalNotes,
                     followUpDate,
+                    prescriptionMode,
+                    clearImage: !imagePreview,
                     vitals,
                     patientId: appointment.patient?._id
                 };
@@ -350,7 +358,7 @@ const ClinicalSession = () => {
 
     const hasVitals = Object.values(vitals).some(v => v && v.trim() !== '');
     const hasMedications = medications.some(m => m.name && m.name.trim() !== '');
-    const hasImage = !!prescriptionImage;
+    const hasImage = !!prescriptionImage || !!imagePreview;
     
     // Validation based on active mode
     const isFormValid = hasVitals && (
@@ -373,9 +381,12 @@ const ClinicalSession = () => {
         const filteredMeds = prescriptionMode === 'digital' ? medications.filter(m => m.name.trim() !== '') : [];
         formData.append('medications', JSON.stringify(filteredMeds));
         formData.append('vitals', JSON.stringify(vitals));
+        formData.append('prescriptionMode', prescriptionMode);
 
         if (prescriptionMode === 'handwritten' && prescriptionImage) {
             formData.append('image', prescriptionImage);
+        } else if (!imagePreview || prescriptionMode === 'digital') {
+            formData.append('clearImage', 'true');
         }
 
         prescribeMutation.mutate(formData, {
