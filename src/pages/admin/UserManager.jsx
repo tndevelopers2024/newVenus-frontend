@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw, LayoutDashboard } from 'lucide-react';
+import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw, LayoutDashboard, Pencil, X, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import TablePagination from '../../components/shared/TablePagination';
@@ -15,6 +16,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(8);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
+    const [editModal, setEditModal] = useState({ isOpen: false, user: null });
 
     useEffect(() => {
         setFilter(defaultFilter);
@@ -81,6 +83,26 @@ const UserManager = ({ defaultFilter = 'all' }) => {
         mutationFn: (id) => adminApi.restoreUser(id),
         onSuccess: () => {
             queryClient.invalidateQueries(['adminUsersList']);
+        }
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: (data) => adminApi.updateUser(data._id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['adminUsersList']);
+            setEditModal({ isOpen: false, user: null });
+            toast.success('User updated successfully');
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Error updating user');
+        }
+    });
+
+    const toggleLockMutation = useMutation({
+        mutationFn: (id) => adminApi.toggleUserLock(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['adminUsersList']);
+            toast.success('User lock status updated');
         }
     });
 
@@ -155,11 +177,13 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50/50">
-                                    <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">User Details</th>
-                                    <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Contact</th>
-                                    <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Basic Details</th>
-                                    <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Role</th>
-                                    <th className="px-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">User Details</th>
+                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Contact</th>
+                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Basic Details</th>
+                                    {['all', 'archived'].includes(filter) && (
+                                        <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Role</th>
+                                    )}
+                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
@@ -167,7 +191,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                     [1, 2, 3].map(i => <tr key={i} className="animate-pulse h-20"></tr>)
                                 ) : !paginatedUsers || paginatedUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="px-8 py-20 text-center">
+                                        <td colSpan={['all', 'archived'].includes(filter) ? "5" : "4"} className="px-8 py-20 text-center">
                                             <div className="flex flex-col items-center justify-center grayscale opacity-30">
                                                 <Users className="w-12 h-12 mb-4" />
                                                 <p className="text-xs font-black uppercase tracking-widest">
@@ -182,9 +206,9 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                 ) : (
                                     paginatedUsers?.map((user) => (
                                         <tr key={user._id} className="hover:bg-slate-50/30 transition-colors">
-                                            <td className="px-8 py-6">
+                                            <td className="px-3 py-2">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border ${user.isDeleted ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-100 text-primary-600 border-slate-200'}`}>
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold border text-sm ${user.isDeleted ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-100 text-primary-600 border-slate-200'}`}>
                                                         {user.name.charAt(0)}
                                                     </div>
                                                     <div>
@@ -193,7 +217,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-6">
+                                            <td className="px-3 py-2">
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2 text-sm text-slate-500">
                                                         <Mail className="w-3.5 h-3.5" />
@@ -205,7 +229,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-6">
+                                            <td className="px-3 py-2">
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2 text-xs text-slate-500">
                                                         <span className="font-bold text-slate-600 uppercase tracking-wider">Age:</span> {user.age || 'N/A'}
@@ -214,21 +238,23 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                                         <span className="font-bold text-slate-600 uppercase tracking-wider">Gender:</span> {user.gender || 'N/A'}
                                                     </div>
                                                     <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">Job:</span> {user.occupation || 'N/A'}
+                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">{user.role === 'doctor' ? 'Spec:' : 'Job:'}</span> {user.role === 'doctor' ? (user.specialization || 'N/A') : (user.occupation || 'N/A')}
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-6">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                                    user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                    user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                                                        user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                                            'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                    }`}>
-                                                    {user.isDeleted ? `Deleted ${user.role}` : user.role}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-6">
+                                            {['all', 'archived'].includes(filter) && (
+                                                <td className="px-3 py-2">
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border whitespace-nowrap inline-block ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                                                        user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                                        user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                                            user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                                                'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                        }`}>
+                                                        {user.isDeleted ? `Deleted ${user.role}` : user.isLocked ? `Locked ${user.role}` : user.role}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            <td className="px-3 py-2">
                                                 <div className="flex items-center gap-2">
                                                     {user.role === 'doctor' && !user.isDeleted && (
                                                         <button
@@ -251,13 +277,31 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                                             <RotateCcw className="w-5 h-5" />
                                                         </button>
                                                     ) : user.role !== 'superadmin' && (
-                                                        <button
-                                                            onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
-                                                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                                            title="Delete User"
-                                                        >
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </button>
+                                                        <>
+                                                            {user.role !== 'patient' && (
+                                                                <button
+                                                                    onClick={() => toggleLockMutation.mutate(user._id)}
+                                                                    className={`p-2 rounded-xl transition-all ${user.isLocked ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                                                                    title={user.isLocked ? "Unlock User" : "Lock User"}
+                                                                >
+                                                                    {user.isLocked ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => setEditModal({ isOpen: true, user })}
+                                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                                title="Edit User"
+                                                            >
+                                                                <Pencil className="w-5 h-5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
+                                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                                title="Delete User"
+                                                            >
+                                                                <Trash2 className="w-5 h-5" />
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>
@@ -292,6 +336,73 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                 type="danger"
                 isLoading={deleteMutation.isPending}
             />
+
+            {editModal.isOpen && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-slate-900">Edit User Details</h3>
+                            <button onClick={() => setEditModal({ isOpen: false, user: null })} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                                <X className="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const data = Object.fromEntries(formData);
+                            data._id = editModal.user._id;
+                            updateMutation.mutate(data);
+                        }} className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Name</label>
+                                    <input type="text" name="name" defaultValue={editModal.user.name} className="input-field w-full" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Phone</label>
+                                    <input type="text" name="phone" defaultValue={editModal.user.phone} className="input-field w-full" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+                                    <input type="email" name="email" defaultValue={editModal.user.email} className="input-field w-full" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Age</label>
+                                    <input type="number" name="age" defaultValue={editModal.user.age} className="input-field w-full" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase">Gender</label>
+                                    <select name="gender" defaultValue={editModal.user.gender} className="input-field w-full" required>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                {editModal.user.role === 'patient' && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Occupation</label>
+                                        <input type="text" name="occupation" defaultValue={editModal.user.occupation} className="input-field w-full" />
+                                    </div>
+                                )}
+                                {editModal.user.role === 'doctor' && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Specialization</label>
+                                        <input type="text" name="specialization" defaultValue={editModal.user.specialization} className="input-field w-full" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="pt-4 flex justify-end gap-3">
+                                <button type="button" onClick={() => setEditModal({ isOpen: false, user: null })} className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" disabled={updateMutation.isPending} className="bg-secondary-900 text-white px-8 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition-all">
+                                    {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 };

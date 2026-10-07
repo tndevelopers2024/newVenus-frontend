@@ -8,7 +8,13 @@ const CalendarDatePicker = ({ value, onChange, label = "Select Date" }) => {
     const containerRef = useRef(null);
 
     // Parse value if it exists
-    const selectedDate = value ? new Date(value) : null;
+    let selectedDate = null;
+    if (value) {
+        // Extract YYYY-MM-DD regardless of full ISO or short format
+        const datePart = value.split('T')[0];
+        const [year, month, day] = datePart.split('-').map(Number);
+        selectedDate = new Date(year, month - 1, day);
+    }
 
     useEffect(() => {
         if (selectedDate) {
@@ -45,8 +51,11 @@ const CalendarDatePicker = ({ value, onChange, label = "Select Date" }) => {
 
     const handleSelect = (day) => {
         const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-        // Format to YYYY-MM-DD for consistency with input type="date"
-        const formatted = newDate.toISOString().split('T')[0];
+        // Format to YYYY-MM-DD in local time
+        const year = newDate.getFullYear();
+        const month = String(newDate.getMonth() + 1).padStart(2, '0');
+        const formattedDay = String(newDate.getDate()).padStart(2, '0');
+        const formatted = `${year}-${month}-${formattedDay}`;
         onChange(formatted);
         setIsOpen(false);
     };
@@ -59,7 +68,10 @@ const CalendarDatePicker = ({ value, onChange, label = "Select Date" }) => {
 
     const handleToday = () => {
         const today = new Date();
-        const formatted = today.toISOString().split('T')[0];
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const formatted = `${year}-${month}-${day}`;
         onChange(formatted);
         setCurrentDate(today);
         setIsOpen(false);
@@ -116,7 +128,7 @@ const CalendarDatePicker = ({ value, onChange, label = "Select Date" }) => {
                 <div className="flex items-center">
                     <CalendarIcon className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${value ? 'text-[#00ddcb]' : 'text-slate-400'}`} />
                     <span className={value ? 'text-secondary-900' : 'text-slate-400'}>
-                        {value ? new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : label}
+                        {selectedDate ? selectedDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : label}
                     </span>
                 </div>
                 {value && (

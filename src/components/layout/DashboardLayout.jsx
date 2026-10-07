@@ -44,14 +44,22 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
 
     const content = (
         <div className="flex flex-col h-full">
-            <div className="p-6 flex items-center justify-between border-b border-slate-50">
-                <div className={`flex items-center gap-3 ${!isOpen && !mobile && 'hidden'}`}>
+            <div className={`p-4 flex items-center border-b border-slate-50 ${(!isOpen && !mobile) ? 'justify-center' : 'justify-between'}`}>
+                <div className="flex items-center gap-3">
                     <div className="flex items-center">
-                        <img
-                            src="/images/venus-logo.webp"
-                            alt="Venus Logo"
-                            className="w-100 object-contain rounded-lg"
-                        />
+                        {(!isOpen && !mobile) ? (
+                            <img
+                                src="/images/venus-logo.jpg"
+                                alt="Venus Logo"
+                                className="w-8 h-8 object-contain rounded-lg"
+                            />
+                        ) : (
+                            <img
+                                src="/images/venus-logo.webp"
+                                alt="Venus Logo"
+                                className="w-full max-w-[150px] object-contain rounded-lg"
+                            />
+                        )}
                     </div>
                 </div>
                 {mobile && (
@@ -279,7 +287,7 @@ const ProfileDropdown = ({ onClose }) => {
     );
 };
 
-const Header = ({ onMenuClick }) => {
+const Header = ({ onMenuClick, onDesktopMenuClick }) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showAccount, setShowAccount] = useState(false);
     const { user } = useAuth();
@@ -290,6 +298,12 @@ const Header = ({ onMenuClick }) => {
                 <button
                     onClick={onMenuClick}
                     className="md:hidden p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
+                >
+                    <Menu className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={onDesktopMenuClick}
+                    className="hidden md:block p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
                 >
                     <Menu className="w-5 h-5" />
                 </button>
@@ -384,7 +398,10 @@ const DashboardLayout = ({ children, links }) => {
             />
 
             <div className="flex-1 flex flex-col overflow-hidden w-full relative">
-                <Header onMenuClick={() => setMobileMenuOpen(true)} />
+                <Header 
+                    onMenuClick={() => setMobileMenuOpen(true)} 
+                    onDesktopMenuClick={() => setSidebarOpen(prev => !prev)} 
+                />
                 {isDoctorView && (
                     <div className="bg-amber-500 text-white px-6 py-3.5 flex items-center justify-between text-xs font-black uppercase tracking-wider shadow-md z-30 shrink-0">
                         <div className="flex items-center gap-2">

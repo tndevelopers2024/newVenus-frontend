@@ -80,8 +80,9 @@ const ClinicalSession = () => {
     });
 
     // Sync initial vitals from appointment
+    const vitalsLoadedRef = useRef(false);
     useEffect(() => {
-        if (appointment?.vitals) {
+        if (appointment?.vitals && !vitalsLoadedRef.current) {
             setVitals({
                 bloodPressure: appointment.vitals.bloodPressure || '',
                 temperature: appointment.vitals.temperature || '',
@@ -89,6 +90,7 @@ const ClinicalSession = () => {
                 weight: appointment.vitals.weight || '',
                 spo2: appointment.vitals.spo2 || ''
             });
+            vitalsLoadedRef.current = true;
         }
     }, [appointment]);
 
@@ -151,13 +153,15 @@ const ClinicalSession = () => {
     });
 
     // Load draft or existing prescription if present
+    const draftLoadedRef = useRef(false);
     useEffect(() => {
-        if (draftData && draftData.prescription) {
+        if (draftData && draftData.prescription && !draftLoadedRef.current) {
             const { prescription, clinicalDetails } = draftData;
             if (prescription.medications?.length > 0) setMedications(prescription.medications);
             if (prescription.notes) setNotes(prescription.notes);
             if (clinicalDetails?.diagnosis) setDiagnosis(clinicalDetails.diagnosis);
             if (clinicalDetails?.clinicalNotes) setClinicalNotes(clinicalDetails.clinicalNotes);
+            draftLoadedRef.current = true;
         }
     }, [draftData]);
 

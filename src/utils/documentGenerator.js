@@ -52,7 +52,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
     const patientAgeObj = prescription?.patient?.age || data.patient?.age;
     const patientGenderObj = prescription?.patient?.gender || data.patient?.gender;
     const patientAge = patientAgeObj ? patientAgeObj + ' Y' : '';
-    const patientGender = patientGenderObj ? '(' + patientGenderObj[0] + ')' : '';
+    const patientGender = patientGenderObj ? patientGenderObj : '-';
     const logoUrl = window.location.origin + '/images/venus-logo.webp';
 
     return `
@@ -111,7 +111,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     
                     <div class="header-sep"></div>
                     <div class="header-meta">
-                        <div>Regd. No. 65582</div>
+                        <div>Regd. No. 65502</div>
                         <div>APOLLO HOSPITALS - OMR</div>
                     </div>
                     <div class="header-sep"></div>
@@ -119,8 +119,9 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     <!-- Patient Info -->
                     <div class="patient-info">
                         <div class="patient-left">
-                            <div>Name : <span style="color:#000; font-weight:normal; margin-left: 10px;">${patientName} ${patientGender}</span></div>
-                            <div>Age : <span style="color:#000; font-weight:normal; margin-left: 20px;">${patientAge || '-'}</span></div>
+                            <div>Name : <span style="color:#000; font-weight:normal; margin-left: 10px;">${patientName}</span></div>
+                            <div>Age : <span style="color:#000; font-weight:normal; margin-left: 23px;">${patientAge || '-'}</span></div>
+                            <div>Gender : <span style="color:#000; font-weight:normal; margin-left: 5px;">${patientGender}</span></div>
                         </div>
                         <div>
                             <div>Date : <span style="color:#000; font-weight:normal; margin-left: 10px;">${dateStr}</span></div>
@@ -130,8 +131,15 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     <!-- Clinical Info -->
                     <div class="clinical-section">
                         ${clinicalDetails?.vitals && (clinicalDetails.vitals.bloodPressure || clinicalDetails.vitals.pulse || clinicalDetails.vitals.spo2 || clinicalDetails.vitals.temperature || clinicalDetails.vitals.weight) ? `
-                            <div style="font-size: 13px; margin-bottom: 20px; color: #4b5563;">
-                                <strong>Vitals:</strong> BP: ${clinicalDetails.vitals.bloodPressure || '-'} mmHg, Pulse: ${clinicalDetails.vitals.pulse || '-'} bpm, SPO2: ${clinicalDetails.vitals.spo2 || '-'}%, Temp: ${clinicalDetails.vitals.temperature || '-'} °F, Weight: ${clinicalDetails.vitals.weight || '-'} Kg
+                            <div style="margin-bottom: 25px;">
+                                <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #004b93; text-decoration: underline;">VITALS</div>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    ${clinicalDetails.vitals.bloodPressure ? `<div style="border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 13px; color: #334155;"><span style="color: #64748b; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 2px;">BP</span><strong>${clinicalDetails.vitals.bloodPressure}</strong> mmHg</div>` : ''}
+                                    ${clinicalDetails.vitals.pulse ? `<div style="border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 13px; color: #334155;"><span style="color: #64748b; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 2px;">Pulse</span><strong>${clinicalDetails.vitals.pulse}</strong> bpm</div>` : ''}
+                                    ${clinicalDetails.vitals.spo2 ? `<div style="border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 13px; color: #334155;"><span style="color: #64748b; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 2px;">SpO2</span><strong>${clinicalDetails.vitals.spo2}</strong> %</div>` : ''}
+                                    ${clinicalDetails.vitals.temperature ? `<div style="border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 13px; color: #334155;"><span style="color: #64748b; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 2px;">Temp</span><strong>${clinicalDetails.vitals.temperature}</strong> °F</div>` : ''}
+                                    ${clinicalDetails.vitals.weight ? `<div style="border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 13px; color: #334155;"><span style="color: #64748b; font-size: 11px; text-transform: uppercase; display: block; margin-bottom: 2px;">Weight</span><strong>${clinicalDetails.vitals.weight}</strong> Kg</div>` : ''}
+                                </div>
                             </div>
                         ` : ''}
 
@@ -157,6 +165,19 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                                         `).join('')}
                                     </tbody>
                                 </table>
+                            ` : ''}
+
+                            ${prescription?.notes ? `
+                                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e2e8f0;">
+                                    <strong>Instructions / Remarks:</strong>
+                                    <div style="margin-top: 5px; font-size: 14px; white-space: pre-wrap;">${prescription.notes}</div>
+                                </div>
+                            ` : ''}
+
+                            ${prescription?.followUpDate ? `
+                                <div style="margin-top: 15px;">
+                                    <strong>Follow-up Date:</strong> <span style="font-size: 14px;">${new Date(prescription.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                </div>
                             ` : ''}
                             
                             ${prescriptionImageUrl ? `

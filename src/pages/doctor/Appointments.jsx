@@ -50,6 +50,28 @@ const Appointments = () => {
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareData, setShareData] = useState({ id: '', email: '' });
 
+    const handlePrintPrescription = async (appointmentId) => {
+        try {
+            const toastId = toast.loading('Preparing prescription for printing...', {
+                style: { borderRadius: '15px', background: '#1e293b', color: '#fff', fontSize: '11px', fontWeight: 'bold' }
+            });
+            const res = await doctorApi.getPrescriptionByAppointment(appointmentId);
+            toast.dismiss(toastId);
+            if (res.data) {
+                printDocument({
+                    ...res.data,
+                    appointmentId,
+                    createdAt: res.data.prescription?.createdAt
+                }, 'prescription');
+            }
+        } catch (error) {
+            toast.dismiss();
+            toast.error('Failed to load prescription for printing', {
+                style: { borderRadius: '15px', background: '#1e293b', color: '#fff', fontSize: '11px', fontWeight: 'bold' }
+            });
+        }
+    };
+
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const query = params.get('search');
@@ -362,12 +384,12 @@ const Appointments = () => {
                                                                 <Mail className="w-4 h-4" />
                                                             </button>
                                                             <button
-                                                                onClick={() => setViewingPrescription(appt._id)}
-                                                                className="px-3 py-1.5 text-[14px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                                                                title="View Prescription"
+                                                                onClick={() => handlePrintPrescription(appt._id)}
+                                                                className="px-3 py-1.5 text-[14px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-2"
+                                                                title="Print Prescription"
                                                             >
-                                                                {/* <ClipboardList className="w-4 h-4" /> */}
-                                                                View Prescription
+                                                                <Printer className="w-3.5 h-3.5" />
+                                                                Print Prescription
                                                             </button>
                                                             <button
                                                                 onClick={() => navigate(`/doctor/session/${appt._id}`)}

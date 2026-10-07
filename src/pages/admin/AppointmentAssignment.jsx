@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Calendar,
@@ -67,10 +67,19 @@ const AppointmentAssignment = () => {
     });
 
     const patients = (users || [])
-        .filter(u => u.role === 'patient')
+        .filter(u => u.role === 'patient' && !u.isDeleted)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const doctors = (users || []).filter(u => u.role === 'doctor');
+    const doctors = (users || []).filter(u => u.role === 'doctor' && !u.isDeleted);
+
+    useEffect(() => {
+        if (users && !formData.doctorId) {
+            const madhu = doctors.find(d => d.name.toLowerCase().includes('madhu'));
+            if (madhu) {
+                setFormData(prev => ({ ...prev, doctorId: madhu._id }));
+            }
+        }
+    }, [users]);
 
     const filteredPatients = searchTerms.patient
         ? patients.filter(p => {
@@ -498,7 +507,7 @@ const AppointmentAssignment = () => {
                                             <User className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-black text-secondary-900 uppercase tracking-tighter">Configure Patient</h2>
+                                            <h2 className="text-xl font-black text-secondary-900 uppercase">Update Patient</h2>
                                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest italic">{modalState.patient.name} • {getDisplayId(modalState.patient)}</p>
                                         </div>
                                     </div>
