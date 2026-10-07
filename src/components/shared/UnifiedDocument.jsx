@@ -104,7 +104,10 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                         <thead>
                             <tr className="border-b-2 border-black text-left">
                                 <th className="py-1 text-xs font-bold uppercase w-[45%]">Medicine Name</th>
-                                <th className="py-1 text-xs font-bold uppercase w-[35%]">Frequency</th>
+                                <th className="py-1 text-xs font-bold uppercase w-[35%]">
+                                    Frequency<br/>
+                                    <span className="text-[9px] font-medium text-gray-500 capitalize">(Morning-Afternoon-Evening)</span>
+                                </th>
                                 <th className="py-1 text-xs font-bold uppercase w-[20%]">Duration</th>
                             </tr>
                         </thead>

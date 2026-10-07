@@ -1084,22 +1084,15 @@ const ClinicalSession = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-5xl bg-slate-200 rounded-[32px] p-2 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                            className="relative w-full h-[95vh] flex flex-col items-center justify-center pointer-events-none"
                         >
-                            <div className="flex justify-between items-center bg-white p-4 rounded-[24px] mb-2 shadow-sm">
-                                <h3 className="text-xl font-black text-secondary-900 flex items-center gap-2">
-                                    <Eye className="w-6 h-6 text-blue-600" />
-                                    Prescription Preview
-                                </h3>
-                                <button onClick={() => setShowPreviewModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
-                                    <X className="w-5 h-5" />
+                            <div className="w-full h-full pointer-events-auto relative">
+                                <button 
+                                    onClick={() => setShowPreviewModal(false)} 
+                                    className="absolute top-4 right-10 z-50 p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-lg"
+                                >
+                                    <X className="w-6 h-6" />
                                 </button>
-                            </div>
-                            
-                            <div className="flex-1 overflow-y-auto bg-white rounded-[24px] shadow-inner custom-scrollbar relative">
-                                <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center opacity-5">
-                                    <span className="text-9xl font-black rotate-[-45deg] select-none uppercase">Preview</span>
-                                </div>
                                 <iframe 
                                     srcDoc={getUnifiedDocumentHTML({
                                         doctor: appointment?.doctor,
@@ -1108,24 +1101,21 @@ const ClinicalSession = () => {
                                             medications: medications.filter(m => m.name.trim() !== ''),
                                             notes,
                                             diagnosis,
-                                            image: imagePreview
+                                            image: imagePreview,
+                                            followUpDate
                                         },
                                         clinicalDetails: {
-                                            bloodPressure: vitals.bloodPressure,
-                                            temperature: vitals.temperature,
-                                            pulse: vitals.pulse,
-                                            weight: vitals.weight,
-                                            spo2: vitals.spo2
+                                            vitals: vitals
                                         }
                                     }, 'prescription', true)}
-                                    className="w-full h-full min-h-[600px] border-0 rounded-[24px]"
+                                    className="w-full h-full border-0"
                                 />
                             </div>
 
-                            <div className="flex justify-end gap-3 bg-white p-4 rounded-[24px] mt-2 shadow-sm">
+                            <div className="absolute bottom-6 flex gap-4 pointer-events-auto bg-white/80 backdrop-blur-md p-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/50">
                                 <button
                                     onClick={() => setShowPreviewModal(false)}
-                                    className="px-6 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                    className="px-6 py-3 rounded-xl text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 shadow-sm transition-all"
                                 >
                                     Close Preview
                                 </button>
@@ -1135,7 +1125,7 @@ const ClinicalSession = () => {
                                         handleSubmit();
                                     }}
                                     disabled={prescribeMutation.isPending}
-                                    className="px-8 py-3 rounded-xl text-sm font-black text-white bg-secondary-900 hover:bg-black transition-colors flex items-center gap-2"
+                                    className="px-8 py-3 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-all flex items-center gap-2"
                                 >
                                     {prescribeMutation.isPending ? 'Saving...' : (
                                         <>

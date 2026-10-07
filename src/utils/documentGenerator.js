@@ -28,11 +28,48 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     img { max-width: 100%; width: 100%; height: auto; object-fit: contain; display: block; }
                     .print-btn { position: fixed; top: 10px; right: 10px; padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; cursor: pointer; display: block; font-weight: bold; z-index: 9999; }
                     @media print { .print-btn { display: none; } }
+                    ${previewMode ? `
+                    html, body { width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; }
+                    .preview-wrapper {
+                        width: 794px;
+                        height: 1123px;
+                        background: white;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                        transform-origin: center center;
+                        overflow: hidden;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        transition: transform 0.1s ease-out;
+                    }
+                    img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+                    ` : ``}
                 </style>
             </head>
             <body>
                 ${!previewMode ? '<button class="print-btn" onclick="window.print()">Print This Prescription</button>' : ''}
+                ${previewMode ? `
+                <div class="preview-wrapper">
+                    <img src="${prescriptionImageUrl}" alt="Handwritten Prescription" />
+                </div>
+                ` : `
                 <img src="${prescriptionImageUrl}" alt="Handwritten Prescription" />
+                `}
+                ${previewMode ? `
+                <script>
+                    function adjustScale() {
+                        const wrapper = document.querySelector('.preview-wrapper');
+                        if (wrapper) {
+                            const scale = Math.min(window.innerWidth / 820, window.innerHeight / 1150);
+                            wrapper.style.transform = 'scale(' + scale + ')';
+                        }
+                    }
+                    window.addEventListener('resize', adjustScale);
+                    window.onload = adjustScale;
+                    // Run immediately as well
+                    adjustScale();
+                </script>
+                ` : ''}
                 ${!previewMode ? `
                 <script>
                     window.onload = function() {
@@ -96,11 +133,30 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     
                     .handwritten-fallback { margin-top: 20px; text-align: center; }
                     .handwritten-fallback img { max-width: 100%; height: auto; mix-blend-mode: multiply; }
+                    
+                    ${previewMode ? `
+                    html, body { width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; }
+                    .preview-wrapper {
+                        width: 794px;
+                        height: 1123px;
+                        background: white;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                        transform-origin: center center;
+                        overflow: hidden;
+                        box-sizing: border-box;
+                        transition: transform 0.1s ease-out;
+                    }
+                    .page-content { padding: 40px 50px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+                    ` : `
+                    .preview-wrapper { width: 100%; }
+                    .page-content { padding: 40px 50px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+                    `}
                 </style>
             </head>
             <body>
-                <div class="page-content">
-                    <!-- Header -->
+                <div class="preview-wrapper">
+                    <div class="page-content">
+                        <!-- Header -->
                     <div class="header-text">
                         <img src="${logoUrl}" style="height: 50px; margin-bottom: 8px; display: inline-block;" />
                         <div class="header-doctor">Dr. <span class="doctor-name">C.R. MADHU PRABHU DOSS,</span> M.B.B.S., M.D., D.M., Cardiology</div>
@@ -154,11 +210,15 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                             ${prescription?.medications?.length > 0 ? `
                                 <div style="font-weight: bold; font-size: 24px; margin-bottom: 15px; font-family: 'Times New Roman', serif;">Rx</div>
                                 <table>
-                                    <thead><tr><th>Medicine Name</th><th>Frequency</th><th>Duration</th></tr></thead>
+                                    <thead><tr>
+                                        <th style="padding-bottom: 10px;">Medicine Name</th>
+                                        <th style="padding-bottom: 10px;">Frequency<br/><span style="font-size:10px; font-weight:normal; color:#4b5563;">(Morning-Afternoon-Evening)</span></th>
+                                        <th style="padding-bottom: 10px;">Duration</th>
+                                    </tr></thead>
                                     <tbody>
                                         ${prescription.medications.map((med, idx) => `
                                             <tr>
-                                                <td><span style="font-weight:bold;">${idx + 1}) ${med.name}</span></td>
+                                                <td><span style="font-weight:bold; text-transform:uppercase;">${idx + 1}) ${med.name}</span></td>
                                                 <td><div>${med.frequency}</div><div style="font-size:11px;">(${med.instruction || 'After Food'})</div></td>
                                                 <td>${med.duration} Days</td>
                                             </tr>
@@ -196,6 +256,22 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         <div>TIMING: Morning - 10am to 12.30 pm / Evening - 6.00 pm to 9.00 pm</div>
                     </div>
                 </div>
+                </div>
+                ${previewMode ? `
+                <script>
+                    function adjustScale() {
+                        const wrapper = document.querySelector('.preview-wrapper');
+                        if (wrapper) {
+                            const scale = Math.min(window.innerWidth / 820, window.innerHeight / 1150);
+                            wrapper.style.transform = 'scale(' + scale + ')';
+                        }
+                    }
+                    window.addEventListener('resize', adjustScale);
+                    window.onload = adjustScale;
+                    // Run immediately as well
+                    adjustScale();
+                </script>
+                ` : ''}
                 ${!previewMode ? `
                 <script>
                     window.onload = function() { window.print(); }
