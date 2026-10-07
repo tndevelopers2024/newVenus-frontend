@@ -1,5 +1,4 @@
 import { findImageField, resolveImageUrl, isImagePrescription } from './documentUtils';
-import { logoBase64 } from './logoBase64';
 
 // Utility to generate HTML for printing documents
 export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode = false) => {
@@ -54,7 +53,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
     const patientGenderObj = prescription?.patient?.gender || data.patient?.gender;
     const patientAge = patientAgeObj ? patientAgeObj + ' Y' : '';
     const patientGender = patientGenderObj ? patientGenderObj : '-';
-    const logoUrl = logoBase64;
+    const logoUrl = window.location.origin + '/images/venus-logo.webp';
 
     return `
         <html>
