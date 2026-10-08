@@ -39,12 +39,12 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
     };
 
     const containerClasses = mobile
-        ? `fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
-        : `hidden md:flex flex-col h-screen bg-white border-r border-slate-200 transition-all duration-300 ${isOpen ? 'w-72' : 'w-20'}`;
+        ? `fixed inset-y-0 left-0 z-50 w-72 bg-primary-50 shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+        : `hidden md:flex flex-col h-screen bg-primary-50 border-r border-primary-100 transition-all duration-300 ${isOpen ? 'w-72' : 'w-20'}`;
 
     const content = (
         <div className="flex flex-col h-full">
-            <div className={`p-4 flex items-center border-b border-slate-50 ${(!isOpen && !mobile) ? 'justify-center' : 'justify-between'}`}>
+            <div className={`p-4 flex items-center border-b border-primary-100/50 ${(!isOpen && !mobile) ? 'justify-center' : 'justify-between'}`}>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center">
                         {(!isOpen && !mobile) ? (
@@ -63,13 +63,13 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
                     </div>
                 </div>
                 {mobile && (
-                    <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-lg text-slate-400">
+                    <button onClick={onClose} className="p-2 hover:bg-primary-100/50 rounded-lg text-slate-400 hover:text-secondary-900 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 )}
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
+            <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar pr-1">
                 {links.map((link) => {
                     const isActive = location.pathname === link.path;
                     return (
@@ -80,21 +80,21 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
                                 if (mobile) onClose();
                             }}
                             className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${isActive
-                                ? 'bg-secondary-900 text-white shadow-lg shadow-secondary-200'
-                                : 'text-slate-600 hover:bg-primary-50 hover:text-primary-600'
+                                ? 'bg-primary-500 text-white shadow-lg shadow-primary-200/50'
+                                : 'text-slate-500 hover:bg-white hover:text-primary-600 hover:shadow-sm'
                                 }`}
                         >
                             <link.icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
                             {(isOpen || mobile) && (
-                                <span className={`font-bold text-sm text-left truncate ${isActive ? 'text-white' : 'font-medium'}`}>{link.label}</span>
+                                <span className={`font-bold text-sm text-left truncate ${isActive ? 'text-white' : 'font-medium group-hover:font-bold'}`}>{link.label}</span>
                             )}
                         </button>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-slate-100">
-                <div className={`p-3 bg-slate-50 rounded-2xl flex items-center gap-3 ${!isOpen && !mobile && 'justify-center'}`}>
+            <div className="p-4 border-t border-primary-100/50">
+                <div className={`p-3 bg-white rounded-2xl flex items-center gap-3 shadow-sm ${!isOpen && !mobile && 'justify-center'}`}>
                     <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold shrink-0">
                         {user?.name?.charAt(0)}
                     </div>
@@ -108,7 +108,7 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
 
                 <button
                     onClick={handleLogout}
-                    className="w-full mt-4 flex items-center gap-4 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    className="w-full mt-4 flex items-center gap-4 px-4 py-3 text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all"
                 >
                     <LogOut className="w-5 h-5 shrink-0" />
                     {(isOpen || mobile) && <span className="font-medium text-sm">Logout</span>}
@@ -203,7 +203,7 @@ const NotificationPanel = ({ onClose }) => {
                     <button className="text-[10px] text-primary-600 font-black uppercase tracking-wider hover:text-primary-700 mr-6">Mark all read</button>
                 </div>
 
-                <div className="max-h-[400px] overflow-y-auto">
+                <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                     {realtimeNotifications.length > 0 ? (
                         realtimeNotifications.map(n => (
                             <div key={n.id} className={`p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors ${n.unread ? 'bg-primary-50/30' : ''}`}>
@@ -419,7 +419,7 @@ const DashboardLayout = ({ children, links }) => {
                         </button>
                     </div>
                 )}
-                <main className="flex-1 overflow-y-auto p-4 md:px-6 scroll-smooth w-full">
+                <main className="flex-1 overflow-y-auto p-4 md:px-6 scroll-smooth w-full custom-scrollbar">
                     {children}
                 </main>
             </div>

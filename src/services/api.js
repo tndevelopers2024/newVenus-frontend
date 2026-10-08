@@ -67,6 +67,7 @@ export const adminApi = {
     getAuditLogs: () => api.get('/admin/logs'),
     getAppointments: () => api.get('/admin/appointments'),
     assignAppointment: (data) => api.post('/admin/appointments', data),
+    updateAppointmentDate: (id, date) => api.put(`/admin/appointments/${id}/date`, { date }),
     deleteAppointment: (id) => api.delete(`/admin/appointments/${id}`),
     updateInvoiceStatus: (id, status) => api.patch(`/admin/invoices/${id}/status`, { status }),
     getPrescriptionByAppointment: (id) => api.get(`/admin/appointments/${id}/prescription`),

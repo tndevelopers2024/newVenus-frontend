@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -19,7 +20,8 @@ import {
     Mail,
     Share2,
     Send,
-    UploadCloud
+    UploadCloud,
+    Edit2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -41,6 +43,11 @@ const AppointmentList = () => {
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareData, setShareData] = useState({ id: '', email: '' });
+    const [editingDateId, setEditingDateId] = useState(null);
+    const [newDate, setNewDate] = useState('');
+    const [editViewDate, setEditViewDate] = useState(new Date());
+    const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
+    const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
 
     const { data: appointments, isLoading } = useQuery({
         queryKey: ['adminAppointmentsFullList'],
@@ -69,6 +76,24 @@ const AppointmentList = () => {
             toast.error(err.response?.data?.message || 'Failed to remove assignment');
         }
     });
+
+    const updateDateMutation = useMutation({
+        mutationFn: ({ id, date }) => adminApi.updateAppointmentDate(id, date),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['adminAppointmentsFullList']);
+            queryClient.invalidateQueries(['adminAppointmentsAll']);
+            setEditingDateId(null);
+            toast.success('Appointment date updated');
+        },
+        onError: (err) => {
+            toast.error(err.response?.data?.message || 'Failed to update date');
+        }
+    });
+
+    const handleDateUpdate = (id) => {
+        if (!newDate) return toast.error('Please select a date');
+        updateDateMutation.mutate({ id, date: newDate });
+    };
 
     const uploadPrescriptionMutation = useMutation({
         mutationFn: doctorApi.createPrescription,
@@ -180,7 +205,8 @@ const AppointmentList = () => {
             (appt.doctor?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
             (appt.reason?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
-        const apptDate = new Date(appt.createdAt).toISOString().split('T')[0];
+        const apptDateStr = appt.date || appt.createdAt;
+        const apptDate = new Date(apptDateStr).toISOString().split('T')[0];
         const todayStr = new Date().toISOString().split('T')[0];
 
         let matchesDate = true;
@@ -188,6 +214,8 @@ const AppointmentList = () => {
             matchesDate = apptDate === todayStr;
         } else if (filterParam === 'previous') {
             matchesDate = apptDate < todayStr;
+        } else if (filterParam === 'upcoming') {
+            matchesDate = apptDate > todayStr;
         } else {
             if (dateRange.start && dateRange.end) {
                 matchesDate = apptDate >= dateRange.start && apptDate <= dateRange.end;
@@ -233,7 +261,7 @@ const AppointmentList = () => {
                     <div>
                         <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter flex items-center gap-3">
                             <Calendar className="w-8 h-8 text-primary-500" />
-                            {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : 'Active Appointments'}
+                            {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : filterParam === 'upcoming' ? 'Upcoming Appointments' : 'Active Appointments'}
                         </h1>
                         <p className="text-slate-500 mt-1 font-bold">Monitor and manage all patient-doctor links</p>
                     </div>
@@ -458,9 +486,109 @@ const AppointmentList = () => {
                                                 </span>
                                             </td>
                                             <td className="px-8 py-5">
-                                                <p className="text-xs font-bold text-slate-500">
-                                                    {new Date(appt.createdAt).toLocaleDateString('en-GB')}
-                                                </p>
+                                                {editingDateId === appt._id ? (
+                                                    <div className="relative flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setPopupPos({ top: rect.bottom + 8, left: rect.left });
+                                                                setIsEditDatePickerOpen(!isEditDatePickerOpen);
+                                                            }}
+                                                            className="px-3 py-1.5 text-xs font-bold text-secondary-900 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-xl outline-none transition-all cursor-pointer hover:bg-slate-100 flex items-center gap-2"
+                                                        >
+                                                            <Calendar className="w-3.5 h-3.5 text-primary-500" />
+                                                            {newDate ? new Date(newDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Select Date'}
+                                                        </button>
+                                                        
+                                                        {createPortal(
+                                                            <AnimatePresence>
+                                                                {isEditDatePickerOpen && (
+                                                                    <>
+                                                                        <div className="fixed inset-0 z-[90]" onClick={() => setIsEditDatePickerOpen(false)} />
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                                            style={{ top: popupPos.top, left: popupPos.left }}
+                                                                            className="fixed z-[100] bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[280px]"
+                                                                        >
+                                                                            <div className="flex items-center justify-between mb-4">
+                                                                                <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
+                                                                                    {editViewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                                                                </h4>
+                                                                                <div className="flex gap-2">
+                                                                                    <button onClick={() => setEditViewDate(new Date(editViewDate.getFullYear(), editViewDate.getMonth() - 1, 1))} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400">
+                                                                                        <ChevronLeft className="w-4 h-4" />
+                                                                                    </button>
+                                                                                    <button onClick={() => setEditViewDate(new Date(editViewDate.getFullYear(), editViewDate.getMonth() + 1, 1))} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400">
+                                                                                        <ChevronRight className="w-4 h-4" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="grid grid-cols-7 gap-1 mb-2">
+                                                                                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                                                                    <div key={day} className="text-center text-[9px] font-black text-slate-300 uppercase py-1">{day}</div>
+                                                                                ))}
+                                                                            </div>
+                                                                            <div className="grid grid-cols-7 gap-1">
+                                                                                {Array.from({ length: new Date(editViewDate.getFullYear(), editViewDate.getMonth(), 1).getDay() }).map((_, i) => <div key={`e-${i}`} />)}
+                                                                                {Array.from({ length: new Date(editViewDate.getFullYear(), editViewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                                                                                    const day = i + 1;
+                                                                                    const dateStr = `${editViewDate.getFullYear()}-${String(editViewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                                                    const isSelected = newDate === dateStr;
+                                                                                    return (
+                                                                                        <button
+                                                                                            key={day}
+                                                                                            onClick={() => {
+                                                                                                setNewDate(dateStr);
+                                                                                                setIsEditDatePickerOpen(false);
+                                                                                            }}
+                                                                                            className={`aspect-square flex items-center justify-center rounded-lg text-[10px] font-black transition-all ${isSelected ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-slate-50 text-secondary-900'}`}
+                                                                                        >
+                                                                                            {day}
+                                                                                        </button>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    </>
+                                                                )}
+                                                            </AnimatePresence>,
+                                                            document.body
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDateUpdate(appt._id)}
+                                                            disabled={updateDateMutation.isPending}
+                                                            className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors shadow-sm"
+                                                            title="Save Date"
+                                                        >
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingDateId(null)}
+                                                            className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-colors shadow-sm"
+                                                            title="Cancel"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 group/date cursor-pointer" onClick={() => {
+                                                        if(appt.status !== 'Completed') {
+                                                            setEditingDateId(appt._id);
+                                                            setNewDate(appt.date ? new Date(appt.date).toISOString().split('T')[0] : new Date(appt.createdAt).toISOString().split('T')[0]);
+                                                            setEditViewDate(new Date(appt.date || appt.createdAt));
+                                                            setIsEditDatePickerOpen(true);
+                                                        }
+                                                    }}>
+                                                        <p className="text-xs font-bold text-slate-500">
+                                                            {appt.date ? new Date(appt.date).toLocaleDateString('en-GB') : new Date(appt.createdAt).toLocaleDateString('en-GB')}
+                                                        </p>
+                                                        {appt.status !== 'Completed' && (
+                                                            <Edit2 className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover/date:opacity-100 transition-opacity hover:text-primary-500" />
+                                                        )}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 {appt.status !== 'Completed' ? (
