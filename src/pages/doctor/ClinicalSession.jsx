@@ -38,7 +38,7 @@ const ClinicalSession = () => {
     const queryClient = useQueryClient();
 
     // Vitals and clinical state
-    const [medications, setMedications] = useState([{ name: '', frequency: '', duration: '', instruction: 'After Food' }]);
+    const [medications, setMedications] = useState([{ name: '', frequency: '', unit: '', duration: '', instruction: 'After Food' }]);
     const [medicationToDelete, setMedicationToDelete] = useState(null);
     const [notes, setNotes] = useState('');
     const [followUpDate, setFollowUpDate] = useState('');
@@ -305,7 +305,7 @@ const ClinicalSession = () => {
     };
 
     const addMedication = () => {
-        setMedications([...medications, { name: '', frequency: '', duration: '', instruction: 'After Food' }]);
+        setMedications([...medications, { name: '', frequency: '', unit: '', duration: '', instruction: 'After Food' }]);
     };
 
     const removeMedication = (index) => {
@@ -668,7 +668,7 @@ const ClinicalSession = () => {
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50/50 rounded-2xl border border-slate-100"
                                         >
-                                            <div className="col-span-4 relative">
+                                            <div className="col-span-3 relative">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Drug Name</label>
                                                 <input
                                                     value={med.name}
@@ -682,7 +682,7 @@ const ClinicalSession = () => {
                                                 />
                                             </div>
                                             <div className="col-span-3">
-                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 text-center">Freq (Morning-Afternoon-Night)</label>
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 text-center">Freq (M-A-N)</label>
                                                 <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
                                                     {[0, 1, 2].map((part) => (
                                                         <React.Fragment key={part}>
@@ -699,11 +699,27 @@ const ClinicalSession = () => {
                                                 </div>
                                             </div>
                                             <div className="col-span-2">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 uppercase">Unit</label>
+                                                <select
+                                                    value={med.unit || ''}
+                                                    onChange={(e) => handleMedChange(index, 'unit', e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
+                                                >
+                                                    <option value="">-</option>
+                                                    <option value="ml">ml</option>
+                                                    <option value="mg">mg</option>
+                                                    <option value="drops">drops</option>
+                                                    <option value="tsp">tsp</option>
+                                                    <option value="tbsp">tbsp</option>
+                                                    <option value="tab">tab</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-1">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 uppercase">Days</label>
                                                 <input
                                                     value={med.duration}
                                                     onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm font-bold outline-none focus:border-secondary-500 text-center"
                                                     placeholder="5"
                                                 />
                                             </div>
@@ -712,7 +728,7 @@ const ClinicalSession = () => {
                                                 <select
                                                     value={med.instruction || 'After Food'}
                                                     onChange={(e) => handleMedChange(index, 'instruction', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
                                                 >
                                                     <option value="After Food">After Food</option>
                                                     <option value="Before Food">Before Food</option>

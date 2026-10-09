@@ -91,6 +91,14 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
     const patientAge = patientAgeObj ? patientAgeObj + ' Y' : '';
     const patientGender = patientGenderObj ? patientGenderObj : '-';
     const logoUrl = window.location.origin + '/images/venus-logo.webp';
+    
+    const doctorObj = prescription?.doctor || data.doctor;
+    const doctorName = doctorObj?.name ? doctorObj.name.toUpperCase() : 'C.R. MADHU PRABHU DOSS';
+    const doctorQuals = doctorObj?.doctorDetails?.qualification || 'M.B.B.S., M.D., D.M., Cardiology';
+    const doctorTamil = doctorObj?.doctorDetails?.nameTamil || 'டாக்டர். சி.ஆர். மது பிரபு தாஸ், எம்.பி.பி.எஸ்., எம்.டி., டி.எம்., கார்டியாலஜி';
+    const doctorAddQuals = doctorObj?.doctorDetails?.additionalQualifications || 'Interventions (Canada), FESC (Europe), FSCAI (US)';
+    const doctorRole = doctorObj?.doctorDetails?.roleTitle || 'SENIOR CONSULTANT INTERVENTIONAL CARDIOLOGIST';
+    const doctorRegd = doctorObj?.doctorDetails?.regdNo || 'Regd. No. 65502';
 
     return `
         <html>
@@ -104,11 +112,11 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     /* Header */
                     .header-text { text-align: center; color: #004b93; line-height: 1.4; margin-bottom: 5px; }
                     .header-title { font-size: 26px; font-weight: 900; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-                    .header-doctor { font-size: 17px; margin-bottom: 3px; }
+                    .header-doctor { font-size: 17px; margin-bottom: 3px; font-weight: bold; }
                     .doctor-name { font-weight: bold; }
-                    .header-tamil { font-size: 15px; margin-bottom: 3px; font-weight: normal; font-family: 'BAMINI-Tamil54', 'Latha', 'Arial Unicode MS', sans-serif; }
-                    .header-quals { font-size: 15px; margin-bottom: 3px; font-weight: normal; }
-                    .header-role { font-size: 15px; margin-bottom: 15px; text-transform: uppercase; font-weight: normal; }
+                    .header-tamil { font-size: 15px; margin-bottom: 3px; font-weight: bold; font-family: 'BAMINI-Tamil54', 'Latha', 'Arial Unicode MS', sans-serif; }
+                    .header-quals { font-size: 15px; margin-bottom: 3px; font-weight: bold; }
+                    .header-role { font-size: 15px; margin-bottom: 15px; text-transform: uppercase; font-weight: bold; }
                     
                     .header-sep { border-top: 1.5px solid #004b93; margin: 4px 0; }
                     
@@ -159,15 +167,15 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         <!-- Header -->
                     <div class="header-text">
                         <img src="${logoUrl}" style="height: 50px; margin-bottom: 8px; display: inline-block;" />
-                        <div class="header-doctor">Dr. <span class="doctor-name">C.R. MADHU PRABHU DOSS,</span> M.B.B.S., M.D., D.M., Cardiology</div>
-                        <div class="header-tamil">டாக்டர். சி.ஆர். மது பிரபு தாஸ், எம்.பி.பி.எஸ்., எம்.டி., டி.எம்., கார்டியாலஜி</div>
-                        <div class="header-quals">Interventions (Canada), FESC (Europe), FSCAI (US)</div>
-                        <div class="header-role">SENIOR CONSULTANT INTERVENTIONAL CARDIOLOGIST</div>
+                        <div class="header-doctor">Dr. <span class="doctor-name">${doctorName},</span> ${doctorQuals}</div>
+                        <div class="header-tamil">${doctorTamil}</div>
+                        <div class="header-quals">${doctorAddQuals}</div>
+                        <div class="header-role">${doctorRole}</div>
                     </div>
                     
                     <div class="header-sep"></div>
                     <div class="header-meta">
-                        <div>Regd. No. 65502</div>
+                        <div>${doctorRegd}</div>
                         <div>APOLLO HOSPITALS - OMR</div>
                     </div>
                     <div class="header-sep"></div>
@@ -219,7 +227,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                                         ${prescription.medications.map((med, idx) => `
                                             <tr>
                                                 <td><span style="font-weight:bold; text-transform:uppercase;">${idx + 1}) ${med.name}</span></td>
-                                                <td><div>${med.frequency}</div><div style="font-size:11px;">(${med.instruction || 'After Food'})</div></td>
+                                                <td><div>${med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div><div style="font-size:11px;">(${med.instruction || 'After Food'})</div></td>
                                                 <td>${med.duration} Days</td>
                                             </tr>
                                         `).join('')}

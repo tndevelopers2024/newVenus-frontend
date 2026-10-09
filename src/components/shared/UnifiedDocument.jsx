@@ -119,7 +119,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                                             <span className="font-bold text-[13px] uppercase">{idx + 1}) {med.name}</span>
                                         </td>
                                         <td className="py-3">
-                                            <div className="font-semibold text-xs tracking-tight uppercase">{med.frequency}</div>
+                                            <div className="font-semibold text-xs tracking-tight uppercase">{med.frequency}{med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div>
                                             <div className="text-[10px] text-gray-500 font-medium uppercase">({med.instruction || 'After Food'})</div>
                                         </td>
                                         <td className="py-3">

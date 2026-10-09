@@ -26,7 +26,14 @@ const DoctorRegistration = () => {
         phone: '',
         specialization: '',
         age: '',
-        gender: ''
+        gender: '',
+        doctorDetails: {
+            qualification: '',
+            nameTamil: '',
+            additionalQualifications: '',
+            roleTitle: '',
+            regdNo: ''
+        }
     });
 
     const [error, setError] = useState('');
@@ -163,6 +170,66 @@ const DoctorRegistration = () => {
                                             <option value="Female">Female</option>
                                             <option value="Other">Other</option>
                                         </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h3 className="text-lg font-bold text-slate-800 mt-6 border-b pb-2">Prescription Header Details</h3>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Qualification (e.g. M.B.B.S., M.D.)</label>
+                                    <div className="relative">
+                                        <input
+                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                            placeholder="Qualification"
+                                            value={formData.doctorDetails.qualification}
+                                            onChange={(e) => setFormData({ ...formData, doctorDetails: { ...formData.doctorDetails, qualification: e.target.value } })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Name in Tamil</label>
+                                    <div className="relative">
+                                        <input
+                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                            placeholder="டாக்டர். ..."
+                                            value={formData.doctorDetails.nameTamil}
+                                            onChange={(e) => setFormData({ ...formData, doctorDetails: { ...formData.doctorDetails, nameTamil: e.target.value } })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Additional Qualifications</label>
+                                    <div className="relative">
+                                        <input
+                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                            placeholder="Interventions (Canada)..."
+                                            value={formData.doctorDetails.additionalQualifications}
+                                            onChange={(e) => setFormData({ ...formData, doctorDetails: { ...formData.doctorDetails, additionalQualifications: e.target.value } })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Role Title</label>
+                                    <div className="relative">
+                                        <input
+                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                            placeholder="SENIOR CONSULTANT..."
+                                            value={formData.doctorDetails.roleTitle}
+                                            onChange={(e) => setFormData({ ...formData, doctorDetails: { ...formData.doctorDetails, roleTitle: e.target.value } })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registration Number</label>
+                                    <div className="relative">
+                                        <input
+                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                                            placeholder="Regd. No. 65502"
+                                            value={formData.doctorDetails.regdNo}
+                                            onChange={(e) => setFormData({ ...formData, doctorDetails: { ...formData.doctorDetails, regdNo: e.target.value } })}
+                                        />
                                     </div>
                                 </div>
                             </div>

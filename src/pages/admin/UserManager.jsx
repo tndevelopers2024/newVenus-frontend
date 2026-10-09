@@ -339,10 +339,10 @@ const UserManager = ({ defaultFilter = 'all' }) => {
 
             {editModal.isOpen && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl">
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
                             <h3 className="text-xl font-bold text-slate-900">Edit User Details</h3>
-                            <button onClick={() => setEditModal({ isOpen: false, user: null })} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                            <button onClick={() => setEditModal({ isOpen: false, user: null })} className="p-2 hover:bg-slate-50 rounded-xl transition-colors shrink-0">
                                 <X className="w-5 h-5 text-slate-400" />
                             </button>
                         </div>
@@ -350,9 +350,25 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                             e.preventDefault();
                             const formData = new FormData(e.target);
                             const data = Object.fromEntries(formData);
+                            
+                            if (editModal.user.role === 'doctor') {
+                                data.doctorDetails = {
+                                    qualification: data['doctorDetails.qualification'],
+                                    nameTamil: data['doctorDetails.nameTamil'],
+                                    additionalQualifications: data['doctorDetails.additionalQualifications'],
+                                    roleTitle: data['doctorDetails.roleTitle'],
+                                    regdNo: data['doctorDetails.regdNo']
+                                };
+                                delete data['doctorDetails.qualification'];
+                                delete data['doctorDetails.nameTamil'];
+                                delete data['doctorDetails.additionalQualifications'];
+                                delete data['doctorDetails.roleTitle'];
+                                delete data['doctorDetails.regdNo'];
+                            }
+
                             data._id = editModal.user._id;
                             updateMutation.mutate(data);
-                        }} className="p-6 space-y-4">
+                        }} className="p-6 space-y-4 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase">Name</label>
@@ -385,13 +401,40 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                     </div>
                                 )}
                                 {editModal.user.role === 'doctor' && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Specialization</label>
-                                        <input type="text" name="specialization" defaultValue={editModal.user.specialization} className="input-field w-full" />
-                                    </div>
+                                    <>
+                                        <div className="space-y-2 col-span-2">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Specialization</label>
+                                            <input type="text" name="specialization" defaultValue={editModal.user.specialization} className="input-field w-full" />
+                                        </div>
+                                        <div className="col-span-2 mt-4 pt-4 border-t border-slate-100">
+                                            <h4 className="text-sm font-bold text-slate-900 mb-4">Prescription Header Details</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase">Qualification</label>
+                                                    <input type="text" name="doctorDetails.qualification" defaultValue={editModal.user.doctorDetails?.qualification} className="input-field w-full" placeholder="e.g. M.B.B.S., M.D." />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase">Name in Tamil</label>
+                                                    <input type="text" name="doctorDetails.nameTamil" defaultValue={editModal.user.doctorDetails?.nameTamil} className="input-field w-full" placeholder="டாக்டர். ..." />
+                                                </div>
+                                                <div className="space-y-2 col-span-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase">Additional Qualifications</label>
+                                                    <input type="text" name="doctorDetails.additionalQualifications" defaultValue={editModal.user.doctorDetails?.additionalQualifications} className="input-field w-full" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase">Role Title</label>
+                                                    <input type="text" name="doctorDetails.roleTitle" defaultValue={editModal.user.doctorDetails?.roleTitle} className="input-field w-full" placeholder="SENIOR CONSULTANT..." />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-slate-500 uppercase">Registration Number</label>
+                                                    <input type="text" name="doctorDetails.regdNo" defaultValue={editModal.user.doctorDetails?.regdNo} className="input-field w-full" placeholder="Regd. No. 65502" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </div>
-                            <div className="pt-4 flex justify-end gap-3">
+                            <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white z-10 pb-2">
                                 <button type="button" onClick={() => setEditModal({ isOpen: false, user: null })} className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                                     Cancel
                                 </button>
