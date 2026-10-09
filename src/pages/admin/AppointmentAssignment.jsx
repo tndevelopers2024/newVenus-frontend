@@ -102,7 +102,7 @@ const AppointmentAssignment = () => {
 
     const openPatientModal = (patient) => {
         const existingConfig = formData.patientConfigs[patient._id] || {
-            reasons: [],
+            reasons: ['CONSULTATION'],
             notes: '',
             vitals: { bloodPressure: '', temperature: '', pulse: '', weight: '', spo2: '' }
         };
@@ -558,9 +558,9 @@ const AppointmentAssignment = () => {
                                                     key={reason}
                                                     type="button"
                                                     onClick={() => toggleModalReason(reason)}
-                                                    className={`px-3 py-3 rounded-2xl text-[9px] font-black uppercase tracking-tight border transition-all ${modalState.config.reasons.includes(reason)
+                                                    className={`px-4 py-3 rounded-2xl text-[11px] font-bold uppercase tracking-tight border transition-all ${modalState.config.reasons.includes(reason)
                                                         ? 'bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-200'
-                                                        : 'bg-slate-50 border-slate-100 text-[#2c2c2c] hover:border-slate-200'
+                                                        : 'bg-slate-50 border-slate-100 text-[#2c2c2c] hover:border-slate-300'
                                                         }`}
                                                 >
                                                     {reason}

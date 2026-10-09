@@ -38,7 +38,8 @@ const ClinicalSession = () => {
     const queryClient = useQueryClient();
 
     // Vitals and clinical state
-    const [medications, setMedications] = useState([{ name: '', frequency: '', unit: '', duration: '', instruction: 'After Food' }]);
+    const [medications, setMedications] = useState([{ name: '', frequency: '', duration: '', instruction: 'After Food' }]);
+    const [activeDrugIndex, setActiveDrugIndex] = useState(null);
     const [medicationToDelete, setMedicationToDelete] = useState(null);
     const [notes, setNotes] = useState('');
     const [followUpDate, setFollowUpDate] = useState('');
@@ -281,6 +282,7 @@ const ClinicalSession = () => {
         if (!templateId) return;
         const t = templates?.find(t => t._id === templateId);
         if (t) {
+            setActiveDrugIndex(null);
             if (t.medications?.length > 0) setMedications(t.medications);
             if (t.notes) setNotes(t.notes);
             if (t.diagnosis) setDiagnosis(t.diagnosis);
@@ -305,7 +307,7 @@ const ClinicalSession = () => {
     };
 
     const addMedication = () => {
-        setMedications([...medications, { name: '', frequency: '', unit: '', duration: '', instruction: 'After Food' }]);
+        setMedications([...medications, { name: '', frequency: '', duration: '', instruction: 'After Food' }]);
     };
 
     const removeMedication = (index) => {
@@ -331,9 +333,9 @@ const ClinicalSession = () => {
 
     const handleFrequencyPartChange = (index, partIndex, value) => {
         const newMeds = [...medications];
-        const currentFreq = newMeds[index].frequency || '0-0-0';
+        const currentFreq = newMeds[index].frequency || '--';
         const parts = currentFreq.split('-');
-        parts[partIndex] = value || '0';
+        parts[partIndex] = value;
         newMeds[index].frequency = parts.join('-');
         setMedications(newMeds);
     };
@@ -668,30 +670,38 @@ const ClinicalSession = () => {
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50/50 rounded-2xl border border-slate-100"
                                         >
-                                            <div className="col-span-3 relative">
+                                            <div className="col-span-4 relative">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Drug Name</label>
                                                 <input
                                                     value={med.name}
-                                                    onChange={(e) => handleMedChange(index, 'name', e.target.value)}
+                                                    onChange={(e) => {
+                                                        handleMedChange(index, 'name', e.target.value);
+                                                        setActiveDrugIndex(index);
+                                                    }}
                                                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
                                                     placeholder="Enter name"
                                                 />
-                                                <DrugAutosuggest
-                                                    query={med.name}
-                                                    onSelect={(val) => handleMedChange(index, 'name', val)}
-                                                />
+                                                {activeDrugIndex === index && (
+                                                    <DrugAutosuggest
+                                                        query={med.name}
+                                                        onSelect={(val) => {
+                                                            handleMedChange(index, 'name', val);
+                                                            setActiveDrugIndex(null);
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                             <div className="col-span-3">
-                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 text-center">Freq (M-A-N)</label>
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 text-center">Freq (Morning-Afternoon-Night)</label>
                                                 <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
                                                     {[0, 1, 2].map((part) => (
                                                         <React.Fragment key={part}>
                                                             <input
                                                                 type="text"
-                                                                value={(med.frequency || '0-0-0').split('-')[part] || '0'}
+                                                                value={(med.frequency || '').split('-')[part] || ''}
                                                                 onChange={(e) => handleFrequencyPartChange(index, part, e.target.value)}
                                                                 className="w-full bg-slate-50 border-none rounded-lg py-1 text-center text-xs font-black outline-none focus:bg-primary-50 transition-colors"
-                                                                placeholder="0"
+                                                                placeholder=""
                                                             />
                                                             {part < 2 && <span className="text-[10px] font-bold text-slate-300">-</span>}
                                                         </React.Fragment>
@@ -699,27 +709,11 @@ const ClinicalSession = () => {
                                                 </div>
                                             </div>
                                             <div className="col-span-2">
-                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 uppercase">Unit</label>
-                                                <select
-                                                    value={med.unit || ''}
-                                                    onChange={(e) => handleMedChange(index, 'unit', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
-                                                >
-                                                    <option value="">-</option>
-                                                    <option value="ml">ml</option>
-                                                    <option value="mg">mg</option>
-                                                    <option value="drops">drops</option>
-                                                    <option value="tsp">tsp</option>
-                                                    <option value="tbsp">tbsp</option>
-                                                    <option value="tab">tab</option>
-                                                </select>
-                                            </div>
-                                            <div className="col-span-1">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 uppercase">Days</label>
                                                 <input
                                                     value={med.duration}
                                                     onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm font-bold outline-none focus:border-secondary-500 text-center"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
                                                     placeholder="5"
                                                 />
                                             </div>
@@ -728,7 +722,7 @@ const ClinicalSession = () => {
                                                 <select
                                                     value={med.instruction || 'After Food'}
                                                     onChange={(e) => handleMedChange(index, 'instruction', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
+                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500 appearance-none"
                                                 >
                                                     <option value="After Food">After Food</option>
                                                     <option value="Before Food">Before Food</option>
