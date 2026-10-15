@@ -99,7 +99,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
     const hasDetails = !!doctorObj?.doctorDetails;
     
     const doctorQuals = hasDetails ? (doctorObj.doctorDetails.qualification || '') : 'M.B.B.S., M.D., D.M., Cardiology';
-    const doctorTamil = hasDetails ? (doctorObj.doctorDetails.nameTamil || '') : 'டாக்டர். சி.ஆர். மது பிரபு தாஸ், எம்.பி.பி.எஸ்., எம்.டி., டி.எம்., கார்டியாலஜி';
+    const doctorTamil = hasDetails ? (doctorObj.doctorDetails.nameTamil || '') : 'டாக்டர். சி.ரா. மது பிரபு தாஸ், எம்.பி.பி.எஸ்., எம்.டி., டி.எம்., கார்டியாலஜி';
     const doctorAddQuals = hasDetails ? (doctorObj.doctorDetails.additionalQualifications || '') : 'Interventions (Canada), FESC (Europe), FSCAI (US)';
     const doctorRole = hasDetails ? (doctorObj.doctorDetails.roleTitle || '') : 'SENIOR CONSULTANT INTERVENTIONAL CARDIOLOGIST';
     const doctorRegd = hasDetails ? (doctorObj.doctorDetails.regdNo || '') : 'Regd. No. 65502';
@@ -113,39 +113,39 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                 <style>
                     @page { size: A4; margin: 0; }
                     body { font-family: Arial, Helvetica, sans-serif; padding: 0; margin: 0; color: #000; background: white; -webkit-print-color-adjust: exact; }
-                    .page-content { padding: 40px 50px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+                    .page-content { padding: 32px 45px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
                     
                     /* Header */
                     .header-text { text-align: center; color: #004b93; line-height: 1.4; margin-bottom: 5px; }
-                    .header-title { font-size: 26px; font-weight: 900; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+                    .header-title { font-family: 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 34px; font-weight: 900; -webkit-text-stroke: 1.2px #004b93; text-stroke: 1.2px #004b93; letter-spacing: 2.5px; margin-bottom: 6px; text-transform: uppercase; color: #004b93; }
                     .header-doctor { font-size: 17px; margin-bottom: 3px; font-weight: 900; }
                     .doctor-name { font-weight: 900; }
                     .header-tamil { font-size: 15px; margin-bottom: 3px; font-weight: 900; font-family: 'BAMINI-Tamil54', 'Latha', 'Arial Unicode MS', sans-serif; }
                     .header-quals { font-size: 15px; margin-bottom: 3px; font-weight: 900; }
-                    .header-role { font-size: 15px; margin-bottom: 15px; text-transform: uppercase; font-weight: 900; }
+                    .header-role { font-size: 15px; margin-bottom: 8px; text-transform: uppercase; font-weight: 900; }
                     
                     .header-sep { border-top: 1.5px solid #004b93; margin: 4px 0; }
                     
-                    .header-meta { display: flex; justify-content: space-between; color: #004b93; font-size: 13px; font-weight: bold; padding: 5px 10px; }
+                    .header-meta { display: flex; justify-content: space-between; color: #004b93; font-size: 13px; font-weight: bold; padding: 4px 10px; }
                     
                     /* Patient Info */
-                    .patient-info { display: flex; justify-content: space-between; color: #004b93; font-size: 16px; font-weight: bold; margin-top: 15px; padding: 0 10px; }
-                    .patient-left { display: flex; flex-direction: column; gap: 8px; }
+                    .patient-info { display: flex; justify-content: space-between; color: #004b93; font-size: 15px; font-weight: bold; margin-top: 10px; padding: 0 10px; }
+                    .patient-left { display: flex; flex-direction: column; gap: 4px; }
                     
                     /* Body / Clinical */
-                    .clinical-section { margin-top: 30px; flex-grow: 1; padding: 0 10px; color: #000; }
-                    .clinical-grid { display: flex; gap: 20px; padding-bottom: 15px; margin-bottom: 15px; }
+                    .clinical-section { margin-top: 14px; flex-grow: 1; padding: 0 10px; color: #000; }
+                    .clinical-grid { display: flex; gap: 20px; padding-bottom: 6px; margin-bottom: 6px; }
                     .col { flex: 1; }
-                    .col h3 { font-size: 14px; font-weight: bold; text-decoration: underline; margin: 0 0 5px 0; }
-                    .colcontent { font-size: 14px; }
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                    th { text-align: left; padding: 5px 0; font-size: 14px; font-weight: bold; border-bottom: 1px solid #000; }
-                    td { padding: 10px 0; border-bottom: 1px dashed #ccc; font-size: 14px; vertical-align: top; }
+                    .col h3 { font-size: 13px; font-weight: bold; text-decoration: underline; margin: 0 0 3px 0; }
+                    .colcontent { font-size: 13px; line-height: 1.3; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+                    th { text-align: left; padding: 4px 0 6px 0; font-size: 13px; font-weight: bold; border-bottom: 1.5px solid #000; }
+                    td { padding: 4px 0 5px 0; border-bottom: 1px dashed #d1d5db; font-size: 13px; vertical-align: middle; }
                     
                     /* Footer */
-                    .footer { color: #004b93; text-align: center; font-size: 13px; font-weight: bold; line-height: 1.6; padding-top: 15px; }
+                    .footer { color: #004b93; text-align: center; font-size: 13px; font-weight: bold; line-height: 1.5; padding-top: 10px; }
                     
-                    .handwritten-fallback { margin-top: 20px; text-align: center; }
+                    .handwritten-fallback { margin-top: 15px; text-align: center; }
                     .handwritten-fallback img { max-width: 100%; height: auto; mix-blend-mode: multiply; }
                     
                     ${previewMode ? `
@@ -160,10 +160,10 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         box-sizing: border-box;
                         transition: transform 0.1s ease-out;
                     }
-                    .page-content { padding: 40px 50px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+                    .page-content { padding: 32px 45px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
                     ` : `
                     .preview-wrapper { width: 100%; }
-                    .page-content { padding: 40px 50px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+                    .page-content { padding: 32px 45px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
                     `}
                 </style>
             </head>
@@ -173,6 +173,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         <!-- Header -->
                     <div class="header-text">
                         <img src="${logoUrl}" style="height: 50px; margin-bottom: 8px; display: inline-block;" />
+                        <div class="header-title">NEW VENUS CLINIC</div>
                         <div class="header-doctor">Dr. <span class="doctor-name">${doctorName}</span>${doctorQuals ? `, ${doctorQuals}` : ''}</div>
                         ${renderDiv(doctorTamil, 'header-tamil')}
                         ${renderDiv(doctorAddQuals, 'header-quals')}
@@ -201,13 +202,13 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     <!-- Clinical Info -->
                     <div class="clinical-section">
                         ${clinicalDetails?.vitals && (clinicalDetails.vitals.bloodPressure || clinicalDetails.vitals.pulse || clinicalDetails.vitals.spo2 || clinicalDetails.vitals.temperature || clinicalDetails.vitals.weight) ? `
-                            <div style="margin-bottom: 25px;">
-                                <div style="display: flex; gap: 24px; flex-wrap: wrap; background-color: #f8fafc; padding: 12px 16px; border-radius: 8px; font-size: 14px; border-left: 4px solid #004b93;">
-                                    ${clinicalDetails.vitals.bloodPressure ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">BP:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.bloodPressure}</span> <span style="color: #64748b; font-size: 12px;">mmHg</span></div>` : ''}
-                                    ${clinicalDetails.vitals.pulse ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Pulse:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.pulse}</span> <span style="color: #64748b; font-size: 12px;">bpm</span></div>` : ''}
-                                    ${clinicalDetails.vitals.spo2 ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">SpO2:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.spo2}</span> <span style="color: #64748b; font-size: 12px;">%</span></div>` : ''}
-                                    ${clinicalDetails.vitals.temperature ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Temp:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.temperature}</span> <span style="color: #64748b; font-size: 12px;">°F</span></div>` : ''}
-                                    ${clinicalDetails.vitals.weight ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Weight:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.weight}</span> <span style="color: #64748b; font-size: 12px;">Kg</span></div>` : ''}
+                            <div style="margin-bottom: 14px;">
+                                <div style="display: flex; gap: 20px; flex-wrap: wrap; background-color: #f8fafc; padding: 10px 14px; border-radius: 8px; font-size: 13px; border-left: 4px solid #004b93;">
+                                    ${clinicalDetails.vitals.bloodPressure ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">BP:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.bloodPressure}</span> <span style="color: #64748b; font-size: 11px;">mmHg</span></div>` : ''}
+                                    ${clinicalDetails.vitals.pulse ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Pulse:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.pulse}</span> <span style="color: #64748b; font-size: 11px;">bpm</span></div>` : ''}
+                                    ${clinicalDetails.vitals.spo2 ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">SpO2:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.spo2}</span> <span style="color: #64748b; font-size: 11px;">%</span></div>` : ''}
+                                    ${clinicalDetails.vitals.temperature ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Temp:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.temperature}</span> <span style="color: #64748b; font-size: 11px;">°F</span></div>` : ''}
+                                    ${clinicalDetails.vitals.weight ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Weight:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.weight}</span> <span style="color: #64748b; font-size: 11px;">Kg</span></div>` : ''}
                                 </div>
                             </div>
                         ` : ''}
@@ -221,19 +222,19 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                             ` : ''}
                             
                             ${prescription?.medications?.length > 0 ? `
-                                <div style="font-weight: bold; font-size: 24px; margin-bottom: 15px; font-family: 'Times New Roman', serif;">Rx</div>
+                                <div style="font-weight: bold; font-size: 20px; margin-bottom: 6px; font-family: 'Times New Roman', serif;">Rx</div>
                                 <table>
                                     <thead><tr>
-                                        <th style="padding-bottom: 10px;">Medicine Name</th>
-                                        <th style="padding-bottom: 10px;">Frequency<br/><span style="font-size:10px; font-weight:normal; color:#4b5563;">(Morning-Afternoon-Evening)</span></th>
-                                        <th style="padding-bottom: 10px;">Duration</th>
+                                        <th style="width: 46%;">Medicine Name</th>
+                                        <th style="width: 36%;">Frequency<br/><span style="font-size:9.5px; font-weight:normal; color:#4b5563;">(Morning-Afternoon-Evening)</span></th>
+                                        <th style="width: 18%;">Duration</th>
                                     </tr></thead>
                                     <tbody>
                                         ${prescription.medications.map((med, idx) => `
                                             <tr>
-                                                <td><span style="font-weight:bold; text-transform:uppercase;">${idx + 1}) ${med.name}</span></td>
-                                                <td><div>${med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div><div style="font-size:11px;">(${med.instruction || 'After Food'})</div></td>
-                                                <td>${med.duration} Days</td>
+                                                <td style="padding: 4px 0;"><span style="font-weight:bold; text-transform:uppercase;">${idx + 1}) ${med.name}</span></td>
+                                                <td style="padding: 4px 0;"><div style="line-height: 1.25;">${med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div><div style="font-size:11px; color:#4b5563; line-height: 1.2;">(${med.instruction || 'After Food'})</div></td>
+                                                <td style="padding: 4px 0;"><span>${med.duration} Days</span></td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -241,15 +242,15 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                             ` : ''}
 
                             ${prescription?.notes ? `
-                                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e2e8f0;">
-                                    <strong>Instructions / Remarks:</strong>
-                                    <div style="margin-top: 5px; font-size: 14px; white-space: pre-wrap;">${prescription.notes}</div>
+                                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
+                                    <strong style="font-size: 13px;">Instructions / Remarks:</strong>
+                                    <div style="margin-top: 2px; font-size: 13px; white-space: pre-wrap; line-height: 1.3;">${prescription.notes}</div>
                                 </div>
                             ` : ''}
 
                             ${prescription?.followUpDate ? `
-                                <div style="margin-top: 15px;">
-                                    <strong>Follow-up Date:</strong> <span style="font-size: 14px;">${new Date(prescription.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                <div style="margin-top: 8px; font-size: 13px;">
+                                    <strong>Follow-up Date:</strong> <span>${new Date(prescription.followUpDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                                 </div>
                             ` : ''}
                             

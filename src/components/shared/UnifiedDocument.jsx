@@ -52,6 +52,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
 
                         <div className="text-right">
                             <img src="/images/venus-logo.webp" alt="Logo" className="h-12 w-auto" />
+                            <h2 className="text-xl font-black text-[#004b93] font-serif uppercase tracking-wider my-1.5" style={{ WebkitTextStroke: '1px #004b93', fontWeight: 900 }}>NEW VENUS CLINIC</h2>
                             <p className="text-xs max-w-[250px] leading-tight text-gray-800">
                                 200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073
                             </p>
@@ -114,15 +115,15 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                         <tbody>
                             {(prescription?.medications || []).length > 0 ? (
                                 prescription.medications.map((med, idx) => (
-                                    <tr key={idx} className="border-b border-gray-400">
-                                        <td className="py-3">
+                                    <tr key={idx} className="border-b border-gray-300">
+                                        <td className="py-1.5">
                                             <span className="font-bold text-[13px] uppercase">{idx + 1}) {med.name}</span>
                                         </td>
-                                        <td className="py-3">
-                                            <div className="font-semibold text-xs tracking-tight uppercase">{med.frequency}{med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div>
-                                            <div className="text-[10px] text-gray-500 font-medium uppercase">({med.instruction || 'After Food'})</div>
+                                        <td className="py-1.5">
+                                            <div className="font-semibold text-xs tracking-tight uppercase leading-tight">{med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div>
+                                            <div className="text-[10px] text-gray-500 font-medium uppercase leading-tight">({med.instruction || 'After Food'})</div>
                                         </td>
-                                        <td className="py-3">
+                                        <td className="py-1.5">
                                             <div className="font-bold text-sm tracking-tight uppercase">{med.duration} Days</div>
                                         </td>
                                     </tr>
