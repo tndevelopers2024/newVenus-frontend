@@ -1,4 +1,4 @@
-import { findImageField, resolveImageUrl, isImagePrescription } from '../../utils/documentUtils';
+import { findImageField, resolveImageUrl, isImagePrescription, formatMedicationDuration } from '../../utils/documentUtils';
 
 export const UnifiedDocument = ({ data, type = 'prescription' }) => {
     const isPrescription = type === 'prescription';
@@ -45,7 +45,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
             {/* Header */}
             <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
                 <div className="w-1/2">
-                    <h1 className="text-xl font-bold uppercase">Dr. {doctorName}</h1>
+                    <h1 className="text-xl font-bold uppercase">{doctorName}</h1>
                 </div>
                 <div className="w-1/2 text-right flex flex-col items-end">
                     <div className="flex items-start justify-end gap-3">
@@ -124,7 +124,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                                             <div className="text-[10px] text-gray-500 font-medium uppercase leading-tight">({med.instruction || 'After Food'})</div>
                                         </td>
                                         <td className="py-1.5">
-                                            <div className="font-bold text-sm tracking-tight uppercase">{med.duration} Days</div>
+                                            <div className="font-bold text-sm tracking-tight uppercase">{formatMedicationDuration(med.duration, med.durationUnit)}</div>
                                         </td>
                                     </tr>
                                 ))

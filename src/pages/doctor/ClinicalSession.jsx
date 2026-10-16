@@ -29,6 +29,7 @@ import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
 import CalendarDatePicker from '../../components/ui/CalendarDatePicker';
+import { normalizeMedication } from '../../utils/documentUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
@@ -38,7 +39,7 @@ const ClinicalSession = () => {
     const queryClient = useQueryClient();
 
     // Vitals and clinical state
-    const [medications, setMedications] = useState([{ name: '', frequency: '', duration: '', instruction: 'After Food' }]);
+    const [medications, setMedications] = useState([{ name: '', frequency: '', duration: '', durationUnit: 'Days', instruction: 'After Food' }]);
     const [activeDrugIndex, setActiveDrugIndex] = useState(null);
     const [medicationToDelete, setMedicationToDelete] = useState(null);
     const [notes, setNotes] = useState('');
@@ -158,7 +159,7 @@ const ClinicalSession = () => {
     useEffect(() => {
         if (draftData && draftData.prescription && !draftLoadedRef.current) {
             const { prescription, clinicalDetails } = draftData;
-            if (prescription.medications?.length > 0) setMedications(prescription.medications);
+            if (prescription.medications?.length > 0) setMedications(prescription.medications.map(normalizeMedication));
             if (prescription.notes) setNotes(prescription.notes);
             if (prescription.image) {
                 setPrescriptionMode('handwritten');
@@ -283,7 +284,7 @@ const ClinicalSession = () => {
         const t = templates?.find(t => t._id === templateId);
         if (t) {
             setActiveDrugIndex(null);
-            if (t.medications?.length > 0) setMedications(t.medications);
+            if (t.medications?.length > 0) setMedications(t.medications.map(normalizeMedication));
             if (t.notes) setNotes(t.notes);
             if (t.diagnosis) setDiagnosis(t.diagnosis);
             setLoadedTemplateId(t._id);
@@ -307,7 +308,7 @@ const ClinicalSession = () => {
     };
 
     const addMedication = () => {
-        setMedications([...medications, { name: '', frequency: '', duration: '', instruction: 'After Food' }]);
+        setMedications([...medications, { name: '', frequency: '', duration: '', durationUnit: 'Days', instruction: 'After Food' }]);
     };
 
     const removeMedication = (index) => {
@@ -709,13 +710,25 @@ const ClinicalSession = () => {
                                                 </div>
                                             </div>
                                             <div className="col-span-2">
-                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1 uppercase">Days</label>
-                                                <input
-                                                    value={med.duration}
-                                                    onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-secondary-500"
-                                                    placeholder="5"
-                                                />
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Duration</label>
+                                                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-secondary-500 transition-colors">
+                                                    <input
+                                                        type="text"
+                                                        value={med.duration}
+                                                        onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
+                                                        className="w-12 sm:w-14 px-2 py-2 text-sm font-bold outline-none text-center bg-transparent text-secondary-900"
+                                                        placeholder="5"
+                                                    />
+                                                    <select
+                                                        value={med.durationUnit || 'Days'}
+                                                        onChange={(e) => handleMedChange(index, 'durationUnit', e.target.value)}
+                                                        className="flex-1 bg-slate-50 text-slate-700 text-xs font-bold py-2 px-1 border-l border-slate-200 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                                                    >
+                                                        <option value="Days">Days</option>
+                                                        <option value="Weeks">Weeks</option>
+                                                        <option value="Months">Months</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                             <div className="col-span-2">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Instruction</label>

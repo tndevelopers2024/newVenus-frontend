@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { patientApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { printDocument } from '../../utils/printHelper';
+import { formatMedicationDuration } from '../../utils/documentUtils';
 import TablePagination from '../../components/shared/TablePagination';
 
 const MedicalHistory = () => {
@@ -314,7 +315,7 @@ const MedicalHistory = () => {
                                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{med.dosage} • {med.frequency}</p>
                                                             </div>
                                                             <div className="text-right">
-                                                                <p className="text-xs font-black text-primary-600 ">{med.duration}</p>
+                                                                <p className="text-xs font-black text-primary-600 ">{formatMedicationDuration(med.duration, med.durationUnit)}</p>
                                                             </div>
                                                         </div>
                                                     ))}

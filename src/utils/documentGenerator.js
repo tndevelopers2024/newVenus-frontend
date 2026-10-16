@@ -1,4 +1,4 @@
-import { findImageField, resolveImageUrl, isImagePrescription } from './documentUtils';
+import { findImageField, resolveImageUrl, isImagePrescription, formatMedicationDuration } from './documentUtils';
 
 // Utility to generate HTML for printing documents
 export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode = false) => {
@@ -93,7 +93,8 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
     const logoUrl = window.location.origin + '/images/venus-logo.webp';
     
     const doctorObj = prescription?.doctor || data.doctor;
-    const doctorName = doctorObj?.name ? doctorObj.name.toUpperCase() : 'C.R. MADHU PRABHU DOSS';
+    let doctorName = doctorObj?.name ? doctorObj.name.toUpperCase() : 'DR. C.R. MADHU PRABHU DOSS';
+    doctorName = doctorName.replace(/^DR\.?\s*DR\.?\s*/i, 'DR. ');
     
     // Check if the doctor has customized details saved (meaning they were set via Admin UI)
     const hasDetails = !!doctorObj?.doctorDetails;
@@ -143,7 +144,10 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     td { padding: 4px 0 5px 0; border-bottom: 1px dashed #d1d5db; font-size: 13px; vertical-align: middle; }
                     
                     /* Footer */
-                    .footer { color: #004b93; text-align: center; font-size: 13px; font-weight: bold; line-height: 1.5; padding-top: 10px; }
+                    .footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 8px; color: #004b93; }
+                    .footer-logo { flex-shrink: 0; display: flex; align-items: center; }
+                    .footer-logo img { height: 45px; width: auto; object-fit: contain; display: block; }
+                    .footer-details { flex: 1; text-align: center; font-size: 11.5px; font-weight: bold; line-height: 1.45; }
                     
                     .handwritten-fallback { margin-top: 15px; text-align: center; }
                     .handwritten-fallback img { max-width: 100%; height: auto; mix-blend-mode: multiply; }
@@ -172,9 +176,8 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     <div class="page-content">
                         <!-- Header -->
                     <div class="header-text">
-                        <img src="${logoUrl}" style="height: 50px; margin-bottom: 8px; display: inline-block;" />
                         <div class="header-title">NEW VENUS CLINIC</div>
-                        <div class="header-doctor">Dr. <span class="doctor-name">${doctorName}</span>${doctorQuals ? `, ${doctorQuals}` : ''}</div>
+                        <div class="header-doctor"><span class="doctor-name">${doctorName}</span>${doctorQuals ? `, ${doctorQuals}` : ''}</div>
                         ${renderDiv(doctorTamil, 'header-tamil')}
                         ${renderDiv(doctorAddQuals, 'header-quals')}
                         ${renderDiv(doctorRole, 'header-role')}
@@ -234,7 +237,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                                             <tr>
                                                 <td style="padding: 4px 0;"><span style="font-weight:bold; text-transform:uppercase;">${idx + 1}) ${med.name}</span></td>
                                                 <td style="padding: 4px 0;"><div style="line-height: 1.25;">${med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div><div style="font-size:11px; color:#4b5563; line-height: 1.2;">(${med.instruction || 'After Food'})</div></td>
-                                                <td style="padding: 4px 0;"><span>${med.duration} Days</span></td>
+                                                <td style="padding: 4px 0;"><span>${formatMedicationDuration(med.duration, med.durationUnit)}</span></td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
@@ -265,9 +268,14 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     <!-- Footer -->
                     <div class="header-sep" style="margin-top: auto;"></div>
                     <div class="footer">
-                        <div>CLINIC: 200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073.</div>
-                        <div>Ph. 70103 15857 / 77083 17826 / 81480 70207</div>
-                        <div>TIMING: Morning - 10am to 12.30 pm / Evening - 6.00 pm to 9.00 pm</div>
+                        <div class="footer-logo">
+                            <img src="${logoUrl}" alt="New Venus Clinic Logo" />
+                        </div>
+                        <div class="footer-details">
+                            <div>CLINIC: 200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073.</div>
+                            <div>Ph. 70103 15857 / 77083 17826 / 81480 70207</div>
+                            <div>TIMING: Morning - 10am to 12.30 pm / Evening - 6.00 pm to 9.00 pm</div>
+                        </div>
                     </div>
                 </div>
                 </div>
