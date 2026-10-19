@@ -86,13 +86,13 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                     <div className="grid grid-cols-2 gap-8 border-b-2 border-black pb-4 mb-4">
                         <div>
                             <h3 className="text-xs font-bold underline mb-1 uppercase">Chief Complaints</h3>
-                            <div className="text-[11px] font-semibold uppercase pl-1">
+                            <div className="text-[11px] font-semibold uppercase pl-1 whitespace-pre-wrap">
                                 {clinicalDetails?.diagnosis || '-'}
                             </div>
                         </div>
                         <div>
                             <h3 className="text-xs font-bold underline mb-1 uppercase">Clinical Findings</h3>
-                            <div className="text-[11px] font-semibold uppercase pl-1">
+                            <div className="text-[11px] font-semibold uppercase pl-1 whitespace-pre-wrap">
                                 {clinicalDetails?.clinicalNotes || '-'}
                             </div>
                         </div>

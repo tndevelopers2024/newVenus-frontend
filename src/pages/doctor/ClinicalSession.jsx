@@ -821,8 +821,8 @@ const ClinicalSession = () => {
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block tracking-widest">Medical Diagnosis</label>
-                                        <input
-                                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none focus:ring-1 focus:ring-emerald-500"
+                                        <textarea
+                                            className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-emerald-500 h-24 resize-none"
                                             placeholder="Primary finding..."
                                             value={diagnosis}
                                             onChange={(e) => setDiagnosis(e.target.value)}

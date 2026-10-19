@@ -284,8 +284,8 @@ const MedicalHistory = () => {
                                             <h4 className="text-xs font-black text-primary-600 uppercase tracking-widest mb-3 flex items-center gap-2">
                                                 <ActivityIcon className="w-3 h-3" /> Clinical Findings
                                             </h4>
-                                            <p className="text-sm font-bold text-secondary-900 mb-2 uppercase tracking-tight">{selectedAppointment.diagnosis || 'General Consultation'}</p>
-                                            <p className="text-sm text-slate-600 leading-relaxed font-medium">{selectedAppointment.clinicalNotes || 'No additional clinical findings documented.'}</p>
+                                            <p className="text-sm font-bold text-secondary-900 mb-2 uppercase tracking-tight whitespace-pre-wrap">{selectedAppointment.diagnosis || 'General Consultation'}</p>
+                                            <p className="text-sm text-slate-600 leading-relaxed font-medium whitespace-pre-wrap">{selectedAppointment.clinicalNotes || 'No additional clinical findings documented.'}</p>
                                         </div>
 
                                         {selectedAppointment.vitals && (

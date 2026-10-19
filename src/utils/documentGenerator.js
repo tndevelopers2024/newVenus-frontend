@@ -273,7 +273,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         </div>
                         <div class="footer-details">
                             <div>CLINIC: 200, Sri Subiksham Flats, Chitlapakkam Main Road, Ganesh Nagar, Selaiyur, Chennai - 600 073.</div>
-                            <div>Ph. 70103 15857 / 77083 17826 / 81480 70207</div>
+                            <div>Ph. 70103 15857 / 77083 17826</div>
                             <div>TIMING: Morning - 10am to 12.30 pm / Evening - 6.00 pm to 9.00 pm</div>
                         </div>
                     </div>
