@@ -21,7 +21,12 @@ import {
     X,
     Settings,
     Edit3,
-    Eye
+    Eye,
+    History,
+    Copy,
+    RotateCcw,
+    ChevronRight,
+    Check
 } from 'lucide-react';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -29,7 +34,7 @@ import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
 import CalendarDatePicker from '../../components/ui/CalendarDatePicker';
-import { normalizeMedication } from '../../utils/documentUtils';
+import { normalizeMedication, formatMedicationDuration } from '../../utils/documentUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
@@ -67,8 +72,16 @@ const ClinicalSession = () => {
     const [loadedTemplateId, setLoadedTemplateId] = useState(null);
     const [editingTemplateId, setEditingTemplateId] = useState(null);
     
+    // Copy previous prescription state
+    const [showPastRxModal, setShowPastRxModal] = useState(false);
+    const [selectedPastRxIndex, setSelectedPastRxIndex] = useState(0);
+    const [copyOptions, setCopyOptions] = useState({
+        medications: true,
+        diagnosis: true,
+        notes: true
+    });
+
     // Refs for auto-save on unmount
-    const draftDataRef = useRef(null);
     const isSubmittedRef = useRef(false);
     const [editTemplateName, setEditTemplateName] = useState('');
 
@@ -78,23 +91,100 @@ const ClinicalSession = () => {
         queryFn: async () => {
             const res = await doctorApi.getAppointments();
             return res.data.find(a => a._id === appointmentId);
-        }
+        },
+        staleTime: Infinity,
     });
 
-    // Sync initial vitals from appointment
-    const vitalsLoadedRef = useRef(false);
+    // Fetch Draft (if exists)
+    const { data: draftData, isLoading: isLoadingDraft } = useQuery({
+        queryKey: ['prescriptionDraft', appointmentId],
+        queryFn: async () => {
+            try {
+                const res = await doctorApi.getPrescriptionByAppointment(appointmentId);
+                return res.data;
+            } catch {
+                return null;
+            }
+        },
+        enabled: !!appointmentId,
+        staleTime: Infinity,
+    });
+
+    // Fetch patient history for review/repeat prescriptions
+    const { data: patientHistory } = useQuery({
+        queryKey: ['patientHistory', appointment?.patient?._id],
+        queryFn: async () => {
+            const res = await doctorApi.getPatientHistory(appointment.patient._id);
+            return res.data;
+        },
+        enabled: !!appointment?.patient?._id,
+        staleTime: 60000,
+    });
+
+    const pastPrescriptions = (patientHistory?.prescriptions || []).filter(p => {
+        const pApptId = p.appointment?._id || p.appointment;
+        return pApptId?.toString() !== appointmentId?.toString() && !p.isDraft;
+    });
+
+    const isCurrentSessionBlank = (
+        (!medications || medications.length === 0 || (medications.length === 1 && !medications[0].name?.trim())) &&
+        !diagnosis?.trim() &&
+        !imagePreview
+    );
+
+    // Guard initial data loading so background refetches never overwrite user edits
+    const initialLoadedRef = useRef(false);
+    const userEditedRef = useRef({
+        diagnosis: false,
+        clinicalNotes: false,
+        notes: false
+    });
+
     useEffect(() => {
-        if (appointment?.vitals && !vitalsLoadedRef.current) {
-            setVitals({
-                bloodPressure: appointment.vitals.bloodPressure || '',
-                temperature: appointment.vitals.temperature || '',
-                pulse: appointment.vitals.pulse || '',
-                weight: appointment.vitals.weight || '',
-                spo2: appointment.vitals.spo2 || ''
-            });
-            vitalsLoadedRef.current = true;
+        if (!initialLoadedRef.current && (appointment || draftData)) {
+            if (draftData === undefined && appointmentId) return;
+
+            initialLoadedRef.current = true;
+
+            const prescription = draftData?.prescription;
+            const clinicalDetails = draftData?.clinicalDetails;
+
+            // Sync vitals from draft or appointment
+            const sourceVitals = clinicalDetails?.vitals || appointment?.vitals;
+            if (sourceVitals) {
+                setVitals({
+                    bloodPressure: sourceVitals.bloodPressure || '',
+                    temperature: sourceVitals.temperature || '',
+                    pulse: sourceVitals.pulse || '',
+                    weight: sourceVitals.weight || '',
+                    spo2: sourceVitals.spo2 || ''
+                });
+            }
+
+            // Sync prescription details if present
+            if (prescription) {
+                if (prescription.medications?.length > 0) setMedications(prescription.medications.map(normalizeMedication));
+                if (prescription.notes && !userEditedRef.current.notes) setNotes(prescription.notes);
+                if (prescription.image) {
+                    setPrescriptionMode('handwritten');
+                    setImagePreview(prescription.image);
+                }
+                if (prescription.followUpDate) setFollowUpDate(prescription.followUpDate.split('T')[0]);
+            }
+
+            // Sync diagnosis (only if not already edited by user)
+            const initialDiagnosis = clinicalDetails?.diagnosis || appointment?.diagnosis;
+            if (initialDiagnosis && !userEditedRef.current.diagnosis) {
+                setDiagnosis(initialDiagnosis);
+            }
+
+            // Sync clinical notes (only if not already edited by user)
+            const initialClinicalNotes = clinicalDetails?.clinicalNotes || appointment?.clinicalNotes;
+            if (initialClinicalNotes && !userEditedRef.current.clinicalNotes) {
+                setClinicalNotes(initialClinicalNotes);
+            }
         }
-    }, [appointment]);
+    }, [appointment, draftData, appointmentId]);
 
     const prescribeMutation = useMutation({
         mutationFn: (data) => doctorApi.createPrescription(data),
@@ -140,43 +230,10 @@ const ClinicalSession = () => {
         enabled: !!(appointment?.doctor?._id || appointment?.doctor)
     });
 
-    // Fetch Draft (if exists)
-    const { data: draftData } = useQuery({
-        queryKey: ['prescriptionDraft', appointmentId],
-        queryFn: async () => {
-            try {
-                const res = await doctorApi.getPrescriptionByAppointment(appointmentId);
-                return res.data;
-            } catch(e) {
-                return null;
-            }
-        },
-        enabled: !!appointmentId
-    });
-
-    // Load draft or existing prescription if present
-    const draftLoadedRef = useRef(false);
-    useEffect(() => {
-        if (draftData && draftData.prescription && !draftLoadedRef.current) {
-            const { prescription, clinicalDetails } = draftData;
-            if (prescription.medications?.length > 0) setMedications(prescription.medications.map(normalizeMedication));
-            if (prescription.notes) setNotes(prescription.notes);
-            if (prescription.image) {
-                setPrescriptionMode('handwritten');
-                setImagePreview(prescription.image);
-            }
-            if (prescription.followUpDate) setFollowUpDate(prescription.followUpDate.split('T')[0]);
-            if (clinicalDetails?.diagnosis) setDiagnosis(clinicalDetails.diagnosis);
-            if (clinicalDetails?.clinicalNotes) setClinicalNotes(clinicalDetails.clinicalNotes);
-            draftLoadedRef.current = true;
-        }
-    }, [draftData]);
-
     const draftMutation = useMutation({
         mutationFn: (data) => doctorApi.saveDraft(appointmentId, data),
         onSuccess: () => {
             toast.success('Draft saved successfully');
-            queryClient.invalidateQueries(['prescriptionDraft', appointmentId]);
             queryClient.invalidateQueries(['doctorAppointments']);
         },
         onError: () => toast.error('Failed to save draft')
@@ -276,7 +333,7 @@ const ClinicalSession = () => {
             clearInterval(interval);
             saveDraft(); // Save on unmount
         };
-    }, [appointmentId]);
+    }, [appointmentId, queryClient]);
 
     const handleLoadTemplate = (e) => {
         const templateId = e.target.value;
@@ -285,12 +342,87 @@ const ClinicalSession = () => {
         if (t) {
             setActiveDrugIndex(null);
             if (t.medications?.length > 0) setMedications(t.medications.map(normalizeMedication));
-            if (t.notes) setNotes(t.notes);
-            if (t.diagnosis) setDiagnosis(t.diagnosis);
+            if (t.notes && !notes.trim()) setNotes(t.notes);
+            if (t.diagnosis) {
+                // If user has already typed a diagnosis, don't overwrite it
+                if (!diagnosis.trim()) {
+                    setDiagnosis(t.diagnosis);
+                } else if (t.diagnosis.trim() !== diagnosis.trim()) {
+                    toast('Template loaded (existing diagnosis preserved)', { icon: 'ℹ️' });
+                }
+            }
             setLoadedTemplateId(t._id);
             toast.success(`Template "${t.name}" loaded`);
         }
         e.target.value = ''; // Reset dropdown
+    };
+
+    const handleCopyPrescription = (targetPrescription, customOptions = copyOptions) => {
+        if (!targetPrescription) return;
+
+        const opts = customOptions || copyOptions;
+        let copiedCount = 0;
+        const copiedItems = [];
+
+        setActiveDrugIndex(null);
+
+        // 1. Copy Medications
+        if (opts.medications) {
+            if (targetPrescription.medications && targetPrescription.medications.length > 0) {
+                const normalizedMeds = targetPrescription.medications.map(normalizeMedication);
+                setMedications(normalizedMeds);
+                setPrescriptionMode('digital');
+                copiedItems.push(`${normalizedMeds.length} medicines`);
+                copiedCount++;
+            } else if (targetPrescription.image) {
+                setPrescriptionMode('handwritten');
+                setImagePreview(targetPrescription.image);
+                setPrescriptionImage(null);
+                copiedItems.push('handwritten prescription');
+                copiedCount++;
+            }
+        }
+
+        // 2. Copy Diagnosis
+        if (opts.diagnosis) {
+            const pastDiag = targetPrescription.appointment?.diagnosis;
+            if (pastDiag && pastDiag.trim()) {
+                setDiagnosis(pastDiag);
+                userEditedRef.current.diagnosis = true;
+                copiedItems.push('diagnosis');
+                copiedCount++;
+            }
+        }
+
+        // 3. Copy Notes
+        if (opts.notes) {
+            const pastNotes = targetPrescription.notes;
+            const pastClinNotes = targetPrescription.appointment?.clinicalNotes;
+            if (pastNotes && pastNotes.trim()) {
+                setNotes(pastNotes);
+                userEditedRef.current.notes = true;
+                copiedCount++;
+            }
+            if (pastClinNotes && pastClinNotes.trim()) {
+                setClinicalNotes(pastClinNotes);
+                userEditedRef.current.clinicalNotes = true;
+                copiedCount++;
+            }
+            if ((pastNotes && pastNotes.trim()) || (pastClinNotes && pastClinNotes.trim())) {
+                copiedItems.push('advice/notes');
+            }
+        }
+
+        setShowPastRxModal(false);
+
+        if (copiedCount > 0) {
+            const visitDate = targetPrescription.createdAt 
+                ? new Date(targetPrescription.createdAt).toLocaleDateString('en-GB')
+                : 'previous visit';
+            toast.success(`Copied from visit on ${visitDate}: ${copiedItems.join(', ')}`);
+        } else {
+            toast.error('No content available to copy for selected options');
+        }
     };
 
     const shareMutation = useMutation({
@@ -397,7 +529,7 @@ const ClinicalSession = () => {
         });
     };
 
-    if (isLoadingAppt) {
+    if (isLoadingAppt || isLoadingDraft) {
         return (
             <DashboardLayout>
                 <div className="flex flex-col items-center justify-center min-h-[60vh] opacity-50">
@@ -571,9 +703,17 @@ const ClinicalSession = () => {
                         </button>
                         <div>
                             <h1 className="text-xl font-black text-secondary-900 uppercase tracking-tight">Clinical Session</h1>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-bold text-slate-700">{appointment.patient?.name}</p>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">#{appointment.patient?.displayId}</span>
+                                {(appointment.patient?.age || appointment.patient?.gender) && (
+                                    <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-lg border border-primary-100/60 uppercase">
+                                        {[
+                                            appointment.patient?.age ? `${appointment.patient.age} Y` : null,
+                                            appointment.patient?.gender
+                                        ].filter(Boolean).join(' / ')}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -640,6 +780,23 @@ const ClinicalSession = () => {
                                             <Settings className="w-3 h-3" />
                                         </button>
                                     </div>
+                                    {pastPrescriptions && pastPrescriptions.length > 0 && (
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedPastRxIndex(0);
+                                                setShowPastRxModal(true);
+                                            }}
+                                            className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm"
+                                            title="Copy previous prescription for this review patient"
+                                        >
+                                            <RotateCcw className="w-3 h-3 text-indigo-600" />
+                                            <span>Copy Previous Rx</span>
+                                            <span className="px-1.5 py-0.2 bg-indigo-600 text-white rounded-full text-[9px] font-black">
+                                                {pastPrescriptions.length}
+                                            </span>
+                                        </button>
+                                    )}
                                     {prescriptionMode !== 'digital' && (
                                         <button
                                             onClick={() => setPrescriptionMode('digital')}
@@ -660,6 +817,48 @@ const ClinicalSession = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {pastPrescriptions && pastPrescriptions.length > 0 && isCurrentSessionBlank && (
+                                <div className="mb-4 p-3.5 bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-blue-50/80 border border-indigo-100/90 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                                            <RotateCcw className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-black text-indigo-950 uppercase tracking-tight">Review Patient</span>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-100/90 text-indigo-800 rounded-full">
+                                                    Last Rx: {pastPrescriptions[0].createdAt ? new Date(pastPrescriptions[0].createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Previous Visit'}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                                                {pastPrescriptions[0].medications?.length || 0} medicines prescribed on previous visit{pastPrescriptions[0].doctor?.name ? ` by Dr. ${pastPrescriptions[0].doctor.name}` : ''}.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCopyPrescription(pastPrescriptions[0], { medications: true, diagnosis: true, notes: true })}
+                                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                                        >
+                                            <Copy className="w-3.5 h-3.5" />
+                                            Quick Copy Last Rx
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedPastRxIndex(0);
+                                                setShowPastRxModal(true);
+                                            }}
+                                            className="px-3 py-2 bg-white hover:bg-slate-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                                        >
+                                            <Eye className="w-3.5 h-3.5" />
+                                            Review & Select
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className={`space-y-4 transition-all duration-500 ${prescriptionMode === 'handwritten' ? 'opacity-20 pointer-events-none scale-[0.98]' : 'opacity-100'}`}>
                                 <AnimatePresence mode="popLayout">
@@ -712,21 +911,34 @@ const ClinicalSession = () => {
                                             <div className="col-span-2">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Duration</label>
                                                 <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-secondary-500 transition-colors">
-                                                    <input
-                                                        type="text"
-                                                        value={med.duration}
-                                                        onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
-                                                        className="w-12 sm:w-14 px-2 py-2 text-sm font-bold outline-none text-center bg-transparent text-secondary-900"
-                                                        placeholder="5"
-                                                    />
+                                                    {med.durationUnit !== 'Till Review' && (
+                                                        <input
+                                                            type="text"
+                                                            value={med.duration}
+                                                            onChange={(e) => handleMedChange(index, 'duration', e.target.value)}
+                                                            className="w-12 sm:w-14 px-2 py-2 text-sm font-bold outline-none text-center bg-transparent text-secondary-900"
+                                                            placeholder="5"
+                                                        />
+                                                    )}
                                                     <select
                                                         value={med.durationUnit || 'Days'}
-                                                        onChange={(e) => handleMedChange(index, 'durationUnit', e.target.value)}
-                                                        className="flex-1 bg-slate-50 text-slate-700 text-xs font-bold py-2 px-1 border-l border-slate-200 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                                                        onChange={(e) => {
+                                                            const newUnit = e.target.value;
+                                                            const newMeds = [...medications];
+                                                            newMeds[index].durationUnit = newUnit;
+                                                            if (newUnit === 'Till Review') {
+                                                                newMeds[index].duration = 'Till Review';
+                                                            } else if (newMeds[index].duration === 'Till Review') {
+                                                                newMeds[index].duration = '';
+                                                            }
+                                                            setMedications(newMeds);
+                                                        }}
+                                                        className={`flex-1 bg-slate-50 text-slate-700 text-xs font-bold py-2 px-1.5 ${med.durationUnit !== 'Till Review' ? 'border-l border-slate-200' : 'text-center'} outline-none cursor-pointer hover:bg-slate-100 transition-colors`}
                                                     >
                                                         <option value="Days">Days</option>
                                                         <option value="Weeks">Weeks</option>
                                                         <option value="Months">Months</option>
+                                                        <option value="Till Review">Till Review</option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -740,6 +952,7 @@ const ClinicalSession = () => {
                                                     <option value="After Food">After Food</option>
                                                     <option value="Before Food">Before Food</option>
                                                     <option value="With Food">With Food</option>
+                                                    <option value="Empty Stomach">Empty Stomach</option>
                                                 </select>
                                             </div>
                                             <div className="col-span-1 flex justify-center pb-1">
@@ -825,7 +1038,10 @@ const ClinicalSession = () => {
                                             className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-emerald-500 h-24 resize-none"
                                             placeholder="Primary finding..."
                                             value={diagnosis}
-                                            onChange={(e) => setDiagnosis(e.target.value)}
+                                            onChange={(e) => {
+                                                userEditedRef.current.diagnosis = true;
+                                                setDiagnosis(e.target.value);
+                                            }}
                                         />
                                     </div>
                                     <div>
@@ -834,13 +1050,19 @@ const ClinicalSession = () => {
                                             className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-emerald-500 h-24 resize-none"
                                             placeholder="Observations..."
                                             value={clinicalNotes}
-                                            onChange={(e) => setClinicalNotes(e.target.value)}
+                                            onChange={(e) => {
+                                                userEditedRef.current.clinicalNotes = true;
+                                                setClinicalNotes(e.target.value);
+                                            }}
                                         />
                                     </div>
                                     <div>
                                         <textarea
                                             value={notes}
-                                            onChange={(e) => setNotes(e.target.value)}
+                                            onChange={(e) => {
+                                                userEditedRef.current.notes = true;
+                                                setNotes(e.target.value);
+                                            }}
                                             className="w-full bg-slate-50 border-none rounded-xl px-3 py-2 text-xs font-medium outline-none focus:ring-1 focus:ring-emerald-500 h-24 resize-none"
                                             placeholder="Instructions..."
                                         />
@@ -1101,6 +1323,278 @@ const ClinicalSession = () => {
                     </div>
                 )}
 
+                {showPastRxModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-5xl bg-white rounded-[32px] p-6 lg:p-8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            {/* Header */}
+                            <div className="flex justify-between items-center pb-4 border-b border-slate-100 flex-shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                                        <History className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-xl font-black text-secondary-900">Copy Previous Prescription</h3>
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700 uppercase tracking-wider">
+                                                {pastPrescriptions.length} {pastPrescriptions.length === 1 ? 'Past Visit' : 'Past Visits'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs font-medium text-slate-500">
+                                            Patient: <span className="font-bold text-slate-800">{appointment?.patient?.name}</span> (#{appointment?.patient?.displayId})
+                                            {(appointment?.patient?.age || appointment?.patient?.gender) && (
+                                                <span className="ml-2 font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded-md border border-primary-100/60 text-[10px] uppercase">
+                                                    {[
+                                                        appointment.patient?.age ? `${appointment.patient.age} Y` : null,
+                                                        appointment.patient?.gender
+                                                    ].filter(Boolean).join(' / ')}
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setShowPastRxModal(false)} 
+                                    className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            {pastPrescriptions.length === 0 ? (
+                                <div className="flex-1 flex flex-col items-center justify-center py-16 text-center">
+                                    <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
+                                        <FileText className="w-8 h-8" />
+                                    </div>
+                                    <h4 className="text-base font-bold text-slate-700 mb-1">No Previous Prescriptions</h4>
+                                    <p className="text-xs text-slate-400 max-w-sm">
+                                        This patient has no earlier completed prescriptions. Prescriptions written in this session will appear for future reviews.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 pt-5 overflow-hidden min-h-0">
+                                    {/* Left: Visit List (col-span-5) */}
+                                    <div className="md:col-span-5 flex flex-col border border-slate-100 rounded-2xl bg-slate-50/50 p-3 overflow-hidden">
+                                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60 px-1">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous Consultations</span>
+                                            <span className="text-[10px] font-bold text-slate-400">Click to preview</span>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                                            {pastPrescriptions.map((rx, idx) => {
+                                                const isSelected = idx === selectedPastRxIndex;
+                                                const rxDate = rx.createdAt ? new Date(rx.createdAt) : null;
+                                                const medCount = rx.medications?.length || 0;
+                                                const diag = rx.appointment?.diagnosis;
+                                                const docName = rx.doctor?.name ? `Dr. ${rx.doctor.name}` : 'Doctor';
+
+                                                return (
+                                                    <button
+                                                        key={rx._id || idx}
+                                                        type="button"
+                                                        onClick={() => setSelectedPastRxIndex(idx)}
+                                                        className={`w-full text-left p-3.5 rounded-2xl transition-all border ${
+                                                            isSelected 
+                                                                ? 'bg-white border-indigo-500 shadow-md ring-1 ring-indigo-500/30' 
+                                                                : 'bg-white/80 border-slate-200/70 hover:bg-white hover:border-slate-300'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <div className="flex items-center gap-1.5 font-black text-xs text-secondary-900">
+                                                                <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+                                                                <span>{rxDate ? rxDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Unknown Date'}</span>
+                                                            </div>
+                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                                                rx.image 
+                                                                    ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                            }`}>
+                                                                {rx.image ? 'Handwritten' : `${medCount} ${medCount === 1 ? 'Drug' : 'Drugs'}`}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                                            <span className="truncate">{docName}</span>
+                                                            {diag && (
+                                                                <span className="truncate max-w-[130px] font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
+                                                                    {diag}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Selected Prescription Details Preview (col-span-7) */}
+                                    {(() => {
+                                        const activeRx = pastPrescriptions[selectedPastRxIndex] || pastPrescriptions[0];
+                                        if (!activeRx) return null;
+                                        const hasDiagnosis = !!activeRx.appointment?.diagnosis;
+                                        const hasNotes = !!activeRx.notes || !!activeRx.appointment?.clinicalNotes;
+                                        const hasMeds = (activeRx.medications && activeRx.medications.length > 0) || !!activeRx.image;
+
+                                        return (
+                                            <div className="md:col-span-7 flex flex-col overflow-hidden">
+                                                {/* Selective Copy Checkboxes Toolbar */}
+                                                <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-2xl mb-4">
+                                                    <div className="text-[10px] font-black uppercase tracking-wider text-indigo-900 mb-2">
+                                                        Choose what to copy:
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-3">
+                                                        <label className={`flex items-center gap-2 text-xs font-bold cursor-pointer select-none ${!hasMeds ? 'opacity-40 pointer-events-none' : 'text-slate-700'}`}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={copyOptions.medications && hasMeds}
+                                                                disabled={!hasMeds}
+                                                                onChange={(e) => setCopyOptions({ ...copyOptions, medications: e.target.checked })}
+                                                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                                            />
+                                                            <span>Medications {activeRx.medications?.length ? `(${activeRx.medications.length})` : activeRx.image ? '(Image)' : ''}</span>
+                                                        </label>
+
+                                                        <label className={`flex items-center gap-2 text-xs font-bold cursor-pointer select-none ${!hasDiagnosis ? 'opacity-40 pointer-events-none' : 'text-slate-700'}`}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={copyOptions.diagnosis && hasDiagnosis}
+                                                                disabled={!hasDiagnosis}
+                                                                onChange={(e) => setCopyOptions({ ...copyOptions, diagnosis: e.target.checked })}
+                                                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                                            />
+                                                            <span>Diagnosis</span>
+                                                        </label>
+
+                                                        <label className={`flex items-center gap-2 text-xs font-bold cursor-pointer select-none ${!hasNotes ? 'opacity-40 pointer-events-none' : 'text-slate-700'}`}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={copyOptions.notes && hasNotes}
+                                                                disabled={!hasNotes}
+                                                                onChange={(e) => setCopyOptions({ ...copyOptions, notes: e.target.checked })}
+                                                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                                            />
+                                                            <span>Advice & Notes</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                {/* Preview Card */}
+                                                <div className="flex-1 overflow-y-auto space-y-3.5 pr-2 custom-scrollbar border border-slate-100 rounded-2xl p-4 bg-white">
+                                                    {/* Diagnosis preview */}
+                                                    {hasDiagnosis && (
+                                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                                                                Diagnosis Recorded
+                                                            </span>
+                                                            <p className="text-xs font-bold text-secondary-900">{activeRx.appointment.diagnosis}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Medications preview table */}
+                                                    {activeRx.medications && activeRx.medications.length > 0 ? (
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                                                    Prescribed Medicines ({activeRx.medications.length})
+                                                                </span>
+                                                            </div>
+                                                            <div className="border border-slate-200/80 rounded-xl overflow-hidden">
+                                                                <table className="w-full text-left text-xs">
+                                                                    <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                                                                        <tr>
+                                                                            <th className="p-2.5">Medicine</th>
+                                                                            <th className="p-2.5">Dosage</th>
+                                                                            <th className="p-2.5">Duration</th>
+                                                                            <th className="p-2.5">Instructions</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody className="divide-y divide-slate-100">
+                                                                        {activeRx.medications.map((m, mIdx) => {
+                                                                            const norm = normalizeMedication(m);
+                                                                            return (
+                                                                                <tr key={mIdx} className="hover:bg-slate-50/50">
+                                                                                    <td className="p-2.5 font-bold text-secondary-900">{norm.name || 'Unnamed drug'}</td>
+                                                                                    <td className="p-2.5 text-slate-600 font-mono text-[11px]">{norm.frequency || '-'}</td>
+                                                                                    <td className="p-2.5 text-slate-600 font-medium">{formatMedicationDuration(norm.duration, norm.durationUnit)}</td>
+                                                                                    <td className="p-2.5 text-slate-600 font-medium">{norm.instruction || '-'}</td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    ) : activeRx.image ? (
+                                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
+                                                                Handwritten Prescription Image
+                                                            </span>
+                                                            <img
+                                                                src={activeRx.image}
+                                                                alt="Handwritten prescription"
+                                                                className="max-h-48 object-contain rounded-lg border border-slate-200 bg-white"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
+                                                            No medications recorded for this visit.
+                                                        </div>
+                                                    )}
+
+                                                    {/* Notes preview */}
+                                                    {(activeRx.notes || activeRx.appointment?.clinicalNotes) && (
+                                                        <div className="p-3 bg-amber-50/40 border border-amber-100 rounded-xl">
+                                                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 block mb-1">
+                                                                Doctor's Advice & Notes
+                                                            </span>
+                                                            {activeRx.notes && <p className="text-xs text-slate-700 font-medium">{activeRx.notes}</p>}
+                                                            {activeRx.appointment?.clinicalNotes && (
+                                                                <p className="text-[11px] text-slate-500 mt-1 italic">{activeRx.appointment.clinicalNotes}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+
+                            {/* Modal Footer */}
+                            {pastPrescriptions.length > 0 && (
+                                <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between flex-shrink-0">
+                                    <span className="text-[11px] text-slate-400">
+                                        Copying will populate current session with selected data. You can still modify any fields before submitting.
+                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPastRxModal(false)}
+                                            className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const target = pastPrescriptions[selectedPastRxIndex] || pastPrescriptions[0];
+                                                handleCopyPrescription(target);
+                                            }}
+                                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+                                        >
+                                            <Copy className="w-3.5 h-3.5" />
+                                            Copy to Current Session
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+
                 {showPreviewModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                         <motion.div
@@ -1128,7 +1622,9 @@ const ClinicalSession = () => {
                                             followUpDate
                                         },
                                         clinicalDetails: {
-                                            vitals: vitals
+                                            vitals: vitals,
+                                            diagnosis: diagnosis,
+                                            clinicalNotes: clinicalNotes
                                         }
                                     }, 'prescription', true)}
                                     className="w-full h-full border-0"

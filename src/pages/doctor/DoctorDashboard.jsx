@@ -85,12 +85,22 @@ const SortableItem = ({ appt, navigate, setConfirmModal }) => {
             </div>
 
             <div className="flex-1 overflow-hidden w-full">
-                <h4
-                    onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
-                    className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors text-lg"
-                >
-                    {appt.patient?.name}
-                </h4>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <h4
+                        onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
+                        className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors text-lg"
+                    >
+                        {appt.patient?.name}
+                    </h4>
+                    {(appt.patient?.age || appt.patient?.gender) && (
+                        <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100 uppercase">
+                            {[
+                                appt.patient?.age ? `${appt.patient.age} Y` : null,
+                                appt.patient?.gender
+                            ].filter(Boolean).join(' / ')}
+                        </span>
+                    )}
+                </div>
                 <p className="text-sm text-slate-500 hidden sm:block">{appt.reason || 'Checkup'} • {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 <p className="text-sm text-slate-500 sm:hidden">{appt.reason || 'Checkup'}</p>
             </div>
@@ -380,7 +390,13 @@ const DoctorDashboard = () => {
                                     </div>
                                     <div className="flex-1 overflow-hidden">
                                         <p className="text-sm font-bold text-slate-900 truncate">{appt.patient?.name}</p>
-                                        <p className="text-xs text-slate-500 truncate">{appt.patient?.email}</p>
+                                        <p className="text-xs text-slate-500 truncate">
+                                            {[
+                                                appt.patient?.age ? `${appt.patient.age} Y` : null,
+                                                appt.patient?.gender,
+                                                appt.patient?.phone || appt.patient?.email
+                                            ].filter(Boolean).join(' • ')}
+                                        </p>
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-slate-300" />
                                 </div>

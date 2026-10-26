@@ -158,6 +158,7 @@ const Appointments = () => {
         }
 
         const matchesSearch = appt.patient?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            getDisplayId(appt.patient)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             appt.patient?._id?.includes(searchQuery);
 
         const apptDate = new Date(appt.date).toISOString().split('T')[0];
@@ -441,8 +442,21 @@ const Appointments = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div>
-                                                    <p className="text-sm font-bold text-secondary-900 uppercase">{appt.patient?.name}</p>
-                                                    <p className="text-[10px] font-bold text-slate-400 tracking-wider">#{getDisplayId(appt.patient)}</p>
+                                                    <p className="text-sm font-bold text-secondary-900 uppercase tracking-tight">{appt.patient?.name}</p>
+                                                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                        <span className="text-[10px] font-bold text-slate-400 tracking-wider">#{getDisplayId(appt.patient)}</span>
+                                                        {(appt.patient?.age || appt.patient?.gender) && (
+                                                            <>
+                                                                <span className="text-slate-300 text-[10px]">•</span>
+                                                                <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded-md border border-primary-100/60 uppercase">
+                                                                    {[
+                                                                        appt.patient?.age ? `${appt.patient.age} Y` : null,
+                                                                        appt.patient?.gender
+                                                                    ].filter(Boolean).join(' / ')}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

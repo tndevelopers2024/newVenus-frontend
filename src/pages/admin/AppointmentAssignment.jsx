@@ -322,7 +322,7 @@ const AppointmentAssignment = () => {
                                                         <p className="text-xs font-bold text-secondary-900 uppercase">{p.name}</p>
                                                         <div className="flex flex-col gap-0.5 mt-0.5">
                                                             <p className="text-[10px] text-slate-400 font-bold tracking-wider">#{getDisplayId(p)}</p>
-                                                            {p.phone && <p className="text-[9px] text-primary-600 font-black tracking-tight">{p.phone}</p>}
+                                                            {p.phone && <p className="text-[11px] text-primary-600 font-black tracking-tight">{p.phone}</p>}
                                                         </div>
                                                     </div>
                                                 </div>

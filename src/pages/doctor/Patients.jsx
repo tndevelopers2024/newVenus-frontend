@@ -341,9 +341,22 @@ const Patients = () => {
                                                         <h4 className="text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
                                                             {patient.name}
                                                         </h4>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                            ID: {patient._id?.slice(-8)}
-                                                        </p>
+                                                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                            <p className="text-[10px] font-bold text-slate-400 tracking-wider">
+                                                                #{patient.displayId || patient._id?.slice(-8)}
+                                                            </p>
+                                                            {(patient.age || patient.gender) && (
+                                                                <>
+                                                                    <span className="text-slate-300 text-[10px]">•</span>
+                                                                    <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded-md border border-primary-100/60 uppercase">
+                                                                        {[
+                                                                            patient.age ? `${patient.age} Y` : null,
+                                                                            patient.gender
+                                                                        ].filter(Boolean).join(' / ')}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -447,7 +460,17 @@ const HistoryModal = ({ patient, data, isLoading, onClose, onViewNote }) => {
                             {patient.name?.charAt(0)}
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Clinical Record: {patient.name}</h2>
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h2 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Clinical Record: {patient.name}</h2>
+                                {(patient.age || patient.gender) && (
+                                    <span className="px-2.5 py-1 bg-primary-50 text-primary-700 border border-primary-200/80 rounded-xl text-xs font-black uppercase">
+                                        {[
+                                            patient.age ? `${patient.age} Y` : null,
+                                            patient.gender
+                                        ].filter(Boolean).join(' / ')}
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Full Medical History & Diagnostic Timeline</p>
                         </div>
                     </div>

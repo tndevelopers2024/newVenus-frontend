@@ -24,12 +24,12 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                 <title>Prescription - ${patientName}</title>
                 <style>
                     @page { size: A4; margin: 0; }
-                    body { font-family: sans-serif; padding: 0; margin: 0; background: white; -webkit-print-color-adjust: exact; display: flex; justify-content: center; align-items: start; width: 100%; min-height: 100vh; }
+                    body { font-family: sans-serif; padding: 24px 24px 24px 90px; margin: 0; box-sizing: border-box; background: white; -webkit-print-color-adjust: exact; display: flex; justify-content: center; align-items: start; width: 100%; min-height: 100vh; }
                     img { max-width: 100%; width: 100%; height: auto; object-fit: contain; display: block; }
                     .print-btn { position: fixed; top: 10px; right: 10px; padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; cursor: pointer; display: block; font-weight: bold; z-index: 9999; }
                     @media print { .print-btn { display: none; } }
                     ${previewMode ? `
-                    html, body { width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; }
+                    html, body { width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; padding: 0; }
                     .preview-wrapper {
                         width: 794px;
                         height: 1123px;
@@ -40,6 +40,8 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         display: flex;
                         justify-content: center;
                         align-items: center;
+                        padding: 24px 24px 24px 90px;
+                        box-sizing: border-box;
                         transition: transform 0.1s ease-out;
                     }
                     img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
@@ -114,7 +116,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                 <style>
                     @page { size: A4; margin: 0; }
                     body { font-family: Arial, Helvetica, sans-serif; padding: 0; margin: 0; color: #000; background: white; -webkit-print-color-adjust: exact; }
-                    .page-content { padding: 32px 45px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+                    .page-content { padding: 28px 32px 28px 90px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
                     
                     /* Header */
                     .header-text { text-align: center; color: #004b93; line-height: 1.4; margin-bottom: 5px; }
@@ -152,6 +154,12 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     .handwritten-fallback { margin-top: 15px; text-align: center; }
                     .handwritten-fallback img { max-width: 100%; height: auto; mix-blend-mode: multiply; }
                     
+                    @media print {
+                        @page { size: A4; margin: 0; }
+                        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                        .page-content { padding: 28px 32px 28px 90px !important; }
+                    }
+
                     ${previewMode ? `
                     html, body { width: 100%; height: 100%; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; }
                     .preview-wrapper {
@@ -164,10 +172,10 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                         box-sizing: border-box;
                         transition: transform 0.1s ease-out;
                     }
-                    .page-content { padding: 32px 45px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+                    .page-content { padding: 28px 32px 28px 90px; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
                     ` : `
                     .preview-wrapper { width: 100%; }
-                    .page-content { padding: 32px 45px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+                    .page-content { padding: 28px 32px 28px 90px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
                     `}
                 </style>
             </head>

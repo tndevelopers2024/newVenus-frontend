@@ -23,7 +23,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
     // If an image is provided, display only the handwritten image spanning the entire prescription
     if (showImageOnly && prescriptionImageUrl) {
         return (
-            <div className="page-content bg-white min-h-screen p-0 m-0 flex justify-center items-center w-full relative">
+            <div className="page-content bg-white min-h-screen pl-[90px] pr-6 py-6 m-0 flex justify-center items-center w-full relative">
                 <img 
                     src={prescriptionImageUrl} 
                     alt="Handwritten Prescription" 
@@ -33,7 +33,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                     @media print {
                         @page { size: A4; margin: 0; }
                         body { -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
-                        .page-content { padding: 0 !important; margin: 0 !important; }
+                        .page-content { padding: 24px 24px 24px 90px !important; margin: 0 !important; }
                     }
                 `}</style>
             </div>
@@ -41,7 +41,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
     }
 
     return (
-        <div className="page-content bg-white min-h-screen p-8 relative flex flex-col font-sans text-black">
+        <div className="page-content bg-white min-h-screen pl-[90px] pr-8 py-7 relative flex flex-col font-sans text-black">
             {/* Header */}
             <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
                 <div className="w-1/2">
