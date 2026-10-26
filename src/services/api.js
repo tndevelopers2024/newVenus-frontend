@@ -72,6 +72,23 @@ export const adminApi = {
     updateInvoiceStatus: (id, status) => api.patch(`/admin/invoices/${id}/status`, { status }),
     getPrescriptionByAppointment: (id) => api.get(`/admin/appointments/${id}/prescription`),
     sharePrescription: (id, email) => api.post(`/doctor/prescriptions/${id}/share`, { email }),
+    createPharmacyUser: (data) => api.post('/admin/pharmacy', data),
+};
+
+// Pharmacy API
+export const pharmacyApi = {
+    getDrugs: (params) => api.get('/pharmacy/drugs', { params }),
+    addDrug: (data) => api.post('/pharmacy/drugs', data),
+    bulkUpload: (formDataOrData, isFile) => isFile
+        ? api.post('/pharmacy/drugs/bulk-upload', formDataOrData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        : api.post('/pharmacy/drugs/bulk-upload', formDataOrData),
+    updateDrug: (id, data) => api.put(`/pharmacy/drugs/${id}`, data),
+    toggleStatus: (id) => api.patch(`/pharmacy/drugs/${id}/status`),
+    deleteDrug: (id) => api.delete(`/pharmacy/drugs/${id}`),
+    bulkDelete: (ids) => api.post('/pharmacy/drugs/bulk-delete', { ids }),
+    getStats: () => api.get('/pharmacy/stats'),
+    downloadSampleCsv: () => api.get('/pharmacy/sample-csv', { responseType: 'blob' }),
+    syncDoctorDrugs: () => api.post('/pharmacy/sync-doctor-drugs'),
 };
 
 // Auth API

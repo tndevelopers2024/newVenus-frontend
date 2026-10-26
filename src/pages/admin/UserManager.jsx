@@ -154,7 +154,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                         </div>
                         {defaultFilter === 'all' && (
                             <div className="flex gap-2">
-                                {['all', 'doctor', 'patient', 'archived'].map(role => (
+                                {['all', 'doctor', 'patient', 'pharmacy', 'archived'].map(role => (
                                     <button
                                         key={role}
                                         onClick={() => {
@@ -166,7 +166,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                                             }`}
                                     >
-                                        {role === 'all' ? role : role === 'archived' ? 'Archived' : `${role}s`}
+                                        {role === 'all' ? role : role === 'archived' ? 'Archived' : role === 'pharmacy' ? 'Pharmacy' : `${role}s`}
                                     </button>
                                 ))}
                             </div>
@@ -247,8 +247,9 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                                     <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border whitespace-nowrap inline-block ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
                                                         user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                                                         user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                                                            user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                                                'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                        user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                                                        user.role === 'pharmacy' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                                                        'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                         }`}>
                                                         {user.isDeleted ? `Deleted ${user.role}` : user.isLocked ? `Locked ${user.role}` : user.role}
                                                     </span>

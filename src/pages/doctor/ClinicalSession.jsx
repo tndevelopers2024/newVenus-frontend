@@ -26,7 +26,8 @@ import {
     Copy,
     RotateCcw,
     ChevronRight,
-    Check
+    Check,
+    Pill
 } from 'lucide-react';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -874,6 +875,7 @@ const ClinicalSession = () => {
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase mb-1 block ml-1">Drug Name</label>
                                                 <input
                                                     value={med.name}
+                                                    onFocus={() => setActiveDrugIndex(index)}
                                                     onChange={(e) => {
                                                         handleMedChange(index, 'name', e.target.value);
                                                         setActiveDrugIndex(index);
@@ -1663,23 +1665,22 @@ const ClinicalSession = () => {
 };
 
 const DrugAutosuggest = ({ query, onSelect }) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const wrapperRef = useRef(null);
     const justSelected = useRef(false);
 
     const { data: results, isLoading } = useQuery({
         queryKey: ['medSearch', query],
         queryFn: async () => {
-            if (query.length < 1) return [];
             try {
-                const response = await doctorApi.searchMedications(query);
+                const response = await doctorApi.searchMedications(query || '');
                 return response.data || [];
             } catch (error) {
                 console.error("Local Drug Search Error:", error);
                 return [];
             }
         },
-        enabled: query?.length >= 1,
+        enabled: true,
     });
 
     // Control visibility based on query changes
@@ -1689,11 +1690,7 @@ const DrugAutosuggest = ({ query, onSelect }) => {
             setIsOpen(false);
             return;
         }
-        if (query.length >= 1) {
-            setIsOpen(true);
-        } else {
-            setIsOpen(false);
-        }
+        setIsOpen(true);
     }, [query]);
 
     // Handle click outside to close
@@ -1718,17 +1715,21 @@ const DrugAutosuggest = ({ query, onSelect }) => {
     if (isLoading || !results || results.length === 0 || !isOpen) return null;
 
     return (
-        <div ref={wrapperRef} className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-50 z-[60] overflow-hidden min-w-[300px] max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300">
+        <div ref={wrapperRef} className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[60] overflow-hidden min-w-[300px] max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300">
+            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span>Formulary Suggestions</span>
+                <span className="text-emerald-600 font-extrabold">{results.length} found</span>
+            </div>
             {results.map((drug) => (
                 <button
                     key={drug}
                     onClick={() => handleSelect(drug)}
-                    className="w-full p-5 py-2 text-left hover:bg-primary-50 text-slate-700 text-xs font-bold border-b border-slate-50 last:border-0 flex items-center gap-4 transition-colors"
+                    className="w-full px-4 py-2.5 text-left hover:bg-emerald-50 text-slate-700 text-xs font-bold border-b border-slate-50 last:border-0 flex items-center gap-3 transition-colors group"
                 >
-                    <div className="w-6 h-6 rounded-lg bg-primary-100 flex items-center justify-center">
-                        <Search className="w-3 h-3 text-primary-600" />
+                    <div className="w-6 h-6 rounded-lg bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                        <Pill className="w-3.5 h-3.5" />
                     </div>
-                    {drug}
+                    <span className="truncate">{drug}</span>
                 </button>
             ))}
         </div>

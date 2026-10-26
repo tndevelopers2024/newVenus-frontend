@@ -12,7 +12,8 @@ import {
     History as HistoryIcon,
     Upload,
     Stethoscope,
-    Shield
+    Shield,
+    Pill
 } from 'lucide-react';
 
 export const ADMIN_LINKS = [
@@ -39,6 +40,10 @@ export const DOCTOR_LINKS = [
     { label: 'My Patients', path: '/doctor/patients', icon: Users },
 ];
 
+export const PHARMACY_LINKS = [
+    { label: 'Drug Formulary', path: '/pharmacy', icon: Pill },
+];
+
 // Removed PATIENT_LINKS
 
 export const getLinksByRole = (role) => {
@@ -51,6 +56,8 @@ export const getLinksByRole = (role) => {
             );
         case 'doctor':
             return DOCTOR_LINKS;
+        case 'pharmacy':
+            return PHARMACY_LINKS;
         // case 'patient':
         //     return PATIENT_LINKS;
         default:

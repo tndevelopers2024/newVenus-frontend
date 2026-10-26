@@ -19,6 +19,7 @@ import UserManager from './pages/admin/UserManager';
 import BillingManager from './pages/admin/BillingManager';
 import SystemLogs from './pages/admin/SystemLogs';
 import DoctorRegistration from './pages/admin/DoctorRegistration';
+import PharmacyDashboard from './pages/pharmacy/PharmacyDashboard';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import NotFound from './pages/NotFound';
@@ -45,6 +46,7 @@ const PrivateRoute = ({ children, role }) => {
     if (!roles.includes(user.role)) {
       if (user.role === 'doctor') return <Navigate to="/doctor" />;
       if (user.role === 'superadmin' || user.role === 'admin') return <Navigate to="/admin" />;
+      if (user.role === 'pharmacy') return <Navigate to="/pharmacy" />;
       return <Navigate to="/login" />;
     }
   }
@@ -164,6 +166,11 @@ function App() {
             } />
             <Route path="/admin/doctors/register" element={
               <PrivateRoute role="superadmin"><DoctorRegistration /></PrivateRoute>
+            } />
+
+            {/* Pharmacy Portal */}
+            <Route path="/pharmacy" element={
+              <PrivateRoute role={['pharmacy', 'superadmin']}><PharmacyDashboard /></PrivateRoute>
             } />
             
             {/* 404 Route */}

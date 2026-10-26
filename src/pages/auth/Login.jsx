@@ -22,6 +22,7 @@ const Login = () => {
             const user = await login(email, password);
             if (user.role === 'doctor') navigate('/doctor');
             else if (user.role === 'superadmin' || user.role === 'admin') navigate('/admin');
+            else if (user.role === 'pharmacy') navigate('/pharmacy');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to login. Please check your credentials.');
         } finally {
