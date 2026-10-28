@@ -27,7 +27,7 @@ const MedicalHistory = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
 
     const { data: historyData, isLoading } = useQuery({
         queryKey: ['patientHistoryDetailed'],

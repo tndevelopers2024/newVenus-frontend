@@ -10,7 +10,8 @@ import {
     CheckCircle2,
     Activity,
     CalendarCheck2,
-    Clock
+    Clock,
+    X
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
@@ -34,6 +35,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorApi, adminApi } from '../../services/api';
+import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 
@@ -87,7 +89,7 @@ const SortableItem = ({ appt, navigate, setConfirmModal }) => {
             <div className="flex-1 overflow-hidden w-full">
                 <div className="flex items-center gap-2 flex-wrap">
                     <h4
-                        onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
+                        onClick={() => navigate(`/doctor/patients/${appt.patient?._id}`)}
                         className="font-bold text-slate-900 truncate cursor-pointer hover:text-primary-600 transition-colors text-lg"
                     >
                         {appt.patient?.name}
@@ -235,7 +237,7 @@ const DoctorDashboard = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 md:mb-10">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dr. {displayDoctorName}'s Portal</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{displayDoctorName}'s Portal</h1>
                         <p className="text-slate-500 mt-1 text-sm md:text-base">Manage your consultations and patient records</p>
                     </div>
                     <button
@@ -333,8 +335,8 @@ const DoctorDashboard = () => {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Patient Name/ID..."
-                                className="input-field pl-11 py-2 text-sm"
+                                placeholder="Patient Name/ID/Phone..."
+                                className="input-field pl-11 pr-10 py-2 text-sm"
                                 value={dashSearch}
                                 onChange={(e) => setDashSearch(e.target.value)}
                                 onKeyDown={(e) => {
@@ -343,23 +345,27 @@ const DoctorDashboard = () => {
                                     }
                                 }}
                             />
+                            {dashSearch && (
+                                <button
+                                    type="button"
+                                    onClick={() => setDashSearch('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                                    title="Clear search"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
 
                             {/* Real-time Search Results */}
                             {dashSearch && (
                                 <div className="absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-50 z-[60] overflow-hidden max-h-64 overflow-y-auto custom-scrollbar">
-                                    {appointments?.filter(a =>
-                                        a.patient?.name?.toLowerCase().includes(dashSearch.toLowerCase()) ||
-                                        a.patient?._id?.includes(dashSearch)
-                                    ).length === 0 ? (
+                                    {appointments?.filter(a => matchesPatientQuery(a.patient, dashSearch)).length === 0 ? (
                                         <div className="p-4 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">No Matches</div>
                                     ) : (
-                                        [...new Map(appointments?.filter(a =>
-                                            a.patient?.name?.toLowerCase().includes(dashSearch.toLowerCase()) ||
-                                            a.patient?._id?.includes(dashSearch)
-                                        ).map(a => [a.patient?._id, a.patient])).values()].map((patient) => (
+                                        [...new Map(appointments?.filter(a => matchesPatientQuery(a.patient, dashSearch)).map(a => [a.patient?._id, a.patient])).values()].map((patient) => (
                                             <button
                                                 key={patient._id}
-                                                onClick={() => navigate(`/doctor/patients?id=${patient._id}`)}
+                                                onClick={() => navigate(`/doctor/patients/${patient._id}`)}
                                                 className="w-full p-4 text-left hover:bg-slate-50 transition-colors flex items-center gap-3 border-b border-slate-50 last:border-0"
                                             >
                                                 <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 font-black text-[10px]">
@@ -367,7 +373,10 @@ const DoctorDashboard = () => {
                                                 </div>
                                                 <div className="flex-1 overflow-hidden">
                                                     <p className="text-xs font-bold text-slate-900 truncate">{patient.name}</p>
-                                                    <p className="text-xs text-slate-500 font-medium truncate">{patient.email}</p>
+                                                    <p className="text-[10px] text-slate-400 font-medium truncate">
+                                                        #{patient.displayId || patient._id?.slice(-8)}
+                                                        {patient.phone ? ` • ${patient.phone}` : patient.email ? ` • ${patient.email}` : ''}
+                                                    </p>
                                                 </div>
                                                 <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
                                             </button>
@@ -382,7 +391,7 @@ const DoctorDashboard = () => {
                             {appointments?.slice(0, 5).map((appt) => (
                                 <div
                                     key={appt._id}
-                                    onClick={() => navigate(`/doctor/patients?id=${appt.patient?._id}`)}
+                                    onClick={() => navigate(`/doctor/patients/${appt.patient?._id}`)}
                                     className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-all cursor-pointer group"
                                 >
                                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-primary-600 font-bold border-2 border-white">

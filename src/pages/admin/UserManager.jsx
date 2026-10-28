@@ -4,6 +4,7 @@ import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw, Layout
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { adminApi } from '../../services/api';
+import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import TablePagination from '../../components/shared/TablePagination';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
@@ -14,7 +15,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     const [filter, setFilter] = useState(defaultFilter);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
     const [editModal, setEditModal] = useState({ isOpen: false, user: null });
 
@@ -32,10 +33,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     });
 
     const filteredUsers = users?.filter(user => {
-        const matchesSearch = 
-            (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (user.phone?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        const matchesSearch = matchesPatientQuery(user, searchTerm);
 
         if (filter === 'archived') {
             return user.isDeleted && matchesSearch;
@@ -110,7 +108,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     return (
         <DashboardLayout>
             <div className="max-w-8xl mx-auto py-0">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6 ">
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900 uppercase">
                             {filter === 'doctor' ? 'Doctors Directory' : filter === 'patient' ? 'Patients Directory' : 'User Management'}
@@ -119,60 +117,76 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                             {filter === 'doctor' ? 'Manage medical professionals and access their dashboards' : filter === 'patient' ? 'Manage registered patients and active profiles' : 'Control access levels and manage profiles'}
                         </p>
                     </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => navigate('/admin/patients/register')}
-                            className="btn-secondary flex items-center justify-center gap-2 border-2 border-slate-200 px-6 py-3 rounded-2xl font-bold text-sm tracking-tight hover:bg-slate-50 transition-all"
-                        >
-                            <UserPlus className="w-4 h-4" />
-                            Add New Patient
-                        </button>
-                        <button
-                            onClick={() => navigate('/admin/doctors/register')}
-                            className="bg-secondary-900 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-600 transition-all shadow-lg shadow-secondary-900/10 flex items-center gap-3"
-                        >
-                            <UserPlus className="w-5 h-5 text-primary-400" />
-                            Add Doctor
-                        </button>
-                    </div>
-                </div>
 
-                <div className="glass-card overflow-hidden">
-                    <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 gap-2">
-                        <div className="relative w-72">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    {/* Search and Action buttons at right end */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+                        <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 flex items-center gap-3 w-full sm:w-auto shadow-sm">
+                            <Search className="w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Search by name, email or phone..."
-                                className="input-field pl-11 py-2 text-sm"
+                                placeholder="Search by name, ID or phone..."
+                                className="bg-transparent border-none outline-none text-xs font-bold w-full sm:w-52"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
                             />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="p-0.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                                    title="Clear search"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                         </div>
-                        {defaultFilter === 'all' && (
-                            <div className="flex gap-2">
-                                {['all', 'doctor', 'patient', 'pharmacy', 'archived'].map(role => (
-                                    <button
-                                        key={role}
-                                        onClick={() => {
-                                            setFilter(role);
-                                            setCurrentPage(1);
-                                        }}
-                                        className={`px-4 py-2 text-xs font-bold capitalize rounded-xl border transition-all ${filter === role
-                                            ? 'bg-secondary-900 text-white border-secondary-900'
-                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                            }`}
-                                    >
-                                        {role === 'all' ? role : role === 'archived' ? 'Archived' : role === 'pharmacy' ? 'Pharmacy' : `${role}s`}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                            <button
+                                onClick={() => navigate('/admin/patients/register')}
+                                className="btn-secondary flex items-center justify-center gap-2 border-2 border-slate-200 px-5 py-2.5 rounded-2xl font-bold text-xs tracking-tight hover:bg-slate-50 transition-all shrink-0"
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                Add New Patient
+                            </button>
+                            <button
+                                onClick={() => navigate('/admin/doctors/register')}
+                                className="bg-secondary-900 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-600 transition-all shadow-lg shadow-secondary-900/10 flex items-center gap-2 shrink-0"
+                            >
+                                <UserPlus className="w-4 h-4 text-primary-400" />
+                                Add Doctor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {defaultFilter === 'all' && (
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+                        {['all', 'doctor', 'patient', 'pharmacy', 'archived'].map(role => (
+                            <button
+                                key={role}
+                                onClick={() => {
+                                    setFilter(role);
+                                    setCurrentPage(1);
+                                }}
+                                className={`px-4 py-2 text-xs font-bold capitalize rounded-xl border transition-all ${filter === role
+                                    ? 'bg-secondary-900 text-white border-secondary-900'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                            >
+                                {role === 'all' ? role : role === 'archived' ? 'Archived' : role === 'pharmacy' ? 'Pharmacy' : `${role}s`}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <div className="glass-card overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>

@@ -24,7 +24,7 @@ const SystemLogs = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [viewingLog, setViewingLog] = useState(null);
 
     useEffect(() => {

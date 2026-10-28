@@ -68,7 +68,7 @@ const PharmacyDashboard = () => {
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [selectedSource, setSelectedSource] = useState('all'); // 'all', 'doctor', 'pharmacy'
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [sortBy, setSortBy] = useState('createdAt');
     const [sortOrder, setSortOrder] = useState('desc');
 

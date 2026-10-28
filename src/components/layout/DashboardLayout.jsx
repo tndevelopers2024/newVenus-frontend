@@ -71,7 +71,21 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
 
             <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar pr-1">
                 {links.map((link) => {
-                    const isActive = location.pathname === link.path;
+                    const [linkBasePath, linkQuery] = link.path.split('?');
+                    let isActive = false;
+                    if (linkQuery) {
+                        const linkParams = new URLSearchParams(linkQuery);
+                        const currentParams = new URLSearchParams(location.search);
+                        const matchesPath = location.pathname === linkBasePath;
+                        const matchesParams = Array.from(linkParams.entries()).every(
+                            ([key, val]) => currentParams.get(key) === val
+                        );
+                        isActive = matchesPath && matchesParams;
+                    } else {
+                        const matchesExactPath = location.pathname === linkBasePath;
+                        const isDoctorPatientDetail = linkBasePath === '/doctor/patients' && location.pathname.startsWith('/doctor/patients/');
+                        isActive = matchesExactPath || isDoctorPatientDetail;
+                    }
                     return (
                         <button
                             key={link.label}

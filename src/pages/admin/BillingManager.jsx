@@ -20,7 +20,7 @@ const BillingManager = () => {
     const queryClient = useQueryClient();
     const [filterText, setFilterText] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
 
     const { data: invoices, isLoading } = useQuery({
         queryKey: ['adminInvoices'],

@@ -10,6 +10,7 @@ import Register from './pages/auth/Register';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import Appointments from './pages/doctor/Appointments';
 import Patients from './pages/doctor/Patients';
+import PatientPrescriptionsPage from './pages/doctor/PatientPrescriptionsPage';
 import ClinicalSession from './pages/doctor/ClinicalSession';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AppointmentAssignment from './pages/admin/AppointmentAssignment';
@@ -131,6 +132,9 @@ function App() {
             } />
             <Route path="/doctor/patients" element={
               <PrivateRoute role={['doctor', 'superadmin']}><Patients /></PrivateRoute>
+            } />
+            <Route path="/doctor/patients/:id" element={
+              <PrivateRoute role={['doctor', 'superadmin']}><PatientPrescriptionsPage /></PrivateRoute>
             } />
             <Route path="/doctor/session/:appointmentId" element={
               <PrivateRoute role={['doctor', 'superadmin']}><ClinicalSession /></PrivateRoute>

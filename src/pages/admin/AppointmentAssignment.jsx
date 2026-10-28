@@ -498,7 +498,7 @@ const AppointmentAssignment = () => {
                                 initial={{ scale: 0.95, opacity: 0, y: 20 }}
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+                                className="relative w-full max-w-2xl bg-white rounded-[1rem] shadow-2xl overflow-hidden"
                             >
                                 {/* Modal Header */}
                                 <div className="p-8 pb-0 flex items-center justify-between">
@@ -521,7 +521,7 @@ const AppointmentAssignment = () => {
 
                                 <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
                                     {/* Entry Vitals */}
-                                    <div className="bg-rose-50/50 p-6 rounded-[2.5rem] border border-rose-100/50">
+                                    <div className="bg-rose-50/50 p-6 rounded-[1rem] border border-rose-100/50">
                                         <div className="flex items-center gap-3 mb-6">
                                             <div className="w-9 h-9 rounded-xl bg-rose-500 flex items-center justify-center text-white shadow-lg shadow-rose-200">
                                                 <Activity className="w-4 h-4" />
@@ -587,7 +587,7 @@ const AppointmentAssignment = () => {
                                 <div className="p-8 pt-4">
                                     <button
                                         onClick={handleSavePatientConfig}
-                                        className="w-full py-5 bg-secondary-900 text-white rounded-[2rem] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-secondary-900/10 flex items-center justify-center gap-3 active:scale-[0.98]"
+                                        className="w-full py-5 bg-secondary-900 text-white rounded-[1rem] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-secondary-900/10 flex items-center justify-center gap-3 active:scale-[0.98]"
                                     >
                                         <Check className="w-6 h-6" />
                                         Done - Ready to Assign

@@ -36,6 +36,7 @@ export const doctorApi = {
     updateAppointment: (id, data) => api.put(`/doctor/appointments/${id}`, data),
     getPatients: () => api.get('/doctor/patients'),
     getPatientHistory: (id) => api.get(`/doctor/patients/${id}/history`),
+    createAppointmentForPatient: (patientId, data) => api.post(`/doctor/patients/${patientId}/appointments`, data),
     createPrescription: (data) => {
         return api.post('/doctor/prescriptions', data);
     },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
     Users,
@@ -20,6 +20,7 @@ import {
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
 import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
+import { matchesPatientQuery } from '../../utils/searchUtils';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,16 +29,14 @@ import TablePagination from '../../components/shared/TablePagination';
 import { Link } from 'react-router-dom';
 
 const Patients = () => {
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [viewDate, setViewDate] = useState(new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-    const [selectedPatient, setSelectedPatient] = useState(null);
-    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [viewingNote, setViewingNote] = useState(null);
     const [searchParams] = useSearchParams();
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
 
     const { data: patients, isLoading } = useQuery({
         queryKey: ['doctorPatients'],
@@ -50,13 +49,12 @@ const Patients = () => {
     useEffect(() => {
         const patientId = searchParams.get('id');
         if (patientId && patients) {
-            const patient = patients.find(p => p._id === patientId);
+            const patient = patients.find(p => p._id === patientId || p.displayId?.toLowerCase() === patientId.toLowerCase());
             if (patient) {
-                setSelectedPatient(patient);
-                setIsHistoryModalOpen(true);
+                navigate(`/doctor/patients/${patient._id}`, { replace: true });
             }
         }
-    }, [searchParams, patients]);
+    }, [searchParams, patients, navigate]);
 
     useEffect(() => {
         const query = searchParams.get('search');
@@ -65,35 +63,33 @@ const Patients = () => {
         }
     }, [searchParams]);
 
-    const { data: historyData, isLoading: isLoadingHistory } = useQuery({
-        queryKey: ['patientHistory', selectedPatient?._id],
-        queryFn: async () => {
-            const res = await doctorApi.getPatientHistory(selectedPatient._id);
-            return res.data;
-        },
-        enabled: !!selectedPatient && isHistoryModalOpen
-    });
-
     const handleViewHistory = (patient) => {
-        setSelectedPatient(patient);
-        setIsHistoryModalOpen(true);
+        navigate(`/doctor/patients/${patient._id}`);
     };
 
     const filteredPatients = patients?.filter(p => {
-        const matchesSearch = 
-            (p.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-            (p.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-            p._id?.includes(searchQuery);
+        const matchesSearch = matchesPatientQuery(p, searchQuery);
 
         if (!dateRange.start) return matchesSearch;
 
-        const patientDate = new Date(p.createdAt).toISOString().split('T')[0];
-        let matchesDate = true;
+        let matchesDate = false;
+        try {
+            const checkInRange = (dateVal) => {
+                if (!dateVal) return false;
+                const d = new Date(dateVal);
+                if (isNaN(d.getTime())) return false;
+                const dateStr = d.toISOString().split('T')[0];
+                if (dateRange.start && dateRange.end) {
+                    return dateStr >= dateRange.start && dateStr <= dateRange.end;
+                } else if (dateRange.start) {
+                    return dateStr === dateRange.start;
+                }
+                return false;
+            };
 
-        if (dateRange.start && dateRange.end) {
-            matchesDate = patientDate >= dateRange.start && patientDate <= dateRange.end;
-        } else if (dateRange.start) {
-            matchesDate = patientDate === dateRange.start;
+            matchesDate = checkInRange(p.createdAt) || checkInRange(p.lastVisit);
+        } catch {
+            matchesDate = false;
         }
 
         return matchesSearch && matchesDate;
@@ -134,167 +130,181 @@ const Patients = () => {
     return (
         <DashboardLayout>
             <div className="max-w-7xl mx-auto py-10 px-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 ">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
                     <div>
                         <h1 className="text-4xl font-black text-secondary-900 uppercase tracking-tighter">My Patients</h1>
                         <p className="text-slate-500 mt-1 font-medium">Directory of patients under your clinical care</p>
                     </div>
-                </div>
 
-                <div className="glass-card mb-8">
-                    <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex gap-4">
-                            <div className="relative w-full md:w-96">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by name, email or ID..."
-                                    className="input-field pl-11 py-2 text-sm shadow-sm"
-                                    value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value);
+                    {/* Search and Date Filter at right end */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                        <div className="relative w-full sm:w-80">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by name, phone, email or ID..."
+                                className="input-field pl-11 pr-10 py-2 text-xs shadow-sm w-full bg-white"
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchQuery('');
                                         setCurrentPage(1);
                                     }}
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-4 w-full md:w-auto relative">
-                                <button
-                                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                                    className="px-4 py-2 bg-white rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm text-slate-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                                    title="Clear search"
                                 >
-                                    <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
-                                    <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
-                                        {dateRange.start && dateRange.end ? (
-                                            `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
-                                        ) : dateRange.start ? (
-                                            new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                                        ) : 'Filter by Date'}
-                                    </span>
-                                    {dateRange.start && (
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setDateRange({ start: '', end: '' });
-                                                setCurrentPage(1);
-                                            }}
-                                            className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
-                                        >
-                                            <X className="w-3 h-3 text-slate-400" />
-                                        </div>
-                                    )}
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
-
-                                <AnimatePresence>
-                                    {isCalendarOpen && (
-                                        <>
-                                            <div
-                                                className="fixed inset-0 z-40"
-                                                onClick={() => setIsCalendarOpen(false)}
-                                            />
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className="absolute top-full left-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
-                                            >
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
-                                                        {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                                    </h4>
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
-                                                        >
-                                                            <ChevronLeft className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
-                                                        >
-                                                            <ChevronRight className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-7 gap-1 mb-2">
-                                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                                        <div key={day} className="text-center text-[9px] font-black text-slate-300 uppercase py-2">
-                                                            {day}
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                <div className="grid grid-cols-7 gap-1">
-                                                    {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
-                                                        <div key={`empty-${i}`} />
-                                                    ))}
-                                                    {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
-                                                        const day = i + 1;
-                                                        const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-                                                        const isStart = dateRange.start === dateStr;
-                                                        const isEnd = dateRange.end === dateStr;
-                                                        const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
-                                                        const isToday = new Date().toISOString().split('T')[0] === dateStr;
-
-                                                        return (
-                                                            <button
-                                                                key={day}
-                                                                onClick={() => handleDateClick(dateStr)}
-                                                                className={`
-                                                                aspect-square flex items-center justify-center rounded-xl text-[10px] font-black transition-all relative
-                                                                ${isStart || isEnd
-                                                                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-200 z-10'
-                                                                        : isInRange
-                                                                            ? 'bg-primary-50 text-primary-600 rounded-none first:rounded-l-xl last:rounded-r-xl'
-                                                                            : isToday
-                                                                                ? 'bg-slate-50 text-primary-600 border border-primary-100'
-                                                                                : 'hover:bg-slate-50 text-secondary-900'
-                                                                    }
-                                                            `}
-                                                            >
-                                                                {day}
-                                                                {isInRange && (
-                                                                    <div className="absolute inset-x-[-2px] h-full bg-primary-50 -z-1" />
-                                                                )}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-
-                                                <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
-                                                    <button
-                                                        onClick={() => {
-                                                            const today = new Date().toISOString().split('T')[0];
-                                                            setDateRange({ start: today, end: '' });
-                                                            setCurrentPage(1);
-                                                        }}
-                                                        className="text-[9px] font-black text-slate-400 hover:text-primary-600 uppercase tracking-widest transition-colors"
-                                                    >
-                                                        Today
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setIsCalendarOpen(false)}
-                                                        className="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
-                                                    >
-                                                        Done
-                                                    </button>
-                                                </div>
-                                            </motion.div>
-                                        </>
-                                    )}
-                                </AnimatePresence>
-                            </div>
+                            )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                            <Filter className="w-4 h-4" />
-                            Total {filteredPatients.length} Patients
+                        <div className="flex items-center gap-4 w-full sm:w-auto relative">
+                            <button
+                                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                                className="px-4 py-2 bg-white rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm text-slate-600"
+                            >
+                                <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
+                                <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
+                                    {dateRange.start && dateRange.end ? (
+                                        `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+                                    ) : dateRange.start ? (
+                                        new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    ) : 'Filter by Date'}
+                                </span>
+                                {dateRange.start && (
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDateRange({ start: '', end: '' });
+                                            setCurrentPage(1);
+                                        }}
+                                        className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
+                                    >
+                                        <X className="w-3 h-3 text-slate-400" />
+                                    </div>
+                                )}
+                            </button>
+
+                            <AnimatePresence>
+                                {isCalendarOpen && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setIsCalendarOpen(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute top-full right-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
+                                        >
+                                            <div className="flex items-center justify-between mb-6">
+                                                <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
+                                                    {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                                </h4>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
+                                                        className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
+                                                        className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                    >
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-7 gap-1 mb-2">
+                                                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                                    <div key={day} className="text-center text-[9px] font-black text-slate-300 uppercase py-2">
+                                                        {day}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="grid grid-cols-7 gap-1">
+                                                {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
+                                                    <div key={`empty-${i}`} />
+                                                ))}
+                                                {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                                                    const day = i + 1;
+                                                    const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                                                    const isStart = dateRange.start === dateStr;
+                                                    const isEnd = dateRange.end === dateStr;
+                                                    const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
+                                                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
+                                                    return (
+                                                        <button
+                                                            key={day}
+                                                            onClick={() => handleDateClick(dateStr)}
+                                                            className={`
+                                                            aspect-square flex items-center justify-center rounded-xl text-[10px] font-black transition-all relative
+                                                            ${isStart || isEnd
+                                                                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-200 z-10'
+                                                                    : isInRange
+                                                                        ? 'bg-primary-50 text-primary-600 rounded-none first:rounded-l-xl last:rounded-r-xl'
+                                                                        : isToday
+                                                                            ? 'bg-slate-50 text-primary-600 border border-primary-100'
+                                                                            : 'hover:bg-slate-50 text-secondary-900'
+                                                                }
+                                                        `}
+                                                        >
+                                                            {day}
+                                                            {isInRange && (
+                                                                <div className="absolute inset-x-[-2px] h-full bg-primary-50 -z-1" />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                                <button
+                                                    onClick={() => {
+                                                        const today = new Date().toISOString().split('T')[0];
+                                                        setDateRange({ start: today, end: '' });
+                                                        setCurrentPage(1);
+                                                    }}
+                                                    className="text-[9px] font-black text-slate-400 hover:text-primary-600 uppercase tracking-widest transition-colors"
+                                                >
+                                                    Today
+                                                </button>
+                                                <button
+                                                    onClick={() => setIsCalendarOpen(false)}
+                                                    className="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                                                >
+                                                    Done
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
+                </div>
 
+                <div className="flex items-center justify-end mb-4 px-1">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
+                        <Filter className="w-4 h-4" />
+                        Total {filteredPatients.length} Patients
+                    </div>
+                </div>
+
+                <div className="glass-card mb-8 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
@@ -330,7 +340,8 @@ const Patients = () => {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             key={patient._id}
-                                            className="hover:bg-slate-50/30 transition-colors group"
+                                            onClick={() => handleViewHistory(patient)}
+                                            className="hover:bg-slate-50/70 transition-colors group cursor-pointer"
                                         >
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
@@ -338,7 +349,7 @@ const Patients = () => {
                                                         {patient.name?.charAt(0)}
                                                     </div>
                                                     <div className="flex-1 overflow-hidden">
-                                                        <h4 className="text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
+                                                        <h4 className="text-sm font-black text-secondary-900 uppercase tracking-tight truncate group-hover:text-primary-600 transition-colors">
                                                             {patient.name}
                                                         </h4>
                                                         <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
@@ -388,8 +399,12 @@ const Patients = () => {
                                             </td>
                                             <td className="px-8 py-6">
                                                 <button
-                                                    onClick={() => handleViewHistory(patient)}
-                                                    className="p-3 bg-white border border-slate-100 text-slate-400 rounded-2xl hover:border-primary-100 hover:text-primary-600 transition-all group-hover:opacity-100 active:scale-95"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewHistory(patient);
+                                                    }}
+                                                    className="p-3 bg-white border border-slate-100 text-slate-400 rounded-2xl hover:border-primary-200 hover:text-primary-600 hover:shadow-sm transition-all group-hover:opacity-100 active:scale-95"
+                                                    title="View Prescriptions & Clinical Record"
                                                 >
                                                     <ArrowRight className="w-5 h-5" />
                                                 </button>
@@ -413,182 +428,7 @@ const Patients = () => {
                     )}
                 </div>
             </div>
-
-            <AnimatePresence>
-                {isHistoryModalOpen && selectedPatient && (
-                    <HistoryModal
-                        patient={selectedPatient}
-                        data={historyData}
-                        isLoading={isLoadingHistory}
-                        onClose={() => setIsHistoryModalOpen(false)}
-                        onViewNote={(apptId) => setViewingNote(apptId)}
-                    />
-                )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-                {viewingNote && (
-                    <div className="prescription-modal-root no-print">
-                        <PrescriptionModal
-                            appointmentId={viewingNote}
-                            onClose={() => setViewingNote(null)}
-                        />
-                    </div>
-                )}
-            </AnimatePresence>
         </DashboardLayout>
-    );
-};
-
-const HistoryModal = ({ patient, data, isLoading, onClose, onViewNote }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-secondary-900/60 backdrop-blur-sm"
-        >
-            <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-white rounded-[40px] shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
-            >
-                <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 rounded-[24px] bg-white shadow-sm border border-slate-100 flex items-center justify-center text-primary-600 text-2xl font-black">
-                            {patient.name?.charAt(0)}
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <h2 className="text-2xl font-black text-secondary-900 uppercase tracking-tighter">Clinical Record: {patient.name}</h2>
-                                {(patient.age || patient.gender) && (
-                                    <span className="px-2.5 py-1 bg-primary-50 text-primary-700 border border-primary-200/80 rounded-xl text-xs font-black uppercase">
-                                        {[
-                                            patient.age ? `${patient.age} Y` : null,
-                                            patient.gender
-                                        ].filter(Boolean).join(' / ')}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Full Medical History & Diagnostic Timeline</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className="p-4 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-rose-500">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
-                            <Activity className="w-12 h-12 text-primary-500 animate-pulse mb-4" />
-                            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Syncing Clinical Data...</p>
-                        </div>
-                    ) : (
-                        <div className="w-full">
-                            <section>
-                                <div className="flex items-center gap-2 mb-6">
-                                    <div className="w-1.5 h-6 bg-primary-500 rounded-full"></div>
-                                    <h3 className="text-sm font-black text-secondary-900 uppercase tracking-tighter">Consultation Timeline</h3>
-                                </div>
-                                <div className="space-y-4">
-                                    {data?.appointments?.length === 0 ? (
-                                        <p className="text-slate-400 text-sm italic py-4">No consultation records found.</p>
-                                    ) : (
-                                        data?.appointments?.map((appt, i) => (
-                                            <div key={i} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:border-primary-200 transition-colors">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-xs font-black text-secondary-900">{new Date(appt.date).toLocaleDateString('en-GB')}</span>
-                                                        <span className="px-1.5 py-0.5 bg-white border border-slate-200 rounded-md text-[8px] font-black uppercase text-slate-400 tracking-tighter">{appt.status}</span>
-                                                    </div>
-                                                    <p className="text-sm font-bold text-slate-600">{appt.reason || 'General Symptomatic Review'}</p>
-                                                    <p className="text-[10px] text-slate-400 font-medium">Physician: Dr. {appt.doctor?.name}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div
-                                                        onClick={() => onViewNote(appt._id)}
-                                                        className="flex items-center gap-1.5 text-primary-600 font-bold text-xs uppercase cursor-pointer hover:underline"
-                                                    >
-                                                        <FileText className="w-3.5 h-3.5" />
-                                                        View Detailed Note
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </section>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-const PrescriptionModal = ({ appointmentId, onClose }) => {
-    const { data: prescriptionData, isLoading } = useQuery({
-        queryKey: ['prescription', appointmentId],
-        queryFn: async () => {
-            const res = await doctorApi.getPrescriptionByAppointment(appointmentId);
-            return res.data;
-        }
-    });
-
-    if (isLoading) return null;
-
-    const { prescription, clinicalDetails } = prescriptionData || {};
-
-    return (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-                className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm no-print"
-            />
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col no-print"
-            >
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <iframe 
-                        srcDoc={getUnifiedDocumentHTML({
-                            ...prescriptionData,
-                            image: prescriptionData.prescription?.image || prescriptionData.image,
-                            appointmentId,
-                            createdAt: prescriptionData.prescription?.createdAt
-                        }, 'prescription', true)}
-                        className="w-full h-full min-h-[600px] border-0 rounded-[24px]"
-                    />
-                </div>
-
-                <div className="p-8 bg-white border-t border-slate-50 flex items-center justify-between shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
-                    <button
-                        onClick={onClose}
-                        className="px-8 py-4 border border-slate-200 rounded-[20px] text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
-                    >
-                        Close
-                    </button>
-                    <button
-                        onClick={() => printDocument({
-                            ...prescriptionData,
-                            appointmentId,
-                            createdAt: prescriptionData.prescription?.createdAt
-                        }, 'prescription')}
-                        className="px-10 py-4 bg-secondary-900 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-secondary-200 hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-3"
-                    >
-                        <Printer className="w-4 h-4 text-primary-400" />
-                        Print Record
-                    </button>
-                </div>
-            </motion.div>
-        </div>
     );
 };
 

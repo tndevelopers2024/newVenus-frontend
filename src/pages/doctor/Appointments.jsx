@@ -33,6 +33,7 @@ import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorApi } from '../../services/api';
+import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import TablePagination from '../../components/shared/TablePagination';
@@ -51,7 +52,7 @@ const Appointments = () => {
     const [viewDate, setViewDate] = useState(new Date());
     const [viewingPrescription, setViewingPrescription] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(6);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
     const [showShareModal, setShowShareModal] = useState(false);
     const [shareData, setShareData] = useState({ id: '', email: '' });
@@ -157,9 +158,7 @@ const Appointments = () => {
             matchesStatus = appt.status === activeTab;
         }
 
-        const matchesSearch = appt.patient?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            getDisplayId(appt.patient)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            appt.patient?._id?.includes(searchQuery);
+        const matchesSearch = matchesPatientQuery(appt.patient, searchQuery);
 
         const apptDate = new Date(appt.date).toISOString().split('T')[0];
         const todayStr = new Date().toISOString().split('T')[0];
@@ -244,157 +243,176 @@ const Appointments = () => {
         <>
             <DashboardLayout>
                 <div className="max-w-8xl mx-auto py-6 px-4 print:hidden">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
                         <div>
                             <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">
                                 {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : filterParam === 'upcoming' ? 'Upcoming Appointments' : 'Appointment Manager'}
                             </h1>
                             <p className="text-slate-500 mt-0.5 font-medium text-sm">Coordinate patient consultations and schedule logistics</p>
                         </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-3 mb-4">
-                        {tabs.map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => {
-                                    setActiveTab(tab);
-                                    setCurrentPage(1);
-                                }}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
-                                    ? 'bg-secondary-900 text-white shadow-lg shadow-secondary-200 scale-105'
-                                    : 'bg-white text-slate-400 border border-slate-100 hover:border-primary-200 hover:text-primary-600'
-                                    }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="glass-card mb-6">
-                        <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
-                                <div className="relative w-full sm:w-auto">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search by patient name or ID..."
-                                        className="input-field pl-10 py-2 text-xs shadow-sm w-full sm:w-64"
-                                        value={searchQuery}
-                                        onChange={(e) => {
-                                            setSearchQuery(e.target.value);
+                        {/* Search and Date Filter at right end */}
+                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                            <div className="relative w-full sm:w-auto">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name, ID or phone..."
+                                    className="input-field pl-10 pr-9 py-2 text-xs shadow-sm w-full sm:w-64 bg-white"
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                />
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearchQuery('');
                                             setCurrentPage(1);
                                         }}
-                                    />
-                                </div>
-                                
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                                        className="px-4 py-2 bg-white rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                                        title="Clear search"
                                     >
-                                        <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
-                                        <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
-                                            {dateRange.start && dateRange.end ? (
-                                                `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
-                                            ) : dateRange.start ? (
-                                                new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                                            ) : 'Filter by Date'}
-                                        </span>
-                                        {dateRange.start && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDateRange({ start: '', end: '' });
-                                                    setCurrentPage(1);
-                                                }}
-                                                className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
-                                            >
-                                                <X className="w-3 h-3 text-slate-400" />
-                                            </button>
-                                        )}
+                                        <X className="w-3 h-3" />
                                     </button>
-
-                                    <AnimatePresence>
-                                        {isDatePickerOpen && (
-                                            <>
-                                                <div
-                                                    className="fixed inset-0 z-40"
-                                                    onClick={() => setIsDatePickerOpen(false)}
-                                                />
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                    className="absolute top-full left-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
-                                                >
-                                                    <div className="flex items-center justify-between mb-6">
-                                                        <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
-                                                            {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                                        </h4>
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-                                                                className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
-                                                            >
-                                                                <ChevronLeft className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-                                                                className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
-                                                            >
-                                                                <ChevronRight className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-7 gap-1 mb-2">
-                                                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                                            <div key={day} className="text-center text-[9px] font-black text-slate-400 uppercase py-2">{day}</div>
-                                                        ))}
-                                                    </div>
-                                                    
-                                                    <div className="grid grid-cols-7 gap-1">
-                                                        {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
-                                                            <div key={`empty-${i}`} className="p-2" />
-                                                        ))}
-                                                        {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
-                                                            const day = i + 1;
-                                                            const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                                            const isSelected = dateStr === dateRange.start || dateStr === dateRange.end;
-                                                            const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
-                                                            
-                                                            return (
-                                                                <button
-                                                                    key={day}
-                                                                    onClick={() => handleDateClick(dateStr)}
-                                                                    className={`
-                                                                        aspect-square flex items-center justify-center rounded-xl text-[11px] font-bold transition-all
-                                                                        ${isSelected ? 'bg-primary-500 text-white shadow-lg shadow-primary-200/50' : 
-                                                                          isInRange ? 'bg-primary-50 text-primary-600' : 
-                                                                          'hover:bg-slate-50 text-secondary-900 hover:scale-110'}
-                                                                    `}
-                                                                >
-                                                                    {day}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </motion.div>
-                                            </>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
+                                )}
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-4 md:mt-0">
-                                <Filter className="w-3.5 h-3.5" />
-                                Showing {filteredAppointments.length} Appointments
+
+                            <div className="relative w-full sm:w-auto">
+                                <button
+                                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                                    className="px-4 py-2 bg-white rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm"
+                                >
+                                    <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
+                                    <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
+                                        {dateRange.start && dateRange.end ? (
+                                            `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+                                        ) : dateRange.start ? (
+                                            new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                        ) : 'Filter by Date'}
+                                    </span>
+                                    {dateRange.start && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDateRange({ start: '', end: '' });
+                                                setCurrentPage(1);
+                                            }}
+                                            className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
+                                        >
+                                            <X className="w-3 h-3 text-slate-400" />
+                                        </button>
+                                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {isDatePickerOpen && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setIsDatePickerOpen(false)}
+                                            />
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                className="absolute top-full right-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
+                                            >
+                                                <div className="flex items-center justify-between mb-6">
+                                                    <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
+                                                        {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                                    </h4>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
+                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                        >
+                                                            <ChevronLeft className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
+                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-7 gap-1 mb-2">
+                                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                                        <div key={day} className="text-center text-[9px] font-black text-slate-400 uppercase py-2">{day}</div>
+                                                    ))}
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-7 gap-1">
+                                                    {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
+                                                        <div key={`empty-${i}`} />
+                                                    ))}
+                                                    {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                                                        const day = i + 1;
+                                                        const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                                                        const isStart = dateRange.start === dateStr;
+                                                        const isEnd = dateRange.end === dateStr;
+                                                        const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
+                                                        const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
+                                                        return (
+                                                            <button
+                                                                key={day}
+                                                                onClick={() => handleDateClick(dateStr)}
+                                                                className={`h-9 w-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center relative ${isStart || isEnd
+                                                                    ? 'bg-secondary-900 text-white font-black shadow-md shadow-secondary-200'
+                                                                    : isInRange
+                                                                        ? 'bg-primary-50 text-primary-600 rounded-none'
+                                                                        : isToday
+                                                                            ? 'border border-primary-500 text-primary-600'
+                                                                            : 'text-slate-600 hover:bg-slate-50'
+                                                                    }`}
+                                                            >
+                                                                {day}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
+                    </div>
 
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div className="flex flex-wrap gap-3">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => {
+                                        setActiveTab(tab);
+                                        setCurrentPage(1);
+                                    }}
+                                    className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
+                                        ? 'bg-secondary-900 text-white shadow-lg shadow-secondary-200 scale-105'
+                                        : 'bg-white text-slate-400 border border-slate-100 hover:border-primary-200 hover:text-primary-600'
+                                        }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                            <Filter className="w-3.5 h-3.5" />
+                            Showing {filteredAppointments.length} Appointments
+                        </div>
+                    </div>
+
+                    <div className="glass-card mb-6 overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400">
                                     <th className="px-6 py-4 font-black">Date</th>
                                     <th className="px-6 py-4 font-black">Patient</th>
                                     <th className="px-6 py-4 font-black">Schedule Time</th>
