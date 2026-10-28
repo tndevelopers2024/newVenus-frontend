@@ -420,7 +420,7 @@ const DashboardLayout = ({ children, links, noScroll = false, mainClassName = ''
                     <div className="bg-amber-500 text-white px-6 py-3.5 flex items-center justify-between text-xs font-black uppercase tracking-wider shadow-md z-30 shrink-0">
                         <div className="flex items-center gap-2">
                             <span className="bg-white/20 px-2.5 py-0.5 rounded text-[10px] font-black">Superadmin Impersonation</span>
-                            <span>Viewing Portal of Dr. {targetDoctor?.name || '...'}</span>
+                            <span>Viewing Portal of {targetDoctor?.name || '...'}</span>
                         </div>
                         <button
                             onClick={() => {
