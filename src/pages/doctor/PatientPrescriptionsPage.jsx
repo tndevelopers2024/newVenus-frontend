@@ -348,10 +348,10 @@ const PatientPrescriptionsPage = () => {
     }
 
     return (
-        <DashboardLayout>
-            <div className="max-w-[1700px] mx-auto py-6 px-3 sm:px-6 space-y-6">
+        <DashboardLayout noScroll>
+            <div className="max-w-[1700px] w-full mx-auto flex flex-col lg:h-full lg:overflow-hidden gap-3.5">
                 {/* Top Navigation & Patient Profile Banner */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-4 rounded-3xl border border-slate-100 shadow-sm">
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => navigate('/doctor/patients')}
@@ -414,10 +414,10 @@ const PatientPrescriptionsPage = () => {
                 </div>
 
                 {/* 3-Panel Main Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 lg:min-h-0 items-stretch lg:overflow-hidden">
                     {/* PANEL 1: LEFT SIDE - Prescriptions History List */}
-                    <div className="lg:col-span-3 glass-card flex flex-col h-[820px] overflow-hidden bg-white/90">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/70">
+                    <div className="lg:col-span-3 glass-card flex flex-col h-[600px] lg:h-full lg:min-h-0 overflow-hidden bg-white/90">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/70 shrink-0">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
                                     <FileText className="w-4 h-4 text-primary-600" />
@@ -443,7 +443,7 @@ const PatientPrescriptionsPage = () => {
                         </div>
 
                         {/* Prescription Items */}
-                        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5 custom-scrollbar">
                             {filteredPrescriptions.length === 0 ? (
                                 <div className="p-8 text-center text-slate-400">
                                     <Pill className="w-8 h-8 text-slate-200 mx-auto mb-2" />
@@ -506,8 +506,8 @@ const PatientPrescriptionsPage = () => {
                     </div>
 
                     {/* PANEL 2: MIDDLE - Selected Prescription Drugs */}
-                    <div className="lg:col-span-4 glass-card flex flex-col h-[820px] overflow-hidden bg-white/90">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
+                    <div className="lg:col-span-4 glass-card flex flex-col h-[600px] lg:h-full lg:min-h-0 overflow-hidden bg-white/90">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3 shrink-0">
                             <div>
                                 <div className="flex items-center gap-2">
                                     <Pill className="w-4 h-4 text-primary-600" />
@@ -533,7 +533,7 @@ const PatientPrescriptionsPage = () => {
                         </div>
 
                         {/* Selected Rx Content */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                             {!selectedRx ? (
                                 <div className="p-12 text-center text-slate-400">
                                     <FileText className="w-10 h-10 text-slate-200 mx-auto mb-2" />
@@ -682,9 +682,9 @@ const PatientPrescriptionsPage = () => {
                     </div>
 
                     {/* PANEL 3: RIGHT SIDE - New Prescription & Save Draft */}
-                    <div className="lg:col-span-5 glass-card flex flex-col h-[820px] overflow-hidden bg-white/95 border-2 border-primary-100/60 shadow-lg">
+                    <div className="lg:col-span-5 glass-card flex flex-col h-[700px] lg:h-full lg:min-h-0 overflow-hidden bg-white/95 border-2 border-primary-100/60 shadow-lg">
                         {/* Header */}
-                        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-primary-50/50 via-slate-50 to-white flex items-center justify-between gap-3">
+                        <div className="p-4 border-b border-slate-100 bg-gradient-to-r from-primary-50/50 via-slate-50 to-white flex items-center justify-between gap-3 shrink-0">
                             <div>
                                 <div className="flex items-center gap-2">
                                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -699,7 +699,7 @@ const PatientPrescriptionsPage = () => {
                         </div>
 
                         {/* Prescriber Form Fields */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                             {/* Saved draft alert banner (optional, only if unfinalized draft exists on active appt and medications is empty) */}
                             {hasUnfinalizedDraft && medications.length === 0 && (
                                 <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs">
@@ -903,7 +903,7 @@ const PatientPrescriptionsPage = () => {
                         </div>
 
                         {/* Footer Action Bar */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                             <div className="text-xs text-slate-400 font-medium">
                                 {lastSavedTime ? (
                                     <span className="flex items-center gap-1.5 text-emerald-600 font-bold">

@@ -367,7 +367,7 @@ const Header = ({ onMenuClick, onDesktopMenuClick }) => {
         </header>
     );
 };
-const DashboardLayout = ({ children, links }) => {
+const DashboardLayout = ({ children, links, noScroll = false, mainClassName = '' }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const viewAsDoctorId = localStorage.getItem('viewAsDoctorId');
@@ -433,7 +433,7 @@ const DashboardLayout = ({ children, links }) => {
                         </button>
                     </div>
                 )}
-                <main className="flex-1 overflow-y-auto p-4 md:px-6 scroll-smooth w-full custom-scrollbar">
+                <main className={`flex-1 w-full ${noScroll ? 'lg:overflow-hidden overflow-y-auto flex flex-col p-3 md:p-4 min-h-0' : 'overflow-y-auto p-4 md:px-6 scroll-smooth custom-scrollbar'} ${mainClassName}`}>
                     {children}
                 </main>
             </div>
