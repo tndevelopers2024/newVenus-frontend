@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, doctorApi } from '../../services/api';
+import { getLocalDateString, formatDateDisplay } from '../../utils/documentUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import TablePagination from '../../components/shared/TablePagination';
 import {
@@ -48,6 +49,11 @@ const AppointmentList = () => {
     const [editViewDate, setEditViewDate] = useState(new Date());
     const [isEditDatePickerOpen, setIsEditDatePickerOpen] = useState(false);
     const [popupPos, setPopupPos] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        setDateRange({ start: '', end: '' });
+        setCurrentPage(1);
+    }, [filterParam]);
 
     const { data: appointments, isLoading } = useQuery({
         queryKey: ['adminAppointmentsFullList'],
@@ -206,21 +212,24 @@ const AppointmentList = () => {
             (appt.reason?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
         const apptDateStr = appt.date || appt.createdAt;
-        const apptDate = new Date(apptDateStr).toISOString().split('T')[0];
-        const todayStr = new Date().toISOString().split('T')[0];
+        const apptDate = getLocalDateString(apptDateStr);
+        const todayStr = getLocalDateString(new Date());
 
+        const hasDateFilter = Boolean(dateRange.start);
         let matchesDate = true;
-        if (filterParam === 'today') {
-            matchesDate = apptDate === todayStr;
-        } else if (filterParam === 'previous') {
-            matchesDate = apptDate < todayStr;
-        } else if (filterParam === 'upcoming') {
-            matchesDate = apptDate > todayStr;
-        } else {
+        if (hasDateFilter) {
             if (dateRange.start && dateRange.end) {
                 matchesDate = apptDate >= dateRange.start && apptDate <= dateRange.end;
             } else if (dateRange.start) {
                 matchesDate = apptDate === dateRange.start;
+            }
+        } else {
+            if (filterParam === 'today') {
+                matchesDate = apptDate === todayStr;
+            } else if (filterParam === 'previous') {
+                matchesDate = apptDate < todayStr;
+            } else if (filterParam === 'upcoming') {
+                matchesDate = apptDate > todayStr;
             }
         }
 
@@ -290,9 +299,9 @@ const AppointmentList = () => {
                                 <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
                                 <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
                                     {dateRange.start && dateRange.end ? (
-                                        `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+                                        `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
                                     ) : dateRange.start ? (
-                                        new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                        formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
                                     ) : 'Filter by Date'}
                                 </span>
                                 {dateRange.start && (
@@ -361,7 +370,7 @@ const AppointmentList = () => {
                                                     const isStart = dateRange.start === dateStr;
                                                     const isEnd = dateRange.end === dateStr;
                                                     const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
-                                                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                                                    const isToday = getLocalDateString(new Date()) === dateStr;
 
                                                     return (
                                                         <button
@@ -391,7 +400,7 @@ const AppointmentList = () => {
                                             <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
                                                 <button
                                                     onClick={() => {
-                                                        const today = new Date().toISOString().split('T')[0];
+                                                        const today = getLocalDateString(new Date());
                                                         setDateRange({ start: today, end: '' });
                                                         setCurrentPage(1);
                                                         setIsCalendarOpen(false);
@@ -498,7 +507,7 @@ const AppointmentList = () => {
                                                             className="px-3 py-1.5 text-xs font-bold text-secondary-900 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-xl outline-none transition-all cursor-pointer hover:bg-slate-100 flex items-center gap-2"
                                                         >
                                                             <Calendar className="w-3.5 h-3.5 text-primary-500" />
-                                                            {newDate ? new Date(newDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Select Date'}
+                                                            {newDate ? formatDateDisplay(newDate, { day: '2-digit', month: 'short', year: 'numeric' }) : 'Select Date'}
                                                         </button>
                                                         
                                                         {createPortal(
@@ -577,7 +586,7 @@ const AppointmentList = () => {
                                                     <div className="flex items-center gap-2 group/date cursor-pointer" onClick={() => {
                                                         if(appt.status !== 'Completed') {
                                                             setEditingDateId(appt._id);
-                                                            setNewDate(appt.date ? new Date(appt.date).toISOString().split('T')[0] : new Date(appt.createdAt).toISOString().split('T')[0]);
+                                                            setNewDate(getLocalDateString(appt.date || appt.createdAt));
                                                             setEditViewDate(new Date(appt.date || appt.createdAt));
                                                             setIsEditDatePickerOpen(true);
                                                         }

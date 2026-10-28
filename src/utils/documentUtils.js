@@ -131,3 +131,38 @@ export const normalizeMedication = (med) => {
     };
 };
 
+/**
+ * Convert any Date object, ISO timestamp, or date string into a local YYYY-MM-DD string.
+ * Avoids UTC timezone conversion shifts.
+ */
+export const getLocalDateString = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') {
+        const trimmed = val.trim();
+        // If it's already a pure YYYY-MM-DD date string (no time component)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            return trimmed;
+        }
+    }
+    const d = val instanceof Date ? val : new Date(val);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
+/**
+ * Format a YYYY-MM-DD or date value into human readable local display (e.g. "28 Oct 2026")
+ * without UTC date shift.
+ */
+export const formatDateDisplay = (dateVal, options = { day: '2-digit', month: 'short', year: 'numeric' }) => {
+    if (!dateVal) return '';
+    if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
+        const [y, m, d] = dateVal.trim().split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d);
+        return dateObj.toLocaleDateString('en-GB', options);
+    }
+    const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+    return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', options);
+};

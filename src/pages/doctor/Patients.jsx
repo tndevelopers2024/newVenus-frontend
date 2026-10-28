@@ -22,6 +22,7 @@ import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { matchesPatientQuery } from '../../utils/searchUtils';
 import { doctorApi } from '../../services/api';
+import { getLocalDateString, formatDateDisplay } from '../../utils/documentUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileText, Plus, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
@@ -76,9 +77,8 @@ const Patients = () => {
         try {
             const checkInRange = (dateVal) => {
                 if (!dateVal) return false;
-                const d = new Date(dateVal);
-                if (isNaN(d.getTime())) return false;
-                const dateStr = d.toISOString().split('T')[0];
+                const dateStr = getLocalDateString(dateVal);
+                if (!dateStr) return false;
                 if (dateRange.start && dateRange.end) {
                     return dateStr >= dateRange.start && dateStr <= dateRange.end;
                 } else if (dateRange.start) {
@@ -173,9 +173,9 @@ const Patients = () => {
                                 <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
                                 <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
                                     {dateRange.start && dateRange.end ? (
-                                        `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+                                        `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
                                     ) : dateRange.start ? (
-                                        new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                        formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
                                     ) : 'Filter by Date'}
                                 </span>
                                 {dateRange.start && (
@@ -244,7 +244,7 @@ const Patients = () => {
                                                     const isStart = dateRange.start === dateStr;
                                                     const isEnd = dateRange.end === dateStr;
                                                     const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
-                                                    const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                                                    const isToday = getLocalDateString(new Date()) === dateStr;
 
                                                     return (
                                                         <button
@@ -274,19 +274,24 @@ const Patients = () => {
                                             <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
                                                 <button
                                                     onClick={() => {
-                                                        const today = new Date().toISOString().split('T')[0];
+                                                        const today = getLocalDateString(new Date());
                                                         setDateRange({ start: today, end: '' });
                                                         setCurrentPage(1);
+                                                        setIsCalendarOpen(false);
                                                     }}
-                                                    className="text-[9px] font-black text-slate-400 hover:text-primary-600 uppercase tracking-widest transition-colors"
+                                                    className="text-[9px] font-black text-primary-600 uppercase tracking-widest hover:underline"
                                                 >
                                                     Today
                                                 </button>
                                                 <button
-                                                    onClick={() => setIsCalendarOpen(false)}
-                                                    className="px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                                                    onClick={() => {
+                                                        setDateRange({ start: '', end: '' });
+                                                        setCurrentPage(1);
+                                                        setIsCalendarOpen(false);
+                                                    }}
+                                                    className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
                                                 >
-                                                    Done
+                                                    Clear Filter
                                                 </button>
                                             </div>
                                         </motion.div>

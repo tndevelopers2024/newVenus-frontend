@@ -33,6 +33,7 @@ import { getUnifiedDocumentHTML } from '../../utils/documentGenerator';
 import { printDocument } from '../../utils/printHelper';
 import { useAuth } from '../../contexts/AuthContext';
 import { doctorApi } from '../../services/api';
+import { getLocalDateString, formatDateDisplay } from '../../utils/documentUtils';
 import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,6 +50,13 @@ const Appointments = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+    const filterParam = new URLSearchParams(location.search).get('filter');
+
+    useEffect(() => {
+        setDateRange({ start: '', end: '' });
+        setCurrentPage(1);
+    }, [filterParam]);
     const [viewDate, setViewDate] = useState(new Date());
     const [viewingPrescription, setViewingPrescription] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -146,8 +154,6 @@ const Appointments = () => {
 
 
 
-    const filterParam = new URLSearchParams(location.search).get('filter');
-
     const filteredAppointments = appointments?.filter(appt => {
         let matchesStatus = false;
         if (activeTab === 'All') {
@@ -160,21 +166,24 @@ const Appointments = () => {
 
         const matchesSearch = matchesPatientQuery(appt.patient, searchQuery);
 
-        const apptDate = new Date(appt.date).toISOString().split('T')[0];
-        const todayStr = new Date().toISOString().split('T')[0];
+        const apptDate = getLocalDateString(appt.date || appt.createdAt);
+        const todayStr = getLocalDateString(new Date());
         
+        const hasDateFilter = Boolean(dateRange.start);
         let matchesDate = true;
-        if (filterParam === 'today') {
-            matchesDate = apptDate === todayStr;
-        } else if (filterParam === 'previous') {
-            matchesDate = apptDate < todayStr;
-        } else if (filterParam === 'upcoming') {
-            matchesDate = apptDate > todayStr;
-        } else {
+        if (hasDateFilter) {
             if (dateRange.start && dateRange.end) {
                 matchesDate = apptDate >= dateRange.start && apptDate <= dateRange.end;
             } else if (dateRange.start) {
                 matchesDate = apptDate === dateRange.start;
+            }
+        } else {
+            if (filterParam === 'today') {
+                matchesDate = apptDate === todayStr;
+            } else if (filterParam === 'previous') {
+                matchesDate = apptDate < todayStr;
+            } else if (filterParam === 'upcoming') {
+                matchesDate = apptDate > todayStr;
             }
         }
 
@@ -288,9 +297,9 @@ const Appointments = () => {
                                     <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
                                     <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
                                         {dateRange.start && dateRange.end ? (
-                                            `${new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${new Date(dateRange.end).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+                                            `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
                                         ) : dateRange.start ? (
-                                            new Date(dateRange.start).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                            formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
                                         ) : 'Filter by Date'}
                                     </span>
                                     {dateRange.start && (
@@ -357,7 +366,7 @@ const Appointments = () => {
                                                         const isStart = dateRange.start === dateStr;
                                                         const isEnd = dateRange.end === dateStr;
                                                         const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
-                                                        const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                                                        const isToday = getLocalDateString(new Date()) === dateStr;
 
                                                         return (
                                                             <button
@@ -376,6 +385,30 @@ const Appointments = () => {
                                                             </button>
                                                         );
                                                     })}
+                                                </div>
+
+                                                <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                                    <button
+                                                        onClick={() => {
+                                                            const today = getLocalDateString(new Date());
+                                                            setDateRange({ start: today, end: '' });
+                                                            setCurrentPage(1);
+                                                            setIsDatePickerOpen(false);
+                                                        }}
+                                                        className="text-[9px] font-black text-primary-600 uppercase tracking-widest hover:underline"
+                                                    >
+                                                        Today
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setDateRange({ start: '', end: '' });
+                                                            setCurrentPage(1);
+                                                            setIsDatePickerOpen(false);
+                                                        }}
+                                                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
+                                                    >
+                                                        Clear Filter
+                                                    </button>
                                                 </div>
                                             </motion.div>
                                         </>
