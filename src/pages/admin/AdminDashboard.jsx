@@ -12,15 +12,17 @@ import {
     Trash2,
     ChevronRight,
     Stethoscope,
+    UserPlus,
+    CalendarPlus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
+import AppointmentsChart from '../../components/shared/AppointmentsChart';
 
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -66,178 +68,104 @@ const AdminDashboard = () => {
     const activeAppointmentsCount = appointments?.filter(appt => appt.status !== 'Completed' && appt.status !== 'Cancelled').length || 0;
 
     const stats = user?.role === 'superadmin' ? [
-        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/admin/patients' },
-        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100', link: '/admin/appointments/list' },
-        { label: 'Registered Doctors', value: doctorCount, icon: Stethoscope, color: 'text-amber-600', bg: 'bg-amber-100', link: '/admin/doctors' },
-        { label: 'System Users', value: totalUsers, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/admin/users' },
+        { label: 'Total Patients', value: patientCount, icon: Users, link: '/admin/patients' },
+        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, link: '/admin/appointments/list' },
+        { label: 'Registered Doctors', value: doctorCount, icon: Stethoscope, link: '/admin/doctors' },
+        { label: 'System Users', value: totalUsers, icon: UserSquare2, link: '/admin/users' },
     ] : [
-        { label: 'Total Patients', value: patientCount, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-100', link: '/admin/patients' },
-        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, color: 'text-amber-600', bg: 'bg-amber-100', link: '/admin/appointments/list' },
+        { label: 'Total Patients', value: patientCount, icon: Users, link: '/admin/patients' },
+        { label: 'Active Appointments', value: activeAppointmentsCount, icon: CalendarCheck2, link: '/admin/appointments/list' },
+    ];
+
+    const quickActions = [
+        { label: 'Add New Patient', desc: 'Register a new patient', to: '/admin/patients/register', icon: UserPlus },
+        ...(user?.role === 'superadmin' ? [{ label: 'Add New Doctor', desc: 'Onboard a doctor account', to: '/admin/doctors/register', icon: Stethoscope }] : []),
+        { label: 'New Appointment', desc: 'Assign a patient to a doctor', to: '/admin/appointments', icon: CalendarPlus },
+        { label: 'Active Appointments', desc: 'Monitor all patient-doctor links', to: '/admin/appointments/list', icon: CalendarCheck2 },
     ];
 
     const isLoading = usersLoading || ((user?.role === 'admin' || user?.role === 'superadmin') && appointmentsLoading);
 
-    // Chart Data (Last 7 days)
-    const chartData = [...Array(7)].map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        const count = appointments?.filter(a => new Date(a.date).toISOString().split('T')[0] === dateStr).length || 0;
-        return {
-            name: d.toLocaleDateString('en-US', { weekday: 'short' }),
-            count
-        };
-    }).reverse();
-
     return (
         <DashboardLayout>
-            <div className="max-w-7xl mx-auto">
-                <div className="mb-6 md:mb-10 md:flex items-center justify-between">
+            <div className="w-full max-w-[1600px] mx-auto">
+                <div className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-black text-secondary-900 uppercase tracking-tighter">Dashboard</h1>
-                        <p className="text-slate-500 mt-1 font-medium text-sm md:text-base">New Venus Clinic • Intelligence & Management</p>
+                        <h1 className="page-title">Dashboard</h1>
+                        <p className="page-sub">New Venus Clinic · Intelligence &amp; management</p>
                     </div>
-                    <div className="flex gap-3 mt-4 md:mt-0">
-                        <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100/50">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                            Operational
-                        </span>
-                    </div>
+                    <span className="self-start md:self-auto flex items-center gap-2 text-[13px] font-semibold text-emerald-700 bg-emerald-50 px-3 h-8 rounded-full border border-emerald-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        Operational
+                    </span>
                 </div>
 
-                <div className={`grid grid-cols-1 md:grid-cols-2 ${user?.role === 'superadmin' ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-4 md:gap-8 mb-6 md:mb-10`}>
+                <div className={`grid grid-cols-2 ${user?.role === 'superadmin' ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-3 md:gap-4 mb-4`}>
                     {stats.map((stat, i) => (
-                        <div key={i} onClick={() => stat.link && navigate(stat.link)} className="glass-card p-4 md:p-6 flex items-center gap-4 md:gap-5 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group border-b-4 border-b-slate-50 hover:border-b-primary-200">
-                            <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 ${stat.bg} ${stat.color} shrink-0`}>
-                                <stat.icon className="w-6 h-6 md:w-7 md:h-7" />
+                        <div key={i} onClick={() => stat.link && navigate(stat.link)} className="ui-card p-4 md:p-5 flex items-center gap-4 hover:shadow-md hover:border-slate-200 transition-all cursor-pointer">
+                            <div className="w-11 h-11 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center shrink-0">
+                                <stat.icon className="w-5 h-5" />
                             </div>
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl md:text-2xl font-black text-secondary-900 tracking-tighter ">{stat.value}</span>
-                                </div>
+                            <div className="min-w-0">
+                                <p className="text-2xl font-bold text-ink leading-none tabular-nums">{isLoading ? '–' : stat.value}</p>
+                                <p className="text-[13px] font-medium text-muted mt-1.5 truncate">{stat.label}</p>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                    <div className="lg:col-span-2 glass-card p-4 md:p-8">
-                        {user?.role === 'superadmin' ? (
-                            <>
-                                <h3 className="text-lg md:text-xl font-bold mb-6">Appointments This Week</h3>
-                                <div className="h-64 w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData}>
-                                            <defs>
-                                                <linearGradient id="colorCountAdmin" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3}/>
-                                                    <stop offset="95%" stopColor="#0d9488" stopOpacity={0}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                                            <Tooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                                            <Area type="monotone" dataKey="count" stroke="#0d9488" strokeWidth={3} fillOpacity={1} fill="url(#colorCountAdmin)" activeDot={{r: 6, fill: '#f59e0b', stroke: '#fff', strokeWidth: 2}} />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="flex items-center justify-between mb-6 md:mb-8">
-                                    <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter">
-                                        Recent Patient Registrations
-                                    </h3>
-                                </div>
-                                <div className="space-y-3 md:space-y-4">
-                                    {isLoading ? (
-                                        [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl" />)
-                                    ) : (
-                                        users
-                                            ?.filter(u => u.role === 'patient')
-                                            .slice(-5)
-                                            .reverse()
-                                            .map((u, i) => (
-                                                <div key={u._id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100 group">
-                                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-100 flex items-center justify-center text-primary-600 font-black group-hover:bg-primary-100/50 group-hover:rotate-12 transition-all shrink-0">
-                                                        {u.name.charAt(0)}
-                                                    </div>
-                                                    <div className="flex-1 overflow-hidden">
-                                                        <p className="text-xs md:text-sm font-black text-secondary-900 uppercase tracking-tight truncate">
-                                                            {u.name}
-                                                        </p>
-                                                        <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest truncate">
-                                                            {u.role} • {new Date(u.createdAt).toLocaleDateString('en-GB')}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            ))
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                {/* Quick actions */}
+                <div className={`grid grid-cols-1 sm:grid-cols-2 ${quickActions.length > 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'} gap-3 md:gap-4 mb-4`}>
+                    {quickActions.map(a => (
+                        <Link
+                            key={a.label}
+                            to={a.to}
+                            className="ui-card p-4 flex items-center gap-3.5 hover:border-primary-300 hover:shadow-md transition-all group"
+                        >
+                            <span className="w-11 h-11 rounded-xl bg-secondary-900 text-white flex items-center justify-center shrink-0">
+                                <a.icon className="w-5 h-5" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                                <span className="block text-sm font-semibold text-ink">{a.label}</span>
+                                <span className="block text-xs text-muted truncate">{a.desc}</span>
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-subtle group-hover:text-primary-700 group-hover:translate-x-0.5 transition-all" />
+                        </Link>
+                    ))}
+                </div>
 
-                    <div className="glass-card p-4 md:p-8">
-                        <h3 className="text-lg md:text-xl font-black text-secondary-900 uppercase tracking-tighter mb-6 md:mb-8">Admin Directives</h3>
-                        <div className="grid gap-4">
-                            {user?.role === 'superadmin' ? (
-                                <>
-                                    
-                                    <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">Add New Patient</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link to="/admin/doctors/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">Add New Doctor</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link to="/admin/appointments" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">New Appointment</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link to="/admin/appointments/list" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-amber-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">Active Appointments</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                </>
+                <div className={`grid grid-cols-1 ${user?.role === 'superadmin' ? 'lg:grid-cols-[minmax(0,1fr)_440px]' : ''} gap-4 items-start`}>
+                    {user?.role === 'superadmin' && (
+                        <AppointmentsChart appointments={appointments || []} height={300} />
+                    )}
+
+                    <div className="ui-card overflow-hidden">
+                        <div className="px-5 py-4 flex items-center justify-between border-b border-line">
+                            <h3 className="text-base font-bold text-ink">Recent patient registrations</h3>
+                            <Link to="/admin/patients" className="text-primary-700 text-[13px] font-semibold hover:underline flex items-center gap-1">
+                                View all <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                        </div>
+                        <div className="divide-y divide-line">
+                            {isLoading ? (
+                                [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse" />)
                             ) : (
-                                <>
-                                    <Link to="/admin/patients/register" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-emerald-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <Users className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">Add New Patient</span>
+                                users
+                                    ?.filter(u => u.role === 'patient')
+                                    .slice(-5)
+                                    .reverse()
+                                    .map((u) => (
+                                        <div key={u._id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                                            <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-700 text-sm font-bold shrink-0">
+                                                {u.name.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-ink truncate">{u.name}</p>
+                                                <p className="text-[13px] text-muted truncate">{[u.age ? `${u.age} Y` : null, u.gender, u.phone].filter(Boolean).join(' · ') || 'Patient'}</p>
+                                            </div>
+                                            <span className="text-[13px] text-muted tabular-nums shrink-0">{new Date(u.createdAt).toLocaleDateString('en-GB')}</span>
                                         </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link to="/admin/appointments" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-primary-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">New Appointment</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                    <Link to="/admin/appointments/list" className="flex items-center justify-between p-5 bg-slate-50 rounded-3xl hover:bg-amber-600 hover:text-white transition-all text-left group shadow-sm shadow-black/5">
-                                        <div className="flex items-center gap-4">
-                                            <CalendarCheck2 className="w-6 h-6 transition-transform group-hover:scale-110" />
-                                            <span className="font-black text-xs uppercase tracking-widest">Active Appointments</span>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 opacity-50 group-hover:translate-x-1" />
-                                    </Link>
-                                </>
+                                    ))
                             )}
                         </div>
                     </div>

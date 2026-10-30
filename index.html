@@ -8,11 +8,23 @@
   <title>New Venus Clinic</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <style>
+      @keyframes vb-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+      @keyframes vb-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .75; transform: scale(.98); } }
+    </style>
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;font-family:system-ui,sans-serif">
+      <img src="/images/venus-logo.webp" alt="New Venus Clinic" style="width:240px;max-width:60vw;height:auto;animation:vb-pulse 1.8s ease-in-out infinite" />
+      <div style="margin-top:28px;width:176px;height:4px;border-radius:9999px;background:#ccfcf5;overflow:hidden">
+        <div style="height:100%;width:33%;border-radius:9999px;background:#00baa9;animation:vb-slide 1.2s ease-in-out infinite"></div>
+      </div>
+      <p style="margin-top:12px;font-size:12px;color:#566074;letter-spacing:.03em">Loading...</p>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

@@ -22,7 +22,8 @@ import {
     Share2,
     Send,
     UploadCloud,
-    Edit2
+    Edit2,
+    Plus
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -263,60 +264,331 @@ const AppointmentList = () => {
         setCurrentPage(1);
     };
 
+    const todayStr = getLocalDateString(new Date());
+    const dateCounts = (appointments || []).reduce((acc, a) => {
+        const d = getLocalDateString(a.date || a.createdAt);
+        acc.all += 1;
+        if (d === todayStr) acc.today += 1;
+        else if (d > todayStr) acc.upcoming += 1;
+        else acc.previous += 1;
+        return acc;
+    }, { all: 0, today: 0, upcoming: 0, previous: 0 });
+
+    const pageTabs = [
+        { key: null, label: 'All', to: '/admin/appointments/list', count: dateCounts.all },
+        { key: 'today', label: 'Today', to: '/admin/appointments/list?filter=today', count: dateCounts.today },
+        { key: 'upcoming', label: 'Upcoming', to: '/admin/appointments/list?filter=upcoming', count: dateCounts.upcoming },
+        { key: 'previous', label: 'Previous', to: '/admin/appointments/list?filter=previous', count: dateCounts.previous }
+    ];
+
+    const getStatusColor = (status) => {
+        switch (status) {
+            case 'Pending': return 'bg-amber-50 text-amber-700 border-amber-200';
+            case 'Accepted': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'Completed': return 'bg-sky-50 text-sky-700 border-sky-200';
+            case 'Cancelled': return 'bg-rose-50 text-rose-600 border-rose-200';
+            case 'Rescheduled': return 'bg-violet-50 text-violet-700 border-violet-200';
+            default: return 'bg-slate-100 text-muted border-line';
+        }
+    };
+
+    const initialsOf = (name) =>
+        (name || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+    const renderPatient = (appt) => (
+        <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
+                {initialsOf(appt.patient?.name)}
+            </div>
+            <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink truncate">{appt.patient?.name}</p>
+                <p className="text-[13px] text-muted truncate mt-0.5">{appt.patient?.email || appt.patient?.phone || '–'}</p>
+            </div>
+        </div>
+    );
+
+    const renderDoctor = (appt) => (
+        <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">
+                {initialsOf(appt.doctor?.name)}
+            </div>
+            <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink truncate">{appt.doctor?.name}</p>
+                <p className="text-[13px] text-muted truncate mt-0.5">{appt.doctor?.specialization || 'Specialist'}</p>
+            </div>
+        </div>
+    );
+
+    const renderDate = (appt) => {
+        if (editingDateId === appt._id) {
+            return (
+                <div className="relative inline-flex items-center gap-1.5 bg-white p-1 rounded-lg border border-line shadow-sm">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setPopupPos({ top: rect.bottom + 8, left: rect.left });
+                            setIsEditDatePickerOpen(!isEditDatePickerOpen);
+                        }}
+                        className="h-8 px-2.5 text-[13px] font-semibold text-ink bg-slate-50 hover:bg-slate-100 rounded-md transition-colors flex items-center gap-2"
+                    >
+                        <Calendar className="w-3.5 h-3.5 text-primary-600" />
+                        {newDate ? formatDateDisplay(newDate, { day: '2-digit', month: 'short', year: 'numeric' }) : 'Select date'}
+                    </button>
+
+                    {createPortal(
+                        <AnimatePresence>
+                            {isEditDatePickerOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-[90]" onClick={() => setIsEditDatePickerOpen(false)} />
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                                        style={{ top: popupPos.top, left: popupPos.left }}
+                                        className="fixed z-[100] bg-white rounded-2xl shadow-2xl border border-line p-5 w-[300px]"
+                                    >
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-sm font-bold text-ink">
+                                                {editViewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                            </h4>
+                                            <div className="flex gap-1">
+                                                <button type="button" onClick={() => setEditViewDate(new Date(editViewDate.getFullYear(), editViewDate.getMonth() - 1, 1))} className="ui-icon-btn !w-8 !h-8">
+                                                    <ChevronLeft className="w-4 h-4" />
+                                                </button>
+                                                <button type="button" onClick={() => setEditViewDate(new Date(editViewDate.getFullYear(), editViewDate.getMonth() + 1, 1))} className="ui-icon-btn !w-8 !h-8">
+                                                    <ChevronRight className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-1 mb-1">
+                                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                                                <div key={day} className="text-center label-caps py-1.5">{day}</div>
+                                            ))}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-1">
+                                            {Array.from({ length: new Date(editViewDate.getFullYear(), editViewDate.getMonth(), 1).getDay() }).map((_, i) => <div key={`e-${i}`} />)}
+                                            {Array.from({ length: new Date(editViewDate.getFullYear(), editViewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
+                                                const day = i + 1;
+                                                const dateStr = `${editViewDate.getFullYear()}-${String(editViewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                const isSelected = newDate === dateStr;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        key={day}
+                                                        onClick={() => {
+                                                            setNewDate(dateStr);
+                                                            setIsEditDatePickerOpen(false);
+                                                        }}
+                                                        className={`h-9 flex items-center justify-center rounded-lg text-[13px] font-medium transition-all ${isSelected ? 'bg-secondary-900 text-white font-bold shadow-md' : 'hover:bg-slate-100 text-ink'}`}
+                                                    >
+                                                        {day}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>,
+                        document.body
+                    )}
+                    <button
+                        type="button"
+                        onClick={() => handleDateUpdate(appt._id)}
+                        disabled={updateDateMutation.isPending}
+                        className="w-8 h-8 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors"
+                        title="Save date"
+                    >
+                        <CheckCircle2 className="w-4 h-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setEditingDateId(null)}
+                        className="w-8 h-8 flex items-center justify-center bg-rose-50 text-rose-600 rounded-md hover:bg-rose-100 transition-colors"
+                        title="Cancel"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            );
+        }
+
+        const dt = new Date(appt.date || appt.createdAt);
+        const editable = appt.status !== 'Completed';
+        return (
+            <div
+                className={`group/date inline-flex items-center gap-2 ${editable ? 'cursor-pointer' : ''}`}
+                onClick={() => {
+                    if (editable) {
+                        setEditingDateId(appt._id);
+                        setNewDate(getLocalDateString(appt.date || appt.createdAt));
+                        setEditViewDate(new Date(appt.date || appt.createdAt));
+                        setIsEditDatePickerOpen(true);
+                    }
+                }}
+                title={editable ? 'Click to change date' : undefined}
+            >
+                <div>
+                    <p className="text-sm font-semibold text-ink tabular-nums">
+                        {dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                    <p className="text-[13px] text-muted mt-0.5">{dt.toLocaleDateString('en-GB', { weekday: 'long' })}</p>
+                </div>
+                {editable && (
+                    <Edit2 className="w-3.5 h-3.5 text-subtle opacity-60 group-hover/date:opacity-100 group-hover/date:text-primary-600 transition-all" />
+                )}
+            </div>
+        );
+    };
+
+    const renderActions = (appt) => (
+        appt.status !== 'Completed' ? (
+            <>
+                <label className={`ui-icon-btn cursor-pointer hover:!text-emerald-700 hover:!bg-emerald-50 ${uploadPrescriptionMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Handwritten Prescription">
+                    <UploadCloud className="w-[18px] h-[18px]" />
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, appt)} />
+                </label>
+                <button
+                    onClick={() => setConfirmModal({ isOpen: true, id: appt._id, name: appt.patient?.name })}
+                    disabled={deleteMutation.isPending}
+                    className="ui-icon-btn-danger"
+                    title="Remove Assignment"
+                >
+                    <XCircle className="w-[18px] h-[18px]" />
+                </button>
+            </>
+        ) : (
+            <>
+                <button onClick={() => handleShareClick(appt)} className="ui-icon-btn" title="Share to Email">
+                    <Mail className="w-[18px] h-[18px]" />
+                </button>
+                <button onClick={() => handlePrint(appt)} className="ui-btn-soft" title="Print Prescription">
+                    <Printer className="w-4 h-4" />
+                    Print Prescription
+                </button>
+            </>
+        )
+    );
+
+    const statusChip = (status) => (
+        <span className={`ui-chip ${getStatusColor(status)}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+            {status}
+        </span>
+    );
+
+    const emptyState = (
+        <div className="py-16 px-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-7 h-7 text-subtle" />
+            </div>
+            <p className="text-base font-semibold text-ink">No appointments found</p>
+            <p className="text-sm text-muted mt-1">Try another tab, date range or search term.</p>
+            {(searchTerm || dateRange.start) && (
+                <button
+                    onClick={() => {
+                        setSearchTerm('');
+                        setDateRange({ start: '', end: '' });
+                        setCurrentPage(1);
+                    }}
+                    className="ui-btn-outline mt-5"
+                >
+                    Clear filters
+                </button>
+            )}
+        </div>
+    );
+
     return (
         <DashboardLayout>
-            <div className="max-w-8xl mx-auto py-0 px-4">
-                <div className="mb-6 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="w-full max-w-[1600px] mx-auto">
+                {/* Header */}
+                <div className="mb-5 flex items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter flex items-center gap-3">
-                            <Calendar className="w-8 h-8 text-primary-500" />
-                            {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : filterParam === 'upcoming' ? 'Upcoming Appointments' : 'Active Appointments'}
+                        <h1 className="page-title">
+                            {filterParam === 'today' ? 'Today\'s Appointments' : filterParam === 'previous' ? 'Previous Appointments' : filterParam === 'upcoming' ? 'Upcoming Appointments' : 'Active Appointments'}
                         </h1>
-                        <p className="text-slate-500 mt-1 font-bold">Monitor and manage all patient-doctor links</p>
+                        <p className="page-sub">Monitor and manage all patient-doctor links</p>
+                    </div>
+                    <Link to="/admin/appointments" className="ui-btn-dark !h-10 !px-4 shrink-0">
+                        <Plus className="w-4 h-4" /> New Appointment
+                    </Link>
+                </div>
+
+                {/* Toolbar: tabs + search + date */}
+                <div className="ui-card p-3 mb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto self-start">
+                        {pageTabs.map(t => {
+                            const active = (filterParam || null) === t.key;
+                            return (
+                                <Link
+                                    key={t.label}
+                                    to={t.to}
+                                    className={`h-8 px-3.5 rounded-md text-[13px] font-semibold flex items-center gap-2 whitespace-nowrap transition-all ${active ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+                                >
+                                    {t.label}
+                                    <span className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center tabular-nums ${active ? 'bg-secondary-900 text-white' : 'bg-white text-muted'}`}>
+                                        {isLoading ? '–' : t.count}
+                                    </span>
+                                </Link>
+                            );
+                        })}
                     </div>
 
-                    {/* Search, Filter by Date, and New Appointment button at right end */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                        <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 flex items-center gap-3 w-full sm:w-auto shadow-sm">
-                            <Search className="w-4 h-4 text-slate-400" />
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="relative w-full sm:w-72">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-subtle pointer-events-none" />
                             <input
                                 type="text"
-                                placeholder="Search assignments..."
-                                className="bg-transparent border-none outline-none text-xs font-bold w-full sm:w-48"
+                                placeholder="Search patient, doctor or reason"
+                                className="ui-input pl-10 pr-9"
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
                             />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-md text-subtle hover:text-ink transition-colors"
+                                    title="Clear search"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                         </div>
 
-                        <div className="relative w-full sm:w-auto">
-                            <button
-                                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                                className="px-4 py-2 bg-white rounded-xl border border-slate-200 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm text-slate-600"
-                            >
-                                <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
-                                <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
-                                    {dateRange.start && dateRange.end ? (
-                                        `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
-                                    ) : dateRange.start ? (
-                                        formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
-                                    ) : 'Filter by Date'}
-                                </span>
+                        <div className="relative">
+                            <div className={`h-10 flex items-center bg-white rounded-lg border transition-all ${dateRange.start ? 'border-primary-500' : 'border-line hover:border-slate-200'}`}>
+                                <button
+                                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                                    className="h-full pl-3.5 pr-3 flex items-center gap-2.5 flex-1"
+                                >
+                                    <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-600' : 'text-subtle'}`} />
+                                    <span className={`text-sm font-medium whitespace-nowrap ${dateRange.start ? 'text-ink' : 'text-muted'}`}>
+                                        {dateRange.start && dateRange.end ? (
+                                            `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
+                                        ) : dateRange.start ? (
+                                            formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
+                                        ) : 'Filter by date'}
+                                    </span>
+                                </button>
                                 {dateRange.start && (
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
+                                        onClick={() => {
                                             setDateRange({ start: '', end: '' });
                                             setCurrentPage(1);
                                         }}
-                                        className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
+                                        className="mr-2 p-1 hover:bg-slate-100 rounded-md transition-colors"
+                                        title="Clear date filter"
                                     >
-                                        <X className="w-3 h-3 text-slate-400" />
+                                        <X className="w-3.5 h-3.5 text-subtle" />
                                     </button>
                                 )}
-                            </button>
+                            </div>
 
                             <AnimatePresence>
                                 {isCalendarOpen && (
@@ -326,36 +598,34 @@ const AppointmentList = () => {
                                             onClick={() => setIsCalendarOpen(false)}
                                         />
                                         <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            initial={{ opacity: 0, y: 8, scale: 0.97 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute top-full right-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
+                                            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                            className="absolute top-full right-0 mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-line p-5 w-[320px]"
                                         >
-                                            <div className="flex items-center justify-between mb-6">
-                                                <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 className="text-sm font-bold text-ink">
                                                     {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                                                 </h4>
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-1">
                                                     <button
                                                         onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-                                                        className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                        className="ui-icon-btn !w-8 !h-8"
                                                     >
                                                         <ChevronLeft className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-                                                        className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                        className="ui-icon-btn !w-8 !h-8"
                                                     >
                                                         <ChevronRight className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-7 gap-1 mb-2">
+                                            <div className="grid grid-cols-7 gap-1 mb-1">
                                                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                                    <div key={day} className="text-center text-[9px] font-black text-slate-300 uppercase py-2">
-                                                        {day}
-                                                    </div>
+                                                    <div key={day} className="text-center label-caps py-1.5">{day}</div>
                                                 ))}
                                             </div>
 
@@ -370,42 +640,35 @@ const AppointmentList = () => {
                                                     const isStart = dateRange.start === dateStr;
                                                     const isEnd = dateRange.end === dateStr;
                                                     const isInRange = dateRange.start && dateRange.end && dateStr > dateRange.start && dateStr < dateRange.end;
-                                                    const isToday = getLocalDateString(new Date()) === dateStr;
+                                                    const isToday = todayStr === dateStr;
 
                                                     return (
                                                         <button
                                                             key={day}
                                                             onClick={() => handleDateClick(dateStr)}
-                                                            className={`
-                                                            aspect-square flex items-center justify-center rounded-xl text-[10px] font-black transition-all relative
-                                                            ${isStart || isEnd
-                                                                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-200 z-10'
-                                                                    : isInRange
-                                                                        ? 'bg-primary-50 text-primary-600 rounded-none first:rounded-l-xl last:rounded-r-xl'
-                                                                        : isToday
-                                                                            ? 'bg-slate-50 text-primary-600 border border-primary-100'
-                                                                            : 'hover:bg-slate-50 text-secondary-900'
-                                                                }
-                                                        `}
+                                                            className={`h-9 w-full rounded-lg text-[13px] font-medium transition-all flex items-center justify-center ${isStart || isEnd
+                                                                ? 'bg-secondary-900 text-white font-bold shadow-md'
+                                                                : isInRange
+                                                                    ? 'bg-primary-50 text-primary-700 rounded-none'
+                                                                    : isToday
+                                                                        ? 'border border-primary-500 text-primary-700 font-semibold'
+                                                                        : 'text-ink hover:bg-slate-100'
+                                                                }`}
                                                         >
                                                             {day}
-                                                            {isInRange && (
-                                                                <div className="absolute inset-x-[-2px] h-full bg-primary-50 -z-1" />
-                                                            )}
                                                         </button>
                                                     );
                                                 })}
                                             </div>
 
-                                            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                            <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
                                                 <button
                                                     onClick={() => {
-                                                        const today = getLocalDateString(new Date());
-                                                        setDateRange({ start: today, end: '' });
+                                                        setDateRange({ start: todayStr, end: '' });
                                                         setCurrentPage(1);
                                                         setIsCalendarOpen(false);
                                                     }}
-                                                    className="text-[9px] font-black text-primary-600 uppercase tracking-widest hover:underline"
+                                                    className="text-[13px] font-semibold text-primary-700 hover:underline"
                                                 >
                                                     Today
                                                 </button>
@@ -415,9 +678,9 @@ const AppointmentList = () => {
                                                         setCurrentPage(1);
                                                         setIsCalendarOpen(false);
                                                     }}
-                                                    className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
+                                                    className="text-[13px] font-semibold text-muted hover:text-rose-600 transition-colors"
                                                 >
-                                                    Clear Filter
+                                                    Clear filter
                                                 </button>
                                             </div>
                                         </motion.div>
@@ -425,222 +688,91 @@ const AppointmentList = () => {
                                 )}
                             </AnimatePresence>
                         </div>
-
-                        <Link to="/admin/appointments" className="px-5 py-2.5 bg-secondary-900 text-white rounded-xl font-black uppercase tracking-widest text-[10px] shadow-sm hover:bg-primary-600 transition-all flex items-center gap-2 shrink-0">
-                            <CheckCircle2 className="w-4 h-4" /> New Appointment
-                        </Link>
                     </div>
                 </div>
 
-                <div className="glass-card shadow-2xl overflow-hidden rounded-[1rem]">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                {/* List */}
+                <div className="ui-card overflow-hidden mb-6">
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="ui-table w-full">
+                            <thead>
                                 <tr>
-                                    <th className="px-8 py-5">Patient</th>
-                                    <th className="px-8 py-5">Assigned Doctor</th>
-                                    <th className="px-8 py-5 w-48">Reason</th>
-                                    <th className="px-8 py-5">Status</th>
-                                    <th className="px-8 py-5">Date Assigned</th>
-                                    <th className="px-8 py-5 text-right">Actions</th>
+                                    <th>Date</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th className="!text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody>
                                 {isLoading ? (
                                     [1, 2, 3, 4, 5].map(i => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan="6" className="px-8 py-6 h-16 bg-white/50"></td>
+                                            <td><div className="h-9 w-28 bg-slate-100 rounded-md"></div></td>
+                                            <td><div className="flex items-center gap-3"><div className="h-9 w-9 bg-slate-100 rounded-full"></div><div className="h-9 w-36 bg-slate-100 rounded-md"></div></div></td>
+                                            <td><div className="flex items-center gap-3"><div className="h-9 w-9 bg-slate-100 rounded-full"></div><div className="h-9 w-32 bg-slate-100 rounded-md"></div></div></td>
+                                            <td><div className="h-5 w-28 bg-slate-100 rounded-md"></div></td>
+                                            <td><div className="h-6 w-20 bg-slate-100 rounded-full"></div></td>
+                                            <td><div className="h-9 w-20 bg-slate-100 rounded-lg ml-auto"></div></td>
                                         </tr>
                                     ))
                                 ) : !filteredAppointments || filteredAppointments.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-8 py-20 text-center">
-                                            <AlertCircle className="w-12 h-12 text-slate-100 mx-auto mb-4" />
-                                            <p className="text-xs font-black text-slate-300 uppercase tracking-widest ">No active assignments found</p>
-                                        </td>
+                                        <td colSpan="6">{emptyState}</td>
                                     </tr>
                                 ) : (
                                     paginatedAppointments.map((appt) => (
-                                        <tr key={appt._id} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center text-[10px] font-black text-primary-600">
-                                                        {appt.patient?.name?.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-black text-secondary-900 uppercase">{appt.patient?.name}</p>
-                                                        <p className="text-[10px] font-bold text-slate-400">{appt.patient?.email}</p>
-                                                    </div>
+                                        <tr key={appt._id}>
+                                            <td className="whitespace-nowrap">{renderDate(appt)}</td>
+                                            <td>{renderPatient(appt)}</td>
+                                            <td>{renderDoctor(appt)}</td>
+                                            <td>
+                                                <p className="text-sm text-ink max-w-[220px] truncate" title={appt.reason}>{appt.reason}</p>
+                                            </td>
+                                            <td>{statusChip(appt.status)}</td>
+                                            <td>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {renderActions(appt)}
                                                 </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-[10px] font-black text-emerald-600">
-                                                        DR
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-black text-secondary-900 uppercase">{appt.doctor?.name}</p>
-                                                        <p className="text-[10px] font-bold text-slate-400">Specialist</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <p className="text-xs text-slate-600 font-bold max-w-48 truncate" title={appt.reason}>{appt.reason}</p>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${appt.status === 'Accepted' ? 'bg-emerald-100 text-emerald-600' :
-                                                    appt.status === 'Pending' ? 'bg-amber-100 text-amber-600' :
-                                                        'bg-slate-100 text-slate-600'
-                                                    }`}>
-                                                    {appt.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                {editingDateId === appt._id ? (
-                                                    <div className="relative flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                                setPopupPos({ top: rect.bottom + 8, left: rect.left });
-                                                                setIsEditDatePickerOpen(!isEditDatePickerOpen);
-                                                            }}
-                                                            className="px-3 py-1.5 text-xs font-bold text-secondary-900 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-xl outline-none transition-all cursor-pointer hover:bg-slate-100 flex items-center gap-2"
-                                                        >
-                                                            <Calendar className="w-3.5 h-3.5 text-primary-500" />
-                                                            {newDate ? formatDateDisplay(newDate, { day: '2-digit', month: 'short', year: 'numeric' }) : 'Select Date'}
-                                                        </button>
-                                                        
-                                                        {createPortal(
-                                                            <AnimatePresence>
-                                                                {isEditDatePickerOpen && (
-                                                                    <>
-                                                                        <div className="fixed inset-0 z-[90]" onClick={() => setIsEditDatePickerOpen(false)} />
-                                                                        <motion.div
-                                                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                                                                            style={{ top: popupPos.top, left: popupPos.left }}
-                                                                            className="fixed z-[100] bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 w-[280px]"
-                                                                        >
-                                                                            <div className="flex items-center justify-between mb-4">
-                                                                                <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
-                                                                                    {editViewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                                                                </h4>
-                                                                                <div className="flex gap-2">
-                                                                                    <button onClick={() => setEditViewDate(new Date(editViewDate.getFullYear(), editViewDate.getMonth() - 1, 1))} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400">
-                                                                                        <ChevronLeft className="w-4 h-4" />
-                                                                                    </button>
-                                                                                    <button onClick={() => setEditViewDate(new Date(editViewDate.getFullYear(), editViewDate.getMonth() + 1, 1))} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400">
-                                                                                        <ChevronRight className="w-4 h-4" />
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="grid grid-cols-7 gap-1 mb-2">
-                                                                                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                                                                    <div key={day} className="text-center text-[9px] font-black text-slate-300 uppercase py-1">{day}</div>
-                                                                                ))}
-                                                                            </div>
-                                                                            <div className="grid grid-cols-7 gap-1">
-                                                                                {Array.from({ length: new Date(editViewDate.getFullYear(), editViewDate.getMonth(), 1).getDay() }).map((_, i) => <div key={`e-${i}`} />)}
-                                                                                {Array.from({ length: new Date(editViewDate.getFullYear(), editViewDate.getMonth() + 1, 0).getDate() }).map((_, i) => {
-                                                                                    const day = i + 1;
-                                                                                    const dateStr = `${editViewDate.getFullYear()}-${String(editViewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                                                                    const isSelected = newDate === dateStr;
-                                                                                    return (
-                                                                                        <button
-                                                                                            key={day}
-                                                                                            onClick={() => {
-                                                                                                setNewDate(dateStr);
-                                                                                                setIsEditDatePickerOpen(false);
-                                                                                            }}
-                                                                                            className={`aspect-square flex items-center justify-center rounded-lg text-[10px] font-black transition-all ${isSelected ? 'bg-primary-600 text-white shadow-md' : 'hover:bg-slate-50 text-secondary-900'}`}
-                                                                                        >
-                                                                                            {day}
-                                                                                        </button>
-                                                                                    );
-                                                                                })}
-                                                                            </div>
-                                                                        </motion.div>
-                                                                    </>
-                                                                )}
-                                                            </AnimatePresence>,
-                                                            document.body
-                                                        )}
-                                                        <button
-                                                            onClick={() => handleDateUpdate(appt._id)}
-                                                            disabled={updateDateMutation.isPending}
-                                                            className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors shadow-sm"
-                                                            title="Save Date"
-                                                        >
-                                                            <CheckCircle2 className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setEditingDateId(null)}
-                                                            className="p-2 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-100 transition-colors shadow-sm"
-                                                            title="Cancel"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 group/date cursor-pointer" onClick={() => {
-                                                        if(appt.status !== 'Completed') {
-                                                            setEditingDateId(appt._id);
-                                                            setNewDate(getLocalDateString(appt.date || appt.createdAt));
-                                                            setEditViewDate(new Date(appt.date || appt.createdAt));
-                                                            setIsEditDatePickerOpen(true);
-                                                        }
-                                                    }}>
-                                                        <p className="text-xs font-bold text-slate-500">
-                                                            {appt.date ? new Date(appt.date).toLocaleDateString('en-GB') : new Date(appt.createdAt).toLocaleDateString('en-GB')}
-                                                        </p>
-                                                        {appt.status !== 'Completed' && (
-                                                            <Edit2 className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover/date:opacity-100 transition-opacity hover:text-primary-500" />
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                {appt.status !== 'Completed' ? (
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <label className={`p-2 text-slate-300 hover:text-emerald-600 transition-colors cursor-pointer ${uploadPrescriptionMutation.isPending ? 'opacity-50 pointer-events-none' : ''}`} title="Upload Handwritten Prescription">
-                                                            <UploadCloud className="w-5 h-5" />
-                                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, appt)} />
-                                                        </label>
-                                                        <button
-                                                            onClick={() => setConfirmModal({ isOpen: true, id: appt._id, name: appt.patient?.name })}
-                                                            disabled={deleteMutation.isPending}
-                                                            className="p-2 text-slate-300 hover:text-rose-600 transition-colors disabled:opacity-50"
-                                                            title="Remove Assignment"
-                                                        >
-                                                            <XCircle className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => handleShareClick(appt)}
-                                                            className="w-9 h-9 flex items-center justify-center text-secondary-400 bg-secondary-50 hover:bg-primary-100 hover:text-primary-600 transition-colors rounded-xl"
-                                                            title="Share to Email"
-                                                        >
-                                                            <Mail className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handlePrint(appt)}
-                                                            className="p-2 text-[14px] flex items-center justify-center text-primary-900 bg-primary-100 hover:bg-primary-50 hover:text-primary-700 transition-colors rounded-xl"
-                                                            title="Print Prescription"
-                                                        >
-                                                            {/* <Printer className="w-4 h-4" /> */}
-                                                            Print Prescription
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-line">
+                        {isLoading ? (
+                            [1, 2, 3].map(i => (
+                                <div key={i} className="p-4 animate-pulse space-y-3">
+                                    <div className="h-9 w-48 bg-slate-100 rounded-md"></div>
+                                    <div className="h-5 w-32 bg-slate-100 rounded-md"></div>
+                                </div>
+                            ))
+                        ) : !filteredAppointments || filteredAppointments.length === 0 ? (
+                            emptyState
+                        ) : (
+                            paginatedAppointments.map((appt) => (
+                                <div key={appt._id} className="p-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        {renderPatient(appt)}
+                                        {statusChip(appt.status)}
+                                    </div>
+                                    {renderDoctor(appt)}
+                                    <p className="text-sm text-ink">{appt.reason}</p>
+                                    <div className="flex items-center justify-between gap-3 pt-1">
+                                        {renderDate(appt)}
+                                        <div className="flex items-center gap-2">
+                                            {renderActions(appt)}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
 
                     {!isLoading && (
@@ -683,31 +815,31 @@ const AppointmentList = () => {
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-md bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden"
+                            className="relative w-full max-w-md bg-white rounded-2xl p-7 shadow-2xl overflow-hidden"
                         >
-                            <div className="absolute top-0 right-0 p-4">
-                                <button onClick={() => setShowShareModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                            <div className="absolute top-0 right-0 p-3">
+                                <button onClick={() => setShowShareModal(false)} className="ui-icon-btn">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             <div className="flex flex-col items-center text-center">
-                                <div className="w-16 h-16 bg-primary-50 rounded-[22px] flex items-center justify-center mb-6">
-                                    <Mail className="w-8 h-8 text-primary-600" />
+                                <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center mb-5">
+                                    <Mail className="w-7 h-7 text-primary-600" />
                                 </div>
-                                <h2 className="text-xl font-black text-secondary-900 uppercase tracking-tight mb-2">Resend Prescription</h2>
-                                <p className="text-sm text-slate-500 mb-8 max-w-[280px]">
+                                <h2 className="text-xl font-bold text-ink mb-1.5">Resend prescription</h2>
+                                <p className="text-sm text-muted mb-7 max-w-[280px]">
                                     Send a digital copy to the patient's registered email.
                                 </p>
 
                                 <div className="w-full space-y-4 text-left">
                                     <div>
-                                        <label className="text-[10px] font-black text-secondary-900 uppercase tracking-widest mb-1.5 ml-1 block">Patient Email</label>
+                                        <label className="text-[13px] font-semibold text-ink mb-1.5 block">Patient email</label>
                                         <input
                                             type="email"
                                             value={shareData.email}
                                             onChange={(e) => setShareData({ ...shareData, email: e.target.value })}
-                                            className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-secondary-900"
+                                            className="ui-input !h-11"
                                             placeholder="patient@email.com"
                                         />
                                     </div>
@@ -715,7 +847,7 @@ const AppointmentList = () => {
                                     <button
                                         onClick={handleFinalShare}
                                         disabled={shareMutation.isPending}
-                                        className="w-full py-5 bg-primary-600 text-white rounded-[20px] font-black uppercase text-xs tracking-widest shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                                        className="ui-btn-primary !w-full !h-11 !text-sm"
                                     >
                                         {shareMutation.isPending ? (
                                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

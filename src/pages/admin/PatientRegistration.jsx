@@ -18,6 +18,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import { FormSection, Field } from '../../components/shared/FormKit';
 
 const PatientRegistration = () => {
     const navigate = useNavigate();
@@ -51,143 +52,115 @@ const PatientRegistration = () => {
 
     return (
         <DashboardLayout>
-            <div className="max-w-4xl mx-auto">
-                <div className="mb-10 flex items-center gap-4">
-                    <Link to="/admin" className="p-3 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-slate-400 hover:text-primary-600">
+            <div className="w-full max-w-[1200px] mx-auto">
+                <div className="mb-5 flex items-center gap-3">
+                    <Link to="/admin" className="ui-icon-btn !bg-white border border-line">
                         <ChevronLeft className="w-5 h-5" />
                     </Link>
                     <div>
-                        <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">Add New Patient</h1>
-                        <p className="text-slate-500 font-medium">Clerical Enrollment & Governance</p>
+                        <h1 className="page-title">Add New Patient</h1>
+                        <p className="page-sub !mt-0.5">Clerical enrollment &amp; governance</p>
                     </div>
                 </div>
 
-                <div className="glass-card p-10">
+                <form onSubmit={handleSubmit} className="ui-card overflow-hidden">
                     {error && (
                         <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="mb-8 p-4 bg-rose-50 border-l-4 border-rose-500 text-rose-700 text-xs font-black uppercase tracking-widest flex items-center gap-3 rounded-r-2xl"
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="m-6 mb-0 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium flex items-center gap-3 rounded-xl"
                         >
                             <AlertCircle className="w-4 h-4 flex-shrink-0" />
                             {error}
                         </motion.div>
                     )}
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 gap-5">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                        placeholder="Name"
-                                        required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address (Optional)</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="email"
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                        placeholder="Email"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                        placeholder="Phone Number"
-                                        required
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                            placeholder="Age"
-                                            required
-                                            value={formData.age}
-                                            onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
-                                    <div className="relative">
-                                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <select
-                                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20 appearance-none text-slate-600"
-                                            required
-                                            value={formData.gender}
-                                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                        >
-                                            <option value="" disabled>Select Gender</option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Occupation (Optional)</label>
-                                <div className="relative">
-                                    <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        className="w-full pl-11 pr-4 py-3 bg-slate-50 border-none rounded-3xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                                        placeholder="Occupation"
-                                        value={formData.occupation}
-                                        onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-4">
-                            <button
-                                type="submit"
-                                disabled={mutation.isPending}
-                                className="w-full py-5 bg-secondary-900 text-white rounded-3xl font-black uppercase tracking-widest hover:bg-primary-600 transition-all shadow-xl shadow-secondary-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98]"
+                    <FormSection icon={User} title="Personal details" description="Basic information used to identify the patient across the clinic.">
+                        <Field label="Full name" icon={User}>
+                            <input
+                                className="ui-input pl-10"
+                                placeholder="Name"
+                                required
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            />
+                        </Field>
+                        <Field label="Occupation" optional icon={Briefcase}>
+                            <input
+                                className="ui-input pl-10"
+                                placeholder="Occupation"
+                                value={formData.occupation}
+                                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                            />
+                        </Field>
+                        <Field label="Age" icon={Calendar}>
+                            <input
+                                type="number"
+                                min="0"
+                                className="ui-input pl-10"
+                                placeholder="Age"
+                                required
+                                value={formData.age}
+                                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                            />
+                        </Field>
+                        <Field label="Gender" icon={Users} select>
+                            <select
+                                className="ui-input pl-10 pr-10 appearance-none"
+                                required
+                                value={formData.gender}
+                                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                             >
-                                {mutation.isPending ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Onboarding...
-                                    </>
-                                ) : (
-                                    <>
-                                        <UserPlus className="w-5 h-5" />
-                                        Complete Registration
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                                <option value="" disabled>Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </Field>
+                    </FormSection>
+
+                    <FormSection icon={Phone} title="Contact" description="Used for appointment communication and sharing prescriptions.">
+                        <Field label="Phone number" icon={Phone}>
+                            <input
+                                className="ui-input pl-10"
+                                placeholder="Phone Number"
+                                required
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            />
+                        </Field>
+                        <Field label="Email address" optional icon={Mail}>
+                            <input
+                                type="email"
+                                className="ui-input pl-10"
+                                placeholder="Email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            />
+                        </Field>
+                    </FormSection>
+
+                    <div className="px-6 md:px-8 py-4 bg-slate-50 border-t border-line flex items-center justify-end gap-3">
+                        <Link to="/admin" className="ui-btn-outline !h-11 !px-5">Cancel</Link>
+                        <button
+                            type="submit"
+                            disabled={mutation.isPending}
+                            className="ui-btn-dark !h-11 !px-6 !text-sm"
+                        >
+                            {mutation.isPending ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Onboarding...
+                                </>
+                            ) : (
+                                <>
+                                    <UserPlus className="w-4 h-4" />
+                                    Complete Registration
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
             </div>
         </DashboardLayout>
     );

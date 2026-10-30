@@ -105,219 +105,288 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     });
 
 
+    const activeUsers = (users || []).filter(u => !u.isDeleted);
+    const counts = {
+        all: activeUsers.length,
+        doctor: activeUsers.filter(u => u.role === 'doctor').length,
+        patient: activeUsers.filter(u => u.role === 'patient').length,
+        pharmacy: activeUsers.filter(u => u.role === 'pharmacy').length,
+        archived: (users || []).filter(u => u.isDeleted).length
+    };
+    const tabLabels = { all: 'All', doctor: 'Doctors', patient: 'Patients', pharmacy: 'Pharmacy', archived: 'Archived' };
+    const showRole = ['all', 'archived'].includes(filter);
+    const colCount = showRole ? 5 : 4;
+
+    const initialsOf = (name) =>
+        (name || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+    const roleChipClass = (user) =>
+        user.isDeleted ? 'bg-slate-100 text-muted border-line' :
+            user.role === 'superadmin' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-200' :
+                    user.role === 'doctor' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                        user.role === 'pharmacy' ? 'bg-teal-50 text-teal-700 border-teal-200' :
+                            'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+    const avatarClass = (user) =>
+        user.isDeleted ? 'bg-rose-50 text-rose-600' :
+            user.role === 'doctor' ? 'bg-indigo-50 text-indigo-700' :
+                user.role === 'patient' ? 'bg-primary-50 text-primary-700' :
+                    'bg-secondary-50 text-secondary-700';
+
+    const renderUser = (user) => (
+        <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarClass(user)}`}>
+                {initialsOf(user.name)}
+            </div>
+            <div className="min-w-0">
+                <p className={`text-sm font-semibold truncate flex items-center gap-2 ${user.isDeleted ? 'text-muted line-through' : 'text-ink'}`}>
+                    {user.name}
+                    {user.isLocked && !user.isDeleted && (
+                        <span className="no-underline inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 h-5">
+                            <Lock className="w-3 h-3" /> Locked
+                        </span>
+                    )}
+                </p>
+                <p className="text-[13px] text-muted mt-0.5">#{getDisplayId(user)}</p>
+            </div>
+        </div>
+    );
+
+    const renderContact = (user) => (
+        <div className="space-y-1 min-w-0">
+            <p className="flex items-center gap-2 text-sm text-ink truncate">
+                <Mail className="w-3.5 h-3.5 text-subtle shrink-0" />
+                <span className="truncate">{user.email || <span className="text-subtle">–</span>}</span>
+            </p>
+            <p className="flex items-center gap-2 text-sm text-ink tabular-nums">
+                <Phone className="w-3.5 h-3.5 text-subtle shrink-0" />
+                {user.phone || <span className="text-subtle">–</span>}
+            </p>
+        </div>
+    );
+
+    const renderDetails = (user) => (
+        <div>
+            <p className="text-sm text-ink">
+                {user.age ? `${user.age} yrs` : 'Age N/A'}
+                <span className="text-subtle"> · </span>
+                {user.gender || 'N/A'}
+            </p>
+            <p className="text-[13px] text-muted mt-0.5 truncate max-w-[220px]">
+                <span className="text-subtle">{user.role === 'doctor' ? 'Specialization: ' : 'Occupation: '}</span>
+                {user.role === 'doctor' ? (user.specialization || 'N/A') : (user.occupation || 'N/A')}
+            </p>
+        </div>
+    );
+
+    const renderRole = (user) => (
+        <span className={`ui-chip capitalize ${roleChipClass(user)}`}>
+            {user.isDeleted ? `Deleted ${user.role}` : user.isLocked ? `Locked ${user.role}` : user.role}
+        </span>
+    );
+
+    const renderActions = (user) => (
+        <>
+            {user.role === 'doctor' && !user.isDeleted && (
+                <button
+                    onClick={() => {
+                        localStorage.setItem('viewAsDoctorId', user._id);
+                        navigate('/doctor');
+                    }}
+                    className="ui-icon-btn hover:!text-primary-700 hover:!bg-primary-50"
+                    title="View Doctor Dashboard"
+                >
+                    <LayoutDashboard className="w-[18px] h-[18px]" />
+                </button>
+            )}
+            {user.isDeleted ? (
+                <button
+                    onClick={() => restoreMutation.mutate(user._id)}
+                    className="ui-btn-soft"
+                    title="Restore User"
+                >
+                    <RotateCcw className="w-4 h-4" /> Restore
+                </button>
+            ) : user.role !== 'superadmin' && (
+                <>
+                    {user.role !== 'patient' && (
+                        <button
+                            onClick={() => toggleLockMutation.mutate(user._id)}
+                            className={`ui-icon-btn hover:!text-amber-600 hover:!bg-amber-50 ${user.isLocked ? '!text-amber-600 !bg-amber-50' : ''}`}
+                            title={user.isLocked ? 'Unlock User' : 'Lock User'}
+                        >
+                            {user.isLocked ? <Unlock className="w-[18px] h-[18px]" /> : <Lock className="w-[18px] h-[18px]" />}
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setEditModal({ isOpen: true, user })}
+                        className="ui-icon-btn hover:!text-sky-700 hover:!bg-sky-50"
+                        title="Edit User"
+                    >
+                        <Pencil className="w-[18px] h-[18px]" />
+                    </button>
+                    <button
+                        onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
+                        className="ui-icon-btn-danger"
+                        title="Delete User"
+                    >
+                        <Trash2 className="w-[18px] h-[18px]" />
+                    </button>
+                </>
+            )}
+        </>
+    );
+
+    const emptyState = (
+        <div className="py-16 px-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <Users className="w-7 h-7 text-subtle" />
+            </div>
+            <p className="text-base font-semibold text-ink">
+                {filter === 'all' ? 'No users found' :
+                    filter === 'doctor' ? 'No doctors found' :
+                        filter === 'patient' ? 'No patients found' :
+                            filter === 'pharmacy' ? 'No pharmacy users found' :
+                                'No archived records found'}
+            </p>
+            <p className="text-sm text-muted mt-1">{searchTerm ? 'Try a different name, ID or phone number.' : 'Nothing to show here yet.'}</p>
+            {searchTerm && (
+                <button onClick={() => { setSearchTerm(''); setCurrentPage(1); }} className="ui-btn-outline mt-5">
+                    Clear search
+                </button>
+            )}
+        </div>
+    );
+
     return (
         <DashboardLayout>
-            <div className="max-w-8xl mx-auto py-0">
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-6">
+            <div className="w-full max-w-[1600px] mx-auto">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900 uppercase">
+                        <h1 className="page-title">
                             {filter === 'doctor' ? 'Doctors Directory' : filter === 'patient' ? 'Patients Directory' : 'User Management'}
                         </h1>
-                        <p className="text-slate-500 mt-1">
+                        <p className="page-sub">
                             {filter === 'doctor' ? 'Manage medical professionals and access their dashboards' : filter === 'patient' ? 'Manage registered patients and active profiles' : 'Control access levels and manage profiles'}
                         </p>
                     </div>
 
-                    {/* Search and Action buttons at right end */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-                        <div className="px-4 py-2 bg-white rounded-xl border border-slate-200 flex items-center gap-3 w-full sm:w-auto shadow-sm">
-                            <Search className="w-4 h-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by name, ID or phone..."
-                                className="bg-transparent border-none outline-none text-xs font-bold w-full sm:w-52"
-                                value={searchTerm}
-                                onChange={(e) => {
-                                    setSearchTerm(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                            />
-                            {searchTerm && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setSearchTerm('');
-                                        setCurrentPage(1);
-                                    }}
-                                    className="p-0.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
-                                    title="Clear search"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                            <button
-                                onClick={() => navigate('/admin/patients/register')}
-                                className="btn-secondary flex items-center justify-center gap-2 border-2 border-slate-200 px-5 py-2.5 rounded-2xl font-bold text-xs tracking-tight hover:bg-slate-50 transition-all shrink-0"
-                            >
-                                <UserPlus className="w-4 h-4" />
-                                Add New Patient
-                            </button>
-                            <button
-                                onClick={() => navigate('/admin/doctors/register')}
-                                className="bg-secondary-900 text-white px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary-600 transition-all shadow-lg shadow-secondary-900/10 flex items-center gap-2 shrink-0"
-                            >
-                                <UserPlus className="w-4 h-4 text-primary-400" />
-                                Add Doctor
-                            </button>
-                        </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <button
+                            onClick={() => navigate('/admin/patients/register')}
+                            className={`${filter === 'doctor' ? 'ui-btn-outline' : 'ui-btn-dark'} !h-10 !px-4`}
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            Add New Patient
+                        </button>
+                        <button
+                            onClick={() => navigate('/admin/doctors/register')}
+                            className={`${filter === 'doctor' ? 'ui-btn-dark' : 'ui-btn-outline'} !h-10 !px-4`}
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            Add Doctor
+                        </button>
                     </div>
                 </div>
 
-                {defaultFilter === 'all' && (
-                    <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                        {['all', 'doctor', 'patient', 'pharmacy', 'archived'].map(role => (
+                {/* Toolbar: tabs / count + search */}
+                <div className="ui-card p-3 mb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    {defaultFilter === 'all' ? (
+                        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-lg overflow-x-auto self-start max-w-full">
+                            {['all', 'doctor', 'patient', 'pharmacy', 'archived'].map(role => {
+                                const active = filter === role;
+                                return (
+                                    <button
+                                        key={role}
+                                        onClick={() => {
+                                            setFilter(role);
+                                            setCurrentPage(1);
+                                        }}
+                                        className={`h-8 px-3.5 rounded-md text-[13px] font-semibold flex items-center gap-2 whitespace-nowrap transition-all ${active ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
+                                    >
+                                        {tabLabels[role]}
+                                        <span className={`min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center tabular-nums ${active ? 'bg-secondary-900 text-white' : 'bg-white text-muted'}`}>
+                                            {isLoading ? '–' : counts[role]}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 px-1">
+                            <span className="text-2xl font-bold text-ink tabular-nums leading-none">{isLoading ? '–' : counts[filter]}</span>
+                            <span className="text-sm text-muted">{filter === 'doctor' ? 'doctors' : 'patients'} registered</span>
+                        </div>
+                    )}
+
+                    <div className="relative w-full lg:w-96">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-subtle pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, ID or phone"
+                            className="ui-input pl-10 pr-9"
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                        {searchTerm && (
                             <button
-                                key={role}
+                                type="button"
                                 onClick={() => {
-                                    setFilter(role);
+                                    setSearchTerm('');
                                     setCurrentPage(1);
                                 }}
-                                className={`px-4 py-2 text-xs font-bold capitalize rounded-xl border transition-all ${filter === role
-                                    ? 'bg-secondary-900 text-white border-secondary-900'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                    }`}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-md text-subtle hover:text-ink transition-colors"
+                                title="Clear search"
                             >
-                                {role === 'all' ? role : role === 'archived' ? 'Archived' : role === 'pharmacy' ? 'Pharmacy' : `${role}s`}
+                                <X className="w-3.5 h-3.5" />
                             </button>
-                        ))}
+                        )}
                     </div>
-                )}
+                </div>
 
-                <div className="glass-card overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                <div className="ui-card overflow-hidden mb-6">
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="ui-table w-full">
                             <thead>
-                                <tr className="bg-slate-50/50">
-                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">User Details</th>
-                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Contact</th>
-                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Basic Details</th>
-                                    {['all', 'archived'].includes(filter) && (
-                                        <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Role</th>
-                                    )}
-                                    <th className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Contact</th>
+                                    <th>Details</th>
+                                    {showRole && <th>Role</th>}
+                                    <th className="!text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody>
                                 {isLoading ? (
-                                    [1, 2, 3].map(i => <tr key={i} className="animate-pulse h-20"></tr>)
+                                    [1, 2, 3, 4, 5].map(i => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td><div className="flex items-center gap-3"><div className="h-10 w-10 bg-slate-100 rounded-full"></div><div className="h-9 w-36 bg-slate-100 rounded-md"></div></div></td>
+                                            <td><div className="h-9 w-44 bg-slate-100 rounded-md"></div></td>
+                                            <td><div className="h-9 w-32 bg-slate-100 rounded-md"></div></td>
+                                            {showRole && <td><div className="h-6 w-20 bg-slate-100 rounded-full"></div></td>}
+                                            <td><div className="h-9 w-24 bg-slate-100 rounded-lg ml-auto"></div></td>
+                                        </tr>
+                                    ))
                                 ) : !paginatedUsers || paginatedUsers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={['all', 'archived'].includes(filter) ? "5" : "4"} className="px-8 py-20 text-center">
-                                            <div className="flex flex-col items-center justify-center grayscale opacity-30">
-                                                <Users className="w-12 h-12 mb-4" />
-                                                <p className="text-xs font-black uppercase tracking-widest">
-                                                    {filter === 'all' ? 'No users found' :
-                                                        filter === 'doctor' ? 'No doctors found' :
-                                                            filter === 'patient' ? 'No patients found' :
-                                                                'No archived records found'}
-                                                </p>
-                                            </div>
-                                        </td>
+                                        <td colSpan={colCount}>{emptyState}</td>
                                     </tr>
                                 ) : (
-                                    paginatedUsers?.map((user) => (
-                                        <tr key={user._id} className="hover:bg-slate-50/30 transition-colors">
-                                            <td className="px-3 py-2">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold border text-sm ${user.isDeleted ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-slate-100 text-primary-600 border-slate-200'}`}>
-                                                        {user.name.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <p className={`font-bold ${user.isDeleted ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{user.name}</p>
-                                                        <p className="text-xs text-slate-400">#{getDisplayId(user)}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                                                        <Mail className="w-3.5 h-3.5" />
-                                                        {user.email}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                                                        <Phone className="w-3.5 h-3.5" />
-                                                        {user.phone}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">Age:</span> {user.age || 'N/A'}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">Gender:</span> {user.gender || 'N/A'}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <span className="font-bold text-slate-600 uppercase tracking-wider">{user.role === 'doctor' ? 'Spec:' : 'Job:'}</span> {user.role === 'doctor' ? (user.specialization || 'N/A') : (user.occupation || 'N/A')}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            {['all', 'archived'].includes(filter) && (
-                                                <td className="px-3 py-2">
-                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border whitespace-nowrap inline-block ${user.isDeleted ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                                        user.role === 'superadmin' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                        user.role === 'admin' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-                                                        user.role === 'doctor' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                                        user.role === 'pharmacy' ? 'bg-teal-50 text-teal-700 border-teal-200' :
-                                                        'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                        }`}>
-                                                        {user.isDeleted ? `Deleted ${user.role}` : user.isLocked ? `Locked ${user.role}` : user.role}
-                                                    </span>
-                                                </td>
-                                            )}
-                                            <td className="px-3 py-2">
-                                                <div className="flex items-center gap-2">
-                                                    {user.role === 'doctor' && !user.isDeleted && (
-                                                        <button
-                                                            onClick={() => {
-                                                                localStorage.setItem('viewAsDoctorId', user._id);
-                                                                navigate('/doctor');
-                                                            }}
-                                                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
-                                                            title="View Doctor Dashboard"
-                                                        >
-                                                            <LayoutDashboard className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-                                                    {user.isDeleted ? (
-                                                        <button
-                                                            onClick={() => restoreMutation.mutate(user._id)}
-                                                            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                                                            title="Restore User"
-                                                        >
-                                                            <RotateCcw className="w-5 h-5" />
-                                                        </button>
-                                                    ) : user.role !== 'superadmin' && (
-                                                        <>
-                                                            {user.role !== 'patient' && (
-                                                                <button
-                                                                    onClick={() => toggleLockMutation.mutate(user._id)}
-                                                                    className={`p-2 rounded-xl transition-all ${user.isLocked ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}`}
-                                                                    title={user.isLocked ? "Unlock User" : "Lock User"}
-                                                                >
-                                                                    {user.isLocked ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
-                                                                </button>
-                                                            )}
-                                                            <button
-                                                                onClick={() => setEditModal({ isOpen: true, user })}
-                                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                                                title="Edit User"
-                                                            >
-                                                                <Pencil className="w-5 h-5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setConfirmModal({ isOpen: true, id: user._id, name: user.name })}
-                                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                                                title="Delete User"
-                                                            >
-                                                                <Trash2 className="w-5 h-5" />
-                                                            </button>
-                                                        </>
-                                                    )}
+                                    paginatedUsers.map((user) => (
+                                        <tr key={user._id}>
+                                            <td>{renderUser(user)}</td>
+                                            <td>{renderContact(user)}</td>
+                                            <td>{renderDetails(user)}</td>
+                                            {showRole && <td>{renderRole(user)}</td>}
+                                            <td>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {renderActions(user)}
                                                 </div>
                                             </td>
                                         </tr>
@@ -325,6 +394,34 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-line">
+                        {isLoading ? (
+                            [1, 2, 3].map(i => (
+                                <div key={i} className="p-4 animate-pulse space-y-3">
+                                    <div className="h-10 w-48 bg-slate-100 rounded-md"></div>
+                                    <div className="h-9 w-40 bg-slate-100 rounded-md"></div>
+                                </div>
+                            ))
+                        ) : !paginatedUsers || paginatedUsers.length === 0 ? (
+                            emptyState
+                        ) : (
+                            paginatedUsers.map((user) => (
+                                <div key={user._id} className="p-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        {renderUser(user)}
+                                        {showRole && renderRole(user)}
+                                    </div>
+                                    {renderContact(user)}
+                                    {renderDetails(user)}
+                                    <div className="flex items-center justify-end gap-1 pt-1">
+                                        {renderActions(user)}
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
 
                     {!isLoading && (
@@ -353,12 +450,18 @@ const UserManager = ({ defaultFilter = 'all' }) => {
             />
 
             {editModal.isOpen && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col">
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between shrink-0">
-                            <h3 className="text-xl font-bold text-slate-900">Edit User Details</h3>
-                            <button onClick={() => setEditModal({ isOpen: false, user: null })} className="p-2 hover:bg-slate-50 rounded-xl transition-colors shrink-0">
-                                <X className="w-5 h-5 text-slate-400" />
+                <div className="fixed inset-0 bg-secondary-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="px-6 py-4 border-b border-line flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-3">
+                                <span className="w-10 h-10 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-sm font-bold">{initialsOf(editModal.user.name)}</span>
+                                <div>
+                                    <h3 className="text-lg font-bold text-ink leading-tight">Edit user details</h3>
+                                    <p className="text-xs text-muted capitalize">{editModal.user.role} · #{getDisplayId(editModal.user)}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setEditModal({ isOpen: false, user: null })} className="ui-icon-btn shrink-0">
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
                         <form onSubmit={(e) => {
@@ -383,77 +486,77 @@ const UserManager = ({ defaultFilter = 'all' }) => {
 
                             data._id = editModal.user._id;
                             updateMutation.mutate(data);
-                        }} className="p-6 space-y-4 overflow-y-auto">
+                        }} className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Name</label>
-                                    <input type="text" name="name" defaultValue={editModal.user.name} className="input-field w-full" required />
+                                <div className="space-y-1.5">
+                                    <label className="text-[13px] font-semibold text-ink block">Name</label>
+                                    <input type="text" name="name" defaultValue={editModal.user.name} className="ui-input" required />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Phone</label>
-                                    <input type="text" name="phone" defaultValue={editModal.user.phone} className="input-field w-full" required />
+                                <div className="space-y-1.5">
+                                    <label className="text-[13px] font-semibold text-ink block">Phone</label>
+                                    <input type="text" name="phone" defaultValue={editModal.user.phone} className="ui-input" required />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
-                                    <input type="email" name="email" defaultValue={editModal.user.email} className="input-field w-full" />
+                                <div className="space-y-1.5">
+                                    <label className="text-[13px] font-semibold text-ink block">Email</label>
+                                    <input type="email" name="email" defaultValue={editModal.user.email} className="ui-input" />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Age</label>
-                                    <input type="number" name="age" defaultValue={editModal.user.age} className="input-field w-full" required />
+                                <div className="space-y-1.5">
+                                    <label className="text-[13px] font-semibold text-ink block">Age</label>
+                                    <input type="number" name="age" defaultValue={editModal.user.age} className="ui-input" required />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-500 uppercase">Gender</label>
-                                    <select name="gender" defaultValue={editModal.user.gender} className="input-field w-full" required>
+                                <div className="space-y-1.5">
+                                    <label className="text-[13px] font-semibold text-ink block">Gender</label>
+                                    <select name="gender" defaultValue={editModal.user.gender} className="ui-input" required>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
                                 {editModal.user.role === 'patient' && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Occupation</label>
-                                        <input type="text" name="occupation" defaultValue={editModal.user.occupation} className="input-field w-full" />
+                                    <div className="space-y-1.5">
+                                        <label className="text-[13px] font-semibold text-ink block">Occupation</label>
+                                        <input type="text" name="occupation" defaultValue={editModal.user.occupation} className="ui-input" />
                                     </div>
                                 )}
                                 {editModal.user.role === 'doctor' && (
                                     <>
-                                        <div className="space-y-2 col-span-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Specialization</label>
-                                            <input type="text" name="specialization" defaultValue={editModal.user.specialization} className="input-field w-full" />
+                                        <div className="space-y-1.5 col-span-2">
+                                            <label className="text-[13px] font-semibold text-ink block">Specialization</label>
+                                            <input type="text" name="specialization" defaultValue={editModal.user.specialization} className="ui-input" />
                                         </div>
-                                        <div className="col-span-2 mt-4 pt-4 border-t border-slate-100">
-                                            <h4 className="text-sm font-bold text-slate-900 mb-4">Prescription Header Details</h4>
+                                        <div className="col-span-2 mt-2 pt-4 border-t border-line">
+                                            <h4 className="text-sm font-bold text-ink mb-3">Prescription header details</h4>
                                             <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase">Qualification</label>
-                                                    <input type="text" name="doctorDetails.qualification" defaultValue={editModal.user.doctorDetails?.qualification} className="input-field w-full" placeholder="e.g. M.B.B.S., M.D." />
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[13px] font-semibold text-ink block">Qualification</label>
+                                                    <input type="text" name="doctorDetails.qualification" defaultValue={editModal.user.doctorDetails?.qualification} className="ui-input" placeholder="e.g. M.B.B.S., M.D." />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase">Name in Tamil</label>
-                                                    <input type="text" name="doctorDetails.nameTamil" defaultValue={editModal.user.doctorDetails?.nameTamil} className="input-field w-full" placeholder="டாக்டர். ..." />
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[13px] font-semibold text-ink block">Name in Tamil</label>
+                                                    <input type="text" name="doctorDetails.nameTamil" defaultValue={editModal.user.doctorDetails?.nameTamil} className="ui-input" placeholder="டாக்டர். ..." />
                                                 </div>
-                                                <div className="space-y-2 col-span-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase">Additional Qualifications</label>
-                                                    <input type="text" name="doctorDetails.additionalQualifications" defaultValue={editModal.user.doctorDetails?.additionalQualifications} className="input-field w-full" />
+                                                <div className="space-y-1.5 col-span-2">
+                                                    <label className="text-[13px] font-semibold text-ink block">Additional Qualifications</label>
+                                                    <input type="text" name="doctorDetails.additionalQualifications" defaultValue={editModal.user.doctorDetails?.additionalQualifications} className="ui-input" />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase">Role Title</label>
-                                                    <input type="text" name="doctorDetails.roleTitle" defaultValue={editModal.user.doctorDetails?.roleTitle} className="input-field w-full" placeholder="SENIOR CONSULTANT..." />
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[13px] font-semibold text-ink block">Role Title</label>
+                                                    <input type="text" name="doctorDetails.roleTitle" defaultValue={editModal.user.doctorDetails?.roleTitle} className="ui-input" placeholder="SENIOR CONSULTANT..." />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-slate-500 uppercase">Registration Number</label>
-                                                    <input type="text" name="doctorDetails.regdNo" defaultValue={editModal.user.doctorDetails?.regdNo} className="input-field w-full" placeholder="Regd. No. 65502" />
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[13px] font-semibold text-ink block">Registration Number</label>
+                                                    <input type="text" name="doctorDetails.regdNo" defaultValue={editModal.user.doctorDetails?.regdNo} className="ui-input" placeholder="Regd. No. 65502" />
                                                 </div>
                                             </div>
                                         </div>
                                     </>
                                 )}
                             </div>
-                            <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white z-10 pb-2">
-                                <button type="button" onClick={() => setEditModal({ isOpen: false, user: null })} className="px-6 py-2.5 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                            <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white z-10 pb-1 border-t border-line -mx-6 px-6">
+                                <button type="button" onClick={() => setEditModal({ isOpen: false, user: null })} className="ui-btn-outline !h-10 !px-5">
                                     Cancel
                                 </button>
-                                <button type="submit" disabled={updateMutation.isPending} className="bg-secondary-900 text-white px-8 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-600 transition-all">
+                                <button type="submit" disabled={updateMutation.isPending} className="ui-btn-dark !h-10 !px-6">
                                     {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>

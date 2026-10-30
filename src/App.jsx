@@ -25,6 +25,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import NotFound from './pages/NotFound';
 import { Toaster } from 'react-hot-toast';
+import AppLoader from './components/shared/AppLoader';
 
 // Initialize QueryClient
 const queryClient = new QueryClient({
@@ -39,7 +40,7 @@ const queryClient = new QueryClient({
 const PrivateRoute = ({ children, role }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50 ">Loading New Venus Clinic...</div>;
+  if (loading) return <AppLoader />;
   if (!user) return <Navigate to="/login" />;
   
   if (role) {

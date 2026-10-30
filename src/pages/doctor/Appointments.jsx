@@ -154,21 +154,12 @@ const Appointments = () => {
 
 
 
-    const filteredAppointments = appointments?.filter(appt => {
-        let matchesStatus = false;
-        if (activeTab === 'All') {
-            matchesStatus = true;
-        } else if (activeTab === 'Upcoming') {
-            matchesStatus = ['Accepted', 'Rescheduled'].includes(appt.status);
-        } else {
-            matchesStatus = appt.status === activeTab;
-        }
-
+    const baseFiltered = appointments?.filter(appt => {
         const matchesSearch = matchesPatientQuery(appt.patient, searchQuery);
 
         const apptDate = getLocalDateString(appt.date || appt.createdAt);
         const todayStr = getLocalDateString(new Date());
-        
+
         const hasDateFilter = Boolean(dateRange.start);
         let matchesDate = true;
         if (hasDateFilter) {
@@ -187,8 +178,14 @@ const Appointments = () => {
             }
         }
 
-        return matchesStatus && matchesSearch && matchesDate;
-    }).reverse() || [];
+        return matchesSearch && matchesDate;
+    }) || [];
+
+    const filteredAppointments = baseFiltered.filter(appt => {
+        if (activeTab === 'All') return true;
+        if (activeTab === 'Upcoming') return ['Accepted', 'Rescheduled'].includes(appt.status);
+        return appt.status === activeTab;
+    }).reverse();
 
     // Pagination Logic
     const totalPages = Math.ceil((filteredAppointments?.length || 0) / itemsPerPage);
@@ -229,14 +226,28 @@ const Appointments = () => {
 
     const tabs = ['All', 'Upcoming', 'Completed', 'Cancelled'];
 
+    const tabMeta = {
+        All: { label: 'All appointments', icon: ClipboardList, tint: 'bg-secondary-50 text-secondary-700' },
+        Upcoming: { label: 'Upcoming', icon: Clock, tint: 'bg-emerald-50 text-emerald-700' },
+        Completed: { label: 'Completed', icon: CheckCircle2, tint: 'bg-sky-50 text-sky-700' },
+        Cancelled: { label: 'Cancelled', icon: XCircle, tint: 'bg-rose-50 text-rose-600' }
+    };
+
+    const tabCounts = {
+        All: baseFiltered.length,
+        Upcoming: baseFiltered.filter(a => ['Accepted', 'Rescheduled'].includes(a.status)).length,
+        Completed: baseFiltered.filter(a => a.status === 'Completed').length,
+        Cancelled: baseFiltered.filter(a => a.status === 'Cancelled').length
+    };
+
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Pending': return 'bg-amber-100 text-amber-600 border-amber-200';
-            case 'Accepted': return 'bg-emerald-100 text-emerald-600 border-emerald-200';
-            case 'Completed': return 'bg-blue-100 text-blue-600 border-blue-200';
-            case 'Cancelled': return 'bg-rose-100 text-rose-600 border-rose-200';
-            case 'Rescheduled': return 'bg-purple-100 text-purple-600 border-purple-200';
-            default: return 'bg-slate-100 text-slate-600 border-slate-200';
+            case 'Pending': return 'bg-amber-50 text-amber-700 border-amber-200';
+            case 'Accepted': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'Completed': return 'bg-sky-50 text-sky-700 border-sky-200';
+            case 'Cancelled': return 'bg-rose-50 text-rose-600 border-rose-200';
+            case 'Rescheduled': return 'bg-violet-50 text-violet-700 border-violet-200';
+            default: return 'bg-slate-100 text-muted border-line';
         }
     };
 
@@ -248,26 +259,139 @@ const Appointments = () => {
         }
     };
 
+    const getInitials = (name) =>
+        (name || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+    const renderPatient = (appt) => (
+        <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-bold shrink-0">
+                {getInitials(appt.patient?.name)}
+            </div>
+            <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink truncate">{appt.patient?.name}</p>
+                <p className="text-[13px] text-muted mt-0.5 truncate">
+                    #{getDisplayId(appt.patient)}
+                    {(appt.patient?.age || appt.patient?.gender) && (
+                        <span className="text-subtle">
+                            {' · '}
+                            {[
+                                appt.patient?.age ? `${appt.patient.age} Y` : null,
+                                appt.patient?.gender
+                            ].filter(Boolean).join(' / ')}
+                        </span>
+                    )}
+                </p>
+            </div>
+        </div>
+    );
+
+    const renderActions = (appt) => (
+        <>
+            {(appt.status === 'Pending' || appt.status === 'Cancelled') && (
+                <>
+                    <button
+                        onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
+                        className="ui-icon-btn-danger"
+                        title="Cancel Appointment"
+                        disabled={appt.status === 'Cancelled'}
+                    >
+                        <XCircle className="w-[18px] h-[18px]" />
+                    </button>
+                    <button
+                        onClick={() => updateStatusMutation.mutate({ id: appt._id, status: 'Accepted' })}
+                        className="ui-btn-success"
+                    >
+                        <CheckCircle2 className="w-4 h-4" />
+                        {appt.status === 'Cancelled' ? 'Re-Accept' : 'Accept'}
+                    </button>
+                </>
+            )}
+            {(appt.status === 'Accepted' || appt.status === 'Rescheduled') && (
+                <button
+                    onClick={() => {
+                        if (!appt.sessionStartTime) {
+                            // Save start time if not already started
+                            doctorApi.updateAppointment(appt._id, { sessionStartTime: new Date() });
+                        }
+                        navigate(`/doctor/session/${appt._id}`);
+                    }}
+                    className="ui-btn-dark"
+                >
+                    <Activity className="w-4 h-4" />
+                    {appt.hasDraft ? 'Resume Draft' : 'Start Consultation'}
+                </button>
+            )}
+            {appt.status === 'Completed' && (
+                <>
+                    <button
+                        onClick={() => handleQuickShare(appt)}
+                        className="ui-icon-btn"
+                        title="Share via Email"
+                    >
+                        <Mail className="w-[18px] h-[18px]" />
+                    </button>
+                    <button
+                        onClick={() => handlePrintPrescription(appt._id)}
+                        className="ui-btn-soft"
+                        title="Print Prescription"
+                    >
+                        <Printer className="w-4 h-4" />
+                        Print Prescription
+                    </button>
+                    <button
+                        onClick={() => navigate(`/doctor/session/${appt._id}`)}
+                        className="ui-btn-warn"
+                        title="Edit Prescription"
+                    >
+                        Edit Prescription
+                    </button>
+                </>
+            )}
+        </>
+    );
+
+    const emptyState = (
+        <div className="py-16 px-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-7 h-7 text-subtle" />
+            </div>
+            <p className="text-base font-semibold text-ink">No {activeTab === 'All' ? '' : activeTab.toLowerCase() + ' '}appointments found</p>
+            <p className="text-sm text-muted mt-1">Try a different status, date range or search term.</p>
+            {(searchQuery || dateRange.start) && (
+                <button
+                    onClick={() => {
+                        setSearchQuery('');
+                        setDateRange({ start: '', end: '' });
+                        setCurrentPage(1);
+                    }}
+                    className="ui-btn-outline mt-5"
+                >
+                    Clear filters
+                </button>
+            )}
+        </div>
+    );
+
     return (
         <>
             <DashboardLayout>
-                <div className="max-w-8xl mx-auto py-6 px-4 print:hidden">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
+                <div className="w-full max-w-[1600px] mx-auto py-2 print:hidden">
+                    {/* Header */}
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-6">
                         <div>
-                            <h1 className="text-3xl font-black text-secondary-900 uppercase tracking-tighter">
-                                {filterParam === 'today' ? 'Today Appointments' : filterParam === 'previous' ? 'Previous Appointments' : filterParam === 'upcoming' ? 'Upcoming Appointments' : 'Appointment Manager'}
+                            <h1 className="page-title">
+                                {filterParam === 'today' ? 'Today\'s Appointments' : filterParam === 'previous' ? 'Previous Appointments' : filterParam === 'upcoming' ? 'Upcoming Appointments' : 'Appointment Manager'}
                             </h1>
-                            <p className="text-slate-500 mt-0.5 font-medium text-sm">Coordinate patient consultations and schedule logistics</p>
+                            <p className="page-sub">Coordinate patient consultations and schedule logistics</p>
                         </div>
 
-                        {/* Search and Date Filter at right end */}
-                        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                            <div className="relative w-full sm:w-auto">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                            <div className="relative w-full sm:w-80">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-subtle pointer-events-none" />
                                 <input
                                     type="text"
-                                    placeholder="Search by name, ID or phone..."
-                                    className="input-field pl-10 pr-9 py-2 text-xs shadow-sm w-full sm:w-64 bg-white"
+                                    placeholder="Search by name, ID or phone"
+                                    className="ui-input pl-10 pr-9"
                                     value={searchQuery}
                                     onChange={(e) => {
                                         setSearchQuery(e.target.value);
@@ -281,40 +405,42 @@ const Appointments = () => {
                                             setSearchQuery('');
                                             setCurrentPage(1);
                                         }}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-slate-600 transition-colors"
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-md text-subtle hover:text-ink transition-colors"
                                         title="Clear search"
                                     >
-                                        <X className="w-3 h-3" />
+                                        <X className="w-3.5 h-3.5" />
                                     </button>
                                 )}
                             </div>
 
-                            <div className="relative w-full sm:w-auto">
-                                <button
-                                    onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-                                    className="px-4 py-2 bg-white rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto hover:border-primary-200 transition-all cursor-pointer group shadow-sm"
-                                >
-                                    <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-500' : 'text-slate-400 group-hover:text-primary-400'}`} />
-                                    <span className={`text-xs font-bold ${dateRange.start ? 'text-secondary-900' : 'text-slate-400'}`}>
-                                        {dateRange.start && dateRange.end ? (
-                                            `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
-                                        ) : dateRange.start ? (
-                                            formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
-                                        ) : 'Filter by Date'}
-                                    </span>
+                            <div className="relative">
+                                <div className={`h-10 flex items-center bg-white rounded-lg border transition-all ${dateRange.start ? 'border-primary-500' : 'border-line hover:border-slate-200'}`}>
+                                    <button
+                                        onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+                                        className="h-full pl-3.5 pr-3 flex items-center gap-2.5 flex-1"
+                                    >
+                                        <Calendar className={`w-4 h-4 ${dateRange.start ? 'text-primary-600' : 'text-subtle'}`} />
+                                        <span className={`text-sm font-medium whitespace-nowrap ${dateRange.start ? 'text-ink' : 'text-muted'}`}>
+                                            {dateRange.start && dateRange.end ? (
+                                                `${formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short' })} - ${formatDateDisplay(dateRange.end, { day: '2-digit', month: 'short' })}`
+                                            ) : dateRange.start ? (
+                                                formatDateDisplay(dateRange.start, { day: '2-digit', month: 'short', year: 'numeric' })
+                                            ) : 'Filter by date'}
+                                        </span>
+                                    </button>
                                     {dateRange.start && (
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
+                                            onClick={() => {
                                                 setDateRange({ start: '', end: '' });
                                                 setCurrentPage(1);
                                             }}
-                                            className="ml-1 p-0.5 hover:bg-slate-100 rounded-md transition-colors"
+                                            className="mr-2 p-1 hover:bg-slate-100 rounded-md transition-colors"
+                                            title="Clear date filter"
                                         >
-                                            <X className="w-3 h-3 text-slate-400" />
+                                            <X className="w-3.5 h-3.5 text-subtle" />
                                         </button>
                                     )}
-                                </button>
+                                </div>
 
                                 <AnimatePresence>
                                     {isDatePickerOpen && (
@@ -324,37 +450,37 @@ const Appointments = () => {
                                                 onClick={() => setIsDatePickerOpen(false)}
                                             />
                                             <motion.div
-                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                initial={{ opacity: 0, y: 8, scale: 0.97 }}
                                                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                className="absolute top-full right-0 mt-3 z-50 bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 min-w-[320px]"
+                                                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                className="absolute top-full right-0 mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-line p-5 w-[320px]"
                                             >
-                                                <div className="flex items-center justify-between mb-6">
-                                                    <h4 className="text-[10px] font-black text-secondary-900 uppercase tracking-widest">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="text-sm font-bold text-ink">
                                                         {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                                                     </h4>
-                                                    <div className="flex gap-2">
+                                                    <div className="flex gap-1">
                                                         <button
                                                             onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                            className="ui-icon-btn !w-8 !h-8"
                                                         >
                                                             <ChevronLeft className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-                                                            className="p-1.5 hover:bg-slate-50 rounded-xl transition-colors text-slate-400 hover:text-secondary-900"
+                                                            className="ui-icon-btn !w-8 !h-8"
                                                         >
                                                             <ChevronRight className="w-4 h-4" />
                                                         </button>
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-7 gap-1 mb-2">
+                                                <div className="grid grid-cols-7 gap-1 mb-1">
                                                     {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                                        <div key={day} className="text-center text-[9px] font-black text-slate-400 uppercase py-2">{day}</div>
+                                                        <div key={day} className="text-center label-caps py-1.5">{day}</div>
                                                     ))}
                                                 </div>
-                                                
+
                                                 <div className="grid grid-cols-7 gap-1">
                                                     {Array.from({ length: new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay() }).map((_, i) => (
                                                         <div key={`empty-${i}`} />
@@ -372,13 +498,13 @@ const Appointments = () => {
                                                             <button
                                                                 key={day}
                                                                 onClick={() => handleDateClick(dateStr)}
-                                                                className={`h-9 w-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center relative ${isStart || isEnd
-                                                                    ? 'bg-secondary-900 text-white font-black shadow-md shadow-secondary-200'
+                                                                className={`h-9 w-full rounded-lg text-[13px] font-medium transition-all flex items-center justify-center ${isStart || isEnd
+                                                                    ? 'bg-secondary-900 text-white font-bold shadow-md'
                                                                     : isInRange
-                                                                        ? 'bg-primary-50 text-primary-600 rounded-none'
+                                                                        ? 'bg-primary-50 text-primary-700 rounded-none'
                                                                         : isToday
-                                                                            ? 'border border-primary-500 text-primary-600'
-                                                                            : 'text-slate-600 hover:bg-slate-50'
+                                                                            ? 'border border-primary-500 text-primary-700 font-semibold'
+                                                                            : 'text-ink hover:bg-slate-100'
                                                                     }`}
                                                             >
                                                                 {day}
@@ -387,7 +513,7 @@ const Appointments = () => {
                                                     })}
                                                 </div>
 
-                                                <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                                <div className="mt-4 pt-3 border-t border-line flex items-center justify-between">
                                                     <button
                                                         onClick={() => {
                                                             const today = getLocalDateString(new Date());
@@ -395,7 +521,7 @@ const Appointments = () => {
                                                             setCurrentPage(1);
                                                             setIsDatePickerOpen(false);
                                                         }}
-                                                        className="text-[9px] font-black text-primary-600 uppercase tracking-widest hover:underline"
+                                                        className="text-[13px] font-semibold text-primary-700 hover:underline"
                                                     >
                                                         Today
                                                     </button>
@@ -405,9 +531,9 @@ const Appointments = () => {
                                                             setCurrentPage(1);
                                                             setIsDatePickerOpen(false);
                                                         }}
-                                                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
+                                                        className="text-[13px] font-semibold text-muted hover:text-rose-600 transition-colors"
                                                     >
-                                                        Clear Filter
+                                                        Clear filter
                                                     </button>
                                                 </div>
                                             </motion.div>
@@ -418,201 +544,183 @@ const Appointments = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                        <div className="flex flex-wrap gap-3">
-                            {tabs.map(tab => (
+                    {/* Summary cards (double as status tabs) */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+                        {tabs.map(tab => {
+                            const meta = tabMeta[tab];
+                            const Icon = meta.icon;
+                            const isActive = activeTab === tab;
+                            return (
                                 <button
                                     key={tab}
                                     onClick={() => {
                                         setActiveTab(tab);
                                         setCurrentPage(1);
                                     }}
-                                    className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
-                                        ? 'bg-secondary-900 text-white shadow-lg shadow-secondary-200 scale-105'
-                                        : 'bg-white text-slate-400 border border-slate-100 hover:border-primary-200 hover:text-primary-600'
-                                        }`}
+                                    className={`ui-card text-left p-4 md:p-5 flex items-center gap-4 transition-all hover:shadow-md ${isActive ? 'ring-2 ring-secondary-900 border-transparent' : 'hover:border-slate-200'}`}
                                 >
-                                    {tab}
+                                    <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${meta.tint}`}>
+                                        <Icon className="w-5 h-5" />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block text-2xl font-bold text-ink leading-none tabular-nums">
+                                            {isLoading ? '–' : tabCounts[tab]}
+                                        </span>
+                                        <span className="block text-[13px] font-medium text-muted mt-1.5 truncate">{meta.label}</span>
+                                    </span>
                                 </button>
-                            ))}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                            <Filter className="w-3.5 h-3.5" />
-                            Showing {filteredAppointments.length} Appointments
-                        </div>
+                            );
+                        })}
                     </div>
 
-                    <div className="glass-card mb-6 overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                    <th className="px-6 py-4 font-black">Date</th>
-                                    <th className="px-6 py-4 font-black">Patient</th>
-                                    <th className="px-6 py-4 font-black">Schedule Time</th>
-                                    <th className="px-6 py-4 font-black">Started Time</th>
-                                    <th className="px-6 py-4 font-black">Reason</th>
-                                    <th className="px-6 py-4 font-black text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {isLoading ? (
-                                    [1, 2, 3].map(i => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td className="px-6 py-4"><div className="h-4 w-12 bg-slate-50 rounded"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 w-32 bg-slate-50 rounded"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-50 rounded"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-50 rounded"></div></td>
-                                            <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-50 rounded"></div></td>
-                                            <td className="px-6 py-4 text-right"><div className="h-8 w-8 bg-slate-50 rounded inline-block"></div></td>
-                                        </tr>
-                                    ))
-                                ) : filteredAppointments.length === 0 ? (
+                    {/* List */}
+                    <div className="ui-card overflow-hidden mb-6">
+                        <div className="px-5 py-4 flex items-center justify-between border-b border-line">
+                            <h2 className="text-base font-bold text-ink">{tabMeta[activeTab].label}</h2>
+                            <span className="text-sm text-muted tabular-nums">
+                                {filteredAppointments.length} {filteredAppointments.length === 1 ? 'appointment' : 'appointments'}
+                            </span>
+                        </div>
+
+                        {/* Desktop table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="ui-table w-full">
+                                <thead>
                                     <tr>
-                                        <td colSpan="6" className="p-16 text-center">
-                                            <Calendar className="w-12 h-12 text-slate-100 mx-auto mb-4" />
-                                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No {activeTab.toLowerCase()} appointments found</p>
-                                        </td>
+                                        <th>Schedule</th>
+                                        <th>Patient</th>
+                                        <th>Reason</th>
+                                        <th>Started</th>
+                                        <th>Status</th>
+                                        <th className="!text-right">Actions</th>
                                     </tr>
-                                ) : (
-                                    paginatedAppointments.map((appt) => (
-                                        <motion.tr
-                                            initial={{ opacity: 0, y: 5 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            key={appt._id}
-                                            className="group hover:bg-slate-50/50 transition-colors"
-                                        >
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-secondary-900">
-                                                        {new Date(appt.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                </thead>
+                                <tbody>
+                                    {isLoading ? (
+                                        [1, 2, 3, 4, 5].map(i => (
+                                            <tr key={i} className="animate-pulse">
+                                                <td><div className="h-9 w-24 bg-slate-100 rounded-md"></div></td>
+                                                <td><div className="flex items-center gap-3"><div className="h-9 w-9 bg-slate-100 rounded-full"></div><div className="h-9 w-36 bg-slate-100 rounded-md"></div></div></td>
+                                                <td><div className="h-5 w-28 bg-slate-100 rounded-md"></div></td>
+                                                <td><div className="h-5 w-14 bg-slate-100 rounded-md"></div></td>
+                                                <td><div className="h-6 w-20 bg-slate-100 rounded-full"></div></td>
+                                                <td><div className="h-9 w-32 bg-slate-100 rounded-lg ml-auto"></div></td>
+                                            </tr>
+                                        ))
+                                    ) : filteredAppointments.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6">{emptyState}</td>
+                                        </tr>
+                                    ) : (
+                                        paginatedAppointments.map((appt) => (
+                                            <motion.tr
+                                                initial={{ opacity: 0, y: 4 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                key={appt._id}
+                                            >
+                                                <td className="whitespace-nowrap">
+                                                    <p className="text-sm font-semibold text-ink tabular-nums">
+                                                        {new Date(appt.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </p>
+                                                    <p className="text-[13px] text-muted tabular-nums mt-0.5 flex items-center gap-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-subtle" />
+                                                        {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </td>
+                                                <td>{renderPatient(appt)}</td>
+                                                <td>
+                                                    <span className="inline-flex items-center gap-2 text-sm text-ink">
+                                                        <Activity className="w-4 h-4 text-primary-600 shrink-0" />
+                                                        {appt.reason || 'Symptomatic Review'}
                                                     </span>
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                                        {new Date(appt.date).getFullYear()}
+                                                </td>
+                                                <td className="whitespace-nowrap">
+                                                    {appt.sessionStartTime ? (
+                                                        <span className="text-sm font-semibold text-emerald-700 tabular-nums">
+                                                            {new Date(appt.sessionStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-sm text-subtle">–</span>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <span className={`ui-chip ${getStatusColor(appt.status)}`}>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                        {appt.status}
                                                     </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div>
-                                                    <p className="text-sm font-bold text-secondary-900 uppercase tracking-tight">{appt.patient?.name}</p>
-                                                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                                        <span className="text-[10px] font-bold text-slate-400 tracking-wider">#{getDisplayId(appt.patient)}</span>
-                                                        {(appt.patient?.age || appt.patient?.gender) && (
-                                                            <>
-                                                                <span className="text-slate-300 text-[10px]">•</span>
-                                                                <span className="text-[10px] font-bold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded-md border border-primary-100/60 uppercase">
-                                                                    {[
-                                                                        appt.patient?.age ? `${appt.patient.age} Y` : null,
-                                                                        appt.patient?.gender
-                                                                    ].filter(Boolean).join(' / ')}
-                                                                </span>
-                                                            </>
-                                                        )}
+                                                </td>
+                                                <td>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {renderActions(appt)}
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-xs font-bold text-slate-500 font-mono">
-                                                    {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                {appt.sessionStartTime ? (
-                                                    <span className="text-xs font-bold text-emerald-600 font-mono">
-                                                        {new Date(appt.sessionStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-[10px] font-bold uppercase tracking-tight text-slate-500 border border-slate-100">
-                                                    <Activity className="w-3 h-3 text-primary-500" />
-                                                    {appt.reason || 'Symptomatic Review'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {(appt.status === 'Pending' || appt.status === 'Cancelled') && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => setConfirmModal({ isOpen: true, id: appt._id })}
-                                                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
-                                                                title="Cancel Appointment"
-                                                                disabled={appt.status === 'Cancelled'}
-                                                            >
-                                                                <XCircle className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => updateStatusMutation.mutate({ id: appt._id, status: 'Accepted' })}
-                                                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-2"
-                                                            >
-                                                                <CheckCircle2 className="w-3 h-3" />
-                                                                {appt.status === 'Cancelled' ? 'Re-Accept' : 'Accept'}
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {(appt.status === 'Accepted' || appt.status === 'Rescheduled') && (
-                                                        <button
-                                                            onClick={() => {
-                                                                if (!appt.sessionStartTime) {
-                                                                    // Save start time if not already started
-                                                                    doctorApi.updateAppointment(appt._id, { sessionStartTime: new Date() });
-                                                                }
-                                                                navigate(`/doctor/session/${appt._id}`);
-                                                            }}
-                                                            className="px-4 py-2 bg-secondary-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
-                                                        >
-                                                            <Activity className="w-3 h-3" />
-                                                            {appt.hasDraft ? 'Resume Draft' : 'Start Consultation'}
-                                                        </button>
-                                                    )}
-                                                     {appt.status === 'Completed' && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleQuickShare(appt)}
-                                                                className="p-2 text-primary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                                                title="Share via Email"
-                                                            >
-                                                                <Mail className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handlePrintPrescription(appt._id)}
-                                                                className="px-3 py-1.5 text-[14px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-2"
-                                                                title="Print Prescription"
-                                                            >
-                                                                <Printer className="w-3.5 h-3.5" />
-                                                                Print Prescription
-                                                            </button>
-                                                            <button
-                                                                onClick={() => navigate(`/doctor/session/${appt._id}`)}
-                                                                className="px-3 py-1.5 text-[14px] font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
-                                                                title="Edit Prescription"
-                                                            >
-                                                                {/* <FileEdit className="w-4 h-4" /> */}
-                                                                Edit Prescription
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
+                                                </td>
+                                            </motion.tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                                            </td>
-                                        </motion.tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                        {/* Mobile cards */}
+                        <div className="md:hidden divide-y divide-line">
+                            {isLoading ? (
+                                [1, 2, 3].map(i => (
+                                    <div key={i} className="p-4 animate-pulse space-y-3">
+                                        <div className="h-9 w-48 bg-slate-100 rounded-md"></div>
+                                        <div className="h-5 w-32 bg-slate-100 rounded-md"></div>
+                                        <div className="h-9 w-full bg-slate-100 rounded-lg"></div>
+                                    </div>
+                                ))
+                            ) : filteredAppointments.length === 0 ? (
+                                emptyState
+                            ) : (
+                                paginatedAppointments.map((appt) => (
+                                    <div key={appt._id} className="p-4 space-y-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            {renderPatient(appt)}
+                                            <span className={`ui-chip shrink-0 ${getStatusColor(appt.status)}`}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                {appt.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted tabular-nums">
+                                            <span className="flex items-center gap-1.5">
+                                                <Calendar className="w-3.5 h-3.5 text-subtle" />
+                                                {new Date(appt.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </span>
+                                            <span className="flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5 text-subtle" />
+                                                {new Date(appt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                            {appt.sessionStartTime && (
+                                                <span className="text-emerald-700 font-semibold">
+                                                    Started {new Date(appt.sessionStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-ink flex items-center gap-2">
+                                            <Activity className="w-4 h-4 text-primary-600 shrink-0" />
+                                            {appt.reason || 'Symptomatic Review'}
+                                        </p>
+                                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                                            {renderActions(appt)}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {!isLoading && (
+                            <TablePagination
+                                currentPage={currentPage}
+                                totalPages={totalPages || 1}
+                                totalItems={filteredAppointments?.length || 0}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={handlePageChange}
+                                onItemsPerPageChange={handleItemsPerPageChange}
+                            />
+                        )}
                     </div>
-
-                    {!isLoading && (
-                        <TablePagination
-                            currentPage={currentPage}
-                            totalPages={totalPages || 1}
-                            totalItems={filteredAppointments?.length || 0}
-                            itemsPerPage={itemsPerPage}
-                            onPageChange={handlePageChange}
-                            onItemsPerPageChange={handleItemsPerPageChange}
-                        />
-                    )}
                 </div>
             </DashboardLayout>
 
@@ -689,7 +797,7 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col no-print"
+                className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col no-print"
             >
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <iframe 
@@ -699,14 +807,14 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                             appointmentId,
                             createdAt: prescriptionData.prescription?.createdAt
                         }, 'prescription', true)}
-                        className="w-full h-full min-h-[600px] border-0 rounded-[24px]"
+                        className="w-full h-full min-h-[600px] border-0"
                     />
                 </div>
 
-                <div className="p-8 bg-white border-t border-slate-50 flex items-center justify-between shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
+                <div className="px-6 py-4 bg-white border-t border-line flex items-center justify-between">
                     <button
                         onClick={onClose}
-                        className="px-8 py-4 border border-slate-200 rounded-[20px] text-xs font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+                        className="ui-btn-outline !h-10 !px-5"
                     >
                         Close
                     </button>
@@ -716,9 +824,9 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
                             appointmentId,
                             createdAt: prescriptionData.prescription?.createdAt
                         }, 'prescription')}
-                        className="px-10 py-4 bg-secondary-900 text-white rounded-[20px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-secondary-200 hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-3"
+                        className="ui-btn-dark !h-10 !px-5"
                     >
-                        <Printer className="w-4 h-4 text-primary-400" />
+                        <Printer className="w-4 h-4" />
                         Print Record
                     </button>
                 </div>
@@ -743,31 +851,31 @@ const EmailShareModal = ({ isOpen, onClose, data, onShare, isPending, onChangeEm
                     initial={{ scale: 0.9, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-md bg-white rounded-[32px] p-8 shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-md bg-white rounded-2xl p-7 shadow-2xl overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 p-4">
-                        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                    <div className="absolute top-0 right-0 p-3">
+                        <button onClick={onClose} className="ui-icon-btn">
                             <XCircle className="w-5 h-5" />
                         </button>
                     </div>
 
                     <div className="flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-primary-50 rounded-[22px] flex items-center justify-center mb-6">
-                            <Mail className="w-8 h-8 text-primary-600" />
+                        <div className="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center mb-5">
+                            <Mail className="w-7 h-7 text-primary-600" />
                         </div>
-                        <h2 className="text-xl font-black text-secondary-900 uppercase tracking-tight mb-2">Share Prescription</h2>
-                        <p className="text-sm text-slate-500 mb-8 max-w-[280px]">
+                        <h2 className="text-xl font-bold text-ink mb-1.5">Share prescription</h2>
+                        <p className="text-sm text-muted mb-7 max-w-[280px]">
                             Send a professional digital copy to the patient.
                         </p>
 
                         <div className="w-full space-y-4 text-left">
                             <div>
-                                <label className="text-[10px] font-black text-secondary-900 uppercase tracking-widest mb-1.5 ml-1 block">Patient Email Address</label>
+                                <label className="text-[13px] font-semibold text-ink mb-1.5 block">Patient email address</label>
                                 <input
                                     type="email"
                                     value={data.email}
                                     onChange={(e) => onChangeEmail(e.target.value)}
-                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-secondary-900"
+                                    className="ui-input !h-11"
                                     placeholder="Enter email..."
                                 />
                             </div>
@@ -775,7 +883,7 @@ const EmailShareModal = ({ isOpen, onClose, data, onShare, isPending, onChangeEm
                             <button
                                 onClick={onShare}
                                 disabled={isPending}
-                                className="w-full py-5 bg-primary-600 text-white rounded-[20px] font-black uppercase text-xs tracking-widest shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                                className="ui-btn-primary !w-full !h-11 !text-sm"
                             >
                                 {isPending ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

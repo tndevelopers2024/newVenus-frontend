@@ -13,7 +13,9 @@ import {
     Plus,
     Check,
     UserCircle,
-    Menu
+    Menu,
+    ChevronsLeft,
+    ChevronsRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -24,7 +26,7 @@ import { adminApi } from '../../services/api';
 
 import { getLinksByRole } from '../../config/navigation';
 
-const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
+const Sidebar = ({ links: propLinks, isOpen, mobile, onClose, onToggle }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -39,12 +41,12 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
     };
 
     const containerClasses = mobile
-        ? `fixed inset-y-0 left-0 z-50 w-72 bg-primary-50 shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
-        : `hidden md:flex flex-col h-screen bg-primary-50 border-r border-primary-100 transition-all duration-300 ${isOpen ? 'w-72' : 'w-20'}`;
+        ? `fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+        : `hidden md:flex flex-col h-screen bg-white border-r border-line transition-all duration-300 ${isOpen ? 'w-72' : 'w-20'}`;
 
     const content = (
         <div className="flex flex-col h-full">
-            <div className={`p-4 flex items-center border-b border-primary-100/50 ${(!isOpen && !mobile) ? 'justify-center' : 'justify-between'}`}>
+            <div className={`p-4 flex items-center border-b border-line ${(!isOpen && !mobile) ? 'justify-center' : 'justify-between'}`}>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center">
                         {(!isOpen && !mobile) ? (
@@ -69,8 +71,9 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
                 )}
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar pr-1">
-                {links.map((link) => {
+            <nav className="flex-1 px-3 mt-3 pb-3 overflow-y-auto custom-scrollbar">
+                {links.map((link, idx) => {
+                    const showGroup = link.group && link.group !== links[idx - 1]?.group;
                     const [linkBasePath, linkQuery] = link.path.split('?');
                     let isActive = false;
                     if (linkQuery) {
@@ -87,44 +90,64 @@ const Sidebar = ({ links: propLinks, isOpen, mobile, onClose }) => {
                         isActive = matchesExactPath || isDoctorPatientDetail;
                     }
                     return (
-                        <button
-                            key={link.label}
-                            onClick={() => {
-                                navigate(link.path);
-                                if (mobile) onClose();
-                            }}
-                            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${isActive
-                                ? 'bg-primary-500 text-white shadow-lg shadow-primary-200/50'
-                                : 'text-slate-500 hover:bg-white hover:text-primary-600 hover:shadow-sm'
-                                }`}
-                        >
-                            <link.icon className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
-                            {(isOpen || mobile) && (
-                                <span className={`font-bold text-sm text-left truncate ${isActive ? 'text-white' : 'font-medium group-hover:font-bold'}`}>{link.label}</span>
-                            )}
-                        </button>
+                        <div key={link.label}>
+                            {showGroup && ((isOpen || mobile)
+                                ? <p className="label-caps px-3 pt-4 pb-1.5">{link.group}</p>
+                                : idx > 0 && <div className="my-2 mx-3 border-t border-line" />)}
+                            <button
+                                onClick={() => {
+                                    navigate(link.path);
+                                    if (mobile) onClose();
+                                }}
+                                title={(!isOpen && !mobile) ? link.label : undefined}
+                                className={`relative w-full flex items-center gap-3 h-10 px-3 rounded-lg transition-colors group ${(!isOpen && !mobile) ? 'justify-center' : ''} ${isActive
+                                    ? 'bg-primary-50 text-primary-700'
+                                    : 'text-muted hover:bg-slate-100 hover:text-ink'
+                                    }`}
+                            >
+                                {isActive && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-primary-500" />}
+                                <link.icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? 'text-primary-600' : 'text-subtle group-hover:text-ink'}`} />
+                                {(isOpen || mobile) && (
+                                    <span className={`text-sm text-left truncate ${isActive ? 'font-semibold' : 'font-medium'}`}>{link.label}</span>
+                                )}
+                            </button>
+                        </div>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-primary-100/50">
-                <div className={`p-3 bg-white rounded-2xl flex items-center gap-3 shadow-sm ${!isOpen && !mobile && 'justify-center'}`}>
-                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold shrink-0">
+            {!mobile && onToggle && (
+                <div className="px-3 pb-2">
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        title={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                        className={`w-full flex items-center gap-3 h-9 px-3 rounded-lg text-muted hover:bg-slate-100 hover:text-ink transition-colors ${!isOpen ? 'justify-center' : ''}`}
+                    >
+                        {isOpen ? <ChevronsLeft className="w-[18px] h-[18px] shrink-0" /> : <ChevronsRight className="w-[18px] h-[18px] shrink-0" />}
+                        {isOpen && <span className="text-sm font-medium">Collapse</span>}
+                    </button>
+                </div>
+            )}
+
+            <div className="p-3 border-t border-line">
+                <div className={`p-2.5 bg-slate-50 rounded-xl flex items-center gap-3 ${!isOpen && !mobile && 'justify-center'}`}>
+                    <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold shrink-0">
                         {user?.name?.charAt(0)}
                     </div>
                     {(isOpen || mobile) && (
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-sm font-bold text-slate-900 truncate">{user?.name}</p>
-                            <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+                            <p className="text-sm font-semibold text-ink truncate">{user?.name}</p>
+                            <p className="text-xs text-muted capitalize">{user?.role}</p>
                         </div>
                     )}
                 </div>
 
                 <button
                     onClick={handleLogout}
-                    className="w-full mt-4 flex items-center gap-4 px-4 py-3 text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all"
+                    className={`w-full mt-2 flex items-center gap-3 h-10 px-3 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ${(!isOpen && !mobile) ? 'justify-center' : ''}`}
                 >
-                    <LogOut className="w-5 h-5 shrink-0" />
+                    <LogOut className="w-[18px] h-[18px] shrink-0" />
                     {(isOpen || mobile) && <span className="font-medium text-sm">Logout</span>}
                 </button>
             </div>
@@ -301,7 +324,7 @@ const ProfileDropdown = ({ onClose }) => {
     );
 };
 
-const Header = ({ onMenuClick, onDesktopMenuClick }) => {
+const Header = ({ onMenuClick }) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [showAccount, setShowAccount] = useState(false);
     const { user } = useAuth();
@@ -312,12 +335,6 @@ const Header = ({ onMenuClick, onDesktopMenuClick }) => {
                 <button
                     onClick={onMenuClick}
                     className="md:hidden p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
-                >
-                    <Menu className="w-5 h-5" />
-                </button>
-                <button
-                    onClick={onDesktopMenuClick}
-                    className="hidden md:block p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
                 >
                     <Menu className="w-5 h-5" />
                 </button>
@@ -401,7 +418,7 @@ const DashboardLayout = ({ children, links, noScroll = false, mainClassName = ''
     return (
         <div className="flex h-[100dvh] bg-slate-50 overflow-hidden">
             {/* Desktop Sidebar */}
-            <Sidebar links={links} isOpen={sidebarOpen} />
+            <Sidebar links={links} isOpen={sidebarOpen} onToggle={() => setSidebarOpen(prev => !prev)} />
 
             {/* Mobile Sidebar */}
             <Sidebar
@@ -413,8 +430,7 @@ const DashboardLayout = ({ children, links, noScroll = false, mainClassName = ''
 
             <div className="flex-1 flex flex-col overflow-hidden w-full relative">
                 <Header 
-                    onMenuClick={() => setMobileMenuOpen(true)} 
-                    onDesktopMenuClick={() => setSidebarOpen(prev => !prev)} 
+                    onMenuClick={() => setMobileMenuOpen(true)}
                 />
                 {isDoctorView && (
                     <div className="bg-amber-500 text-white px-6 py-3.5 flex items-center justify-between text-xs font-black uppercase tracking-wider shadow-md z-30 shrink-0">

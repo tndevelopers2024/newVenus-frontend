@@ -32,7 +32,13 @@
   --color-slate-700: #020617; /* default 950 */
   --color-slate-800: #000000; /* pure black */
 
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+
+  /* Semantic text + line colours (independent of the overridden slate scale) */
+  --color-ink: #0b1230;
+  --color-muted: #566074;
+  --color-subtle: #8791a5;
+  --color-line: #e6e9f0;
 
   --animate-fade-in: fadeIn 0.5s ease-out;
   --animate-slide-up: slideUp 0.5s ease-out;
@@ -74,6 +80,53 @@
   }
 }
 
+/* ---------- Shared UI kit (ui-*) ---------- */
+@layer components {
+  .page-title {
+    @apply text-2xl md:text-[1.75rem] font-bold text-ink tracking-tight leading-tight;
+  }
+  .page-sub {
+    @apply text-sm text-muted mt-1;
+  }
+  .label-caps {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-subtle;
+  }
+  .ui-card {
+    @apply bg-white border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_1px_3px_rgba(16,24,40,0.03)];
+  }
+
+  .ui-btn, .ui-btn-dark, .ui-btn-success, .ui-btn-primary, .ui-btn-soft, .ui-btn-warn, .ui-btn-outline {
+    @apply inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-all active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .ui-btn-dark { @apply bg-secondary-900 text-white hover:bg-secondary-700 shadow-sm; }
+  .ui-btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm; }
+  .ui-btn-primary { @apply bg-primary-600 text-white hover:bg-primary-700 shadow-sm; }
+  .ui-btn-soft { @apply bg-primary-50 text-primary-700 hover:bg-primary-100; }
+  .ui-btn-warn { @apply bg-amber-50 text-amber-700 hover:bg-amber-100; }
+  .ui-btn-outline { @apply bg-white text-ink border border-line hover:bg-slate-50; }
+  .ui-icon-btn, .ui-icon-btn-danger {
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:bg-slate-100 hover:text-ink transition-colors disabled:opacity-30 disabled:pointer-events-none;
+  }
+  .ui-icon-btn-danger { @apply hover:bg-rose-50 hover:text-rose-600; }
+
+  .ui-chip {
+    @apply inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-xs font-semibold border;
+  }
+  .ui-input {
+    @apply w-full h-10 px-3.5 bg-white border border-line rounded-lg text-sm text-ink placeholder:text-subtle outline-none transition-all focus:border-primary-500 focus:ring-4 focus:ring-primary-400/15;
+  }
+
+  .ui-table th {
+    @apply px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-subtle bg-slate-50 border-b border-line whitespace-nowrap;
+  }
+  .ui-table td {
+    @apply px-5 py-3 align-middle;
+  }
+  .ui-table tbody tr {
+    @apply border-b border-line last:border-0 transition-colors hover:bg-slate-50;
+  }
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -90,3 +143,15 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--color-primary-400, #00ddcb);
 }
+
+/* ---------- App loader ---------- */
+@keyframes venus-loader-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes venus-loader-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(0.98); }
+}
+.venus-loader-bar { animation: venus-loader-slide 1.2s ease-in-out infinite; }
+.venus-loader-logo { animation: venus-loader-pulse 1.8s ease-in-out infinite; }
