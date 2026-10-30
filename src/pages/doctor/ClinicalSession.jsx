@@ -777,8 +777,8 @@ const ClinicalSession = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start">
                     {/* Medications */}
-                    <div className="ui-card overflow-hidden">
-                        <div className="px-5 py-4 bg-slate-50 border-b border-line flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                    <div className="ui-card relative z-20">
+                        <div className="px-5 py-4 bg-slate-50 border-b border-line rounded-t-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                             <div className="flex items-center gap-3">
                                 <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${prescriptionMode === 'digital' ? 'bg-secondary-900 text-white' : 'bg-white text-subtle border border-line'}`}>
                                     <Pill className="w-5 h-5" />
@@ -914,9 +914,9 @@ const ClinicalSession = () => {
                                             initial={{ opacity: 0, y: 5 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.97 }}
-                                            className="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-line"
+                                            className={`grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 rounded-xl border border-line ${activeDrugIndex === index ? "relative z-30" : "relative z-10"}`}
                                         >
-                                                                            <div className="col-span-12 md:col-span-5 xl:col-span-4 relative">
+                                                                            <div className="col-span-12 md:col-span-5 xl:col-span-4 relative drug-search-container">
                                                 <label className="text-xs font-semibold text-muted mb-1 flex items-center gap-1.5">
                                                     <span className="w-4 h-4 rounded-full bg-secondary-900 text-white text-[10px] font-bold flex items-center justify-center">{index + 1}</span>
                                                     Drug name
@@ -938,6 +938,7 @@ const ClinicalSession = () => {
                                                             handleMedChange(index, 'name', val);
                                                             setActiveDrugIndex(null);
                                                         }}
+                                                        onClose={() => setActiveDrugIndex(null)}
                                                     />
                                                 )}
                                             </div>
@@ -1743,7 +1744,7 @@ const AutoTextarea = ({ value, ...props }) => {
     return <textarea ref={ref} rows={1} value={value} {...props} />;
 };
 
-const DrugAutosuggest = ({ query, onSelect }) => {
+const DrugAutosuggest = ({ query, onSelect, onClose }) => {
     const [isOpen, setIsOpen] = useState(true);
     const wrapperRef = useRef(null);
     const justSelected = useRef(false);
@@ -1776,14 +1777,17 @@ const DrugAutosuggest = ({ query, onSelect }) => {
     useEffect(() => {
         function handleClickOutside(event) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-                setIsOpen(false);
+                if (!event.target.closest('.drug-search-container')) {
+                    setIsOpen(false);
+                    onClose?.();
+                }
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [wrapperRef]);
+    }, [onClose]);
 
     const handleSelect = (drug) => {
         justSelected.current = true;

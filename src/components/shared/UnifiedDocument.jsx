@@ -1,4 +1,5 @@
 import { findImageField, resolveImageUrl, isImagePrescription, formatMedicationDuration } from '../../utils/documentUtils';
+import { RX_SYMBOL_IMAGE } from '../../utils/documentGenerator';
 
 export const UnifiedDocument = ({ data, type = 'prescription' }) => {
     const isPrescription = type === 'prescription';
@@ -98,7 +99,7 @@ export const UnifiedDocument = ({ data, type = 'prescription' }) => {
                         </div>
                     </div>
 
-                    <div className="text-lg font-bold mb-2">Rx</div>
+                    <div className="mb-2"><img src={RX_SYMBOL_IMAGE} alt="Rx" className="h-7 w-auto object-contain block" /></div>
 
                     {/* Medications Table */}
                     <table className="w-full mb-6 border-b-2 border-black">
