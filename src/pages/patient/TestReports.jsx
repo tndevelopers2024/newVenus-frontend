@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { patientApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import TablePagination from '../../components/shared/TablePagination';
+import AppLoader from '../../components/shared/AppLoader';
 
 const TestReports = () => {
     const { user } = useAuth();
@@ -136,11 +137,7 @@ const TestReports = () => {
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
                                         {isLoading ? (
-                                            [1, 2, 3].map(i => (
-                                                <tr key={i} className="animate-pulse">
-                                                    <td colSpan="4" className="px-8 py-6"><div className="h-4 bg-slate-50 rounded-full w-full"></div></td>
-                                                </tr>
-                                            ))
+                                            <tr><td colSpan="4"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                         ) : filteredReports.length === 0 ? (
                                             <tr>
                                                 <td colSpan="4" className="px-8 py-20 text-center">

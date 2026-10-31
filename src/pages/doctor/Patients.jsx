@@ -24,6 +24,7 @@ import { matchesPatientQuery } from '../../utils/searchUtils';
 import { doctorApi } from '../../services/api';
 import { getLocalDateString, formatDateDisplay } from '../../utils/documentUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileText, Plus, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import TablePagination from '../../components/shared/TablePagination';
@@ -387,15 +388,7 @@ const Patients = () => {
                             </thead>
                             <tbody>
                                 {isLoading ? (
-                                    [1, 2, 3, 4, 5].map(i => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td><div className="flex items-center gap-3"><div className="h-10 w-10 bg-slate-100 rounded-full"></div><div className="h-9 w-36 bg-slate-100 rounded-md"></div></div></td>
-                                            <td><div className="h-9 w-44 bg-slate-100 rounded-md"></div></td>
-                                            <td><div className="h-5 w-24 bg-slate-100 rounded-md"></div></td>
-                                            <td><div className="h-6 w-24 bg-slate-100 rounded-full"></div></td>
-                                            <td><div className="h-9 w-28 bg-slate-100 rounded-lg ml-auto"></div></td>
-                                        </tr>
-                                    ))
+                                    <tr><td colSpan="5"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                 ) : filteredPatients.length === 0 ? (
                                     <tr>
                                         <td colSpan="5">{emptyState}</td>
@@ -439,12 +432,7 @@ const Patients = () => {
                     {/* Mobile cards */}
                     <div className="md:hidden divide-y divide-line">
                         {isLoading ? (
-                            [1, 2, 3].map(i => (
-                                <div key={i} className="p-4 animate-pulse space-y-3">
-                                    <div className="h-10 w-48 bg-slate-100 rounded-md"></div>
-                                    <div className="h-9 w-40 bg-slate-100 rounded-md"></div>
-                                </div>
-                            ))
+                            <AppLoader fullScreen={false} compact label="Loading" />
                         ) : filteredPatients.length === 0 ? (
                             emptyState
                         ) : (

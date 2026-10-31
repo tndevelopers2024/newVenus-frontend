@@ -18,6 +18,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
+import AppLoader from '../../components/shared/AppLoader';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { VITALS_META } from '../../config/vitals';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,7 +57,7 @@ const AppointmentAssignment = () => {
         return `${prefix}-${suffix}`;
     };
 
-    const { data: users } = useQuery({
+    const { data: users, isLoading } = useQuery({
         queryKey: ['adminUsersAssignment'],
         queryFn: () => adminApi.getUsers().then(res => res.data)
     });
@@ -338,7 +339,9 @@ const AppointmentAssignment = () => {
                         </div>
 
                         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 bg-slate-50/60">
-                            {filteredPatients.length === 0 ? (
+                            {isLoading ? (
+                                <AppLoader fullScreen={false} compact label="Loading patients" />
+                            ) : filteredPatients.length === 0 ? (
                                 <div className="py-14 text-center">
                                     <p className="text-sm font-semibold text-ink">No patients found</p>
                                     <p className="text-sm text-muted mt-1">Try a different name, ID or phone number.</p>

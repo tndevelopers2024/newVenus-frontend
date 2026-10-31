@@ -122,7 +122,7 @@ const ClinicalSession = () => {
     });
 
     // Fetch patient history for review/repeat prescriptions
-    const { data: patientHistory } = useQuery({
+    const { data: patientHistory, isLoading: isLoadingHistory } = useQuery({
         queryKey: ['patientHistory', appointment?.patient?._id],
         queryFn: async () => {
             const res = await doctorApi.getPatientHistory(appointment.patient._id);
@@ -540,10 +540,10 @@ const ClinicalSession = () => {
         });
     };
 
-    if (isLoadingAppt || isLoadingDraft) {
+    if (isLoadingAppt || isLoadingDraft || isLoadingHistory) {
         return (
             <DashboardLayout>
-                <AppLoader fullScreen={false} label="Loading clinical session" />
+                <AppLoader fullScreen={false} label="Loading patient data" />
             </DashboardLayout>
         );
     }

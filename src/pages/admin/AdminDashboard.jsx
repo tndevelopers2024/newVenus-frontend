@@ -18,6 +18,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
@@ -148,7 +149,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="divide-y divide-line">
                             {isLoading ? (
-                                [1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 animate-pulse" />)
+                                <AppLoader fullScreen={false} compact label="Loading" />
                             ) : (
                                 users
                                     ?.filter(u => u.role === 'patient')

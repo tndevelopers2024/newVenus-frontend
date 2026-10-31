@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw, LayoutDashboard, Pencil, X, Lock, Unlock } from 'lucide-react';
+import { History, Users, Trash2, Shield, UserPlus, Search, Mail, Phone, RotateCcw, LayoutDashboard, Pencil, X, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { adminApi } from '../../services/api';
 import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import TablePagination from '../../components/shared/TablePagination';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
+import PatientHistoryDrawer from '../../components/shared/PatientHistoryDrawer';
 
 const UserManager = ({ defaultFilter = 'all' }) => {
     const navigate = useNavigate();
@@ -18,6 +20,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
     const [itemsPerPage, setItemsPerPage] = useState(25);
     const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null, name: '' });
     const [editModal, setEditModal] = useState({ isOpen: false, user: null });
+    const [historyPatientId, setHistoryPatientId] = useState(null);
 
     useEffect(() => {
         setFilter(defaultFilter);
@@ -135,12 +138,16 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                     'bg-secondary-50 text-secondary-700';
 
     const renderUser = (user) => (
-        <div className="flex items-center gap-3 min-w-0">
+        <div
+            className={`flex items-center gap-3 min-w-0 ${user.role === 'patient' && !user.isDeleted ? 'cursor-pointer group' : ''}`}
+            onClick={user.role === 'patient' && !user.isDeleted ? () => setHistoryPatientId(user._id) : undefined}
+            title={user.role === 'patient' && !user.isDeleted ? 'View visit history' : undefined}
+        >
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarClass(user)}`}>
                 {initialsOf(user.name)}
             </div>
             <div className="min-w-0">
-                <p className={`text-sm font-semibold truncate flex items-center gap-2 ${user.isDeleted ? 'text-muted line-through' : 'text-ink'}`}>
+                <p className={`text-sm font-semibold truncate flex items-center gap-2 group-hover:text-primary-700 ${user.isDeleted ? 'text-muted line-through' : 'text-ink'}`}>
                     {user.name}
                     {user.isLocked && !user.isDeleted && (
                         <span className="no-underline inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 h-5">
@@ -188,6 +195,15 @@ const UserManager = ({ defaultFilter = 'all' }) => {
 
     const renderActions = (user) => (
         <>
+            {user.role === 'patient' && !user.isDeleted && (
+                <button
+                    onClick={() => setHistoryPatientId(user._id)}
+                    className="ui-icon-btn"
+                    title="View visit history"
+                >
+                    <History className="w-4 h-4" />
+                </button>
+            )}
             {user.role === 'doctor' && !user.isDeleted && (
                 <button
                     onClick={() => {
@@ -364,15 +380,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                             </thead>
                             <tbody>
                                 {isLoading ? (
-                                    [1, 2, 3, 4, 5].map(i => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td><div className="flex items-center gap-3"><div className="h-10 w-10 bg-slate-100 rounded-full"></div><div className="h-9 w-36 bg-slate-100 rounded-md"></div></div></td>
-                                            <td><div className="h-9 w-44 bg-slate-100 rounded-md"></div></td>
-                                            <td><div className="h-9 w-32 bg-slate-100 rounded-md"></div></td>
-                                            {showRole && <td><div className="h-6 w-20 bg-slate-100 rounded-full"></div></td>}
-                                            <td><div className="h-9 w-24 bg-slate-100 rounded-lg ml-auto"></div></td>
-                                        </tr>
-                                    ))
+                                    <tr><td colSpan={colCount}><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                 ) : !paginatedUsers || paginatedUsers.length === 0 ? (
                                     <tr>
                                         <td colSpan={colCount}>{emptyState}</td>
@@ -399,12 +407,7 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                     {/* Mobile cards */}
                     <div className="md:hidden divide-y divide-line">
                         {isLoading ? (
-                            [1, 2, 3].map(i => (
-                                <div key={i} className="p-4 animate-pulse space-y-3">
-                                    <div className="h-10 w-48 bg-slate-100 rounded-md"></div>
-                                    <div className="h-9 w-40 bg-slate-100 rounded-md"></div>
-                                </div>
-                            ))
+                            <AppLoader fullScreen={false} compact label="Loading" />
                         ) : !paginatedUsers || paginatedUsers.length === 0 ? (
                             emptyState
                         ) : (
@@ -436,6 +439,10 @@ const UserManager = ({ defaultFilter = 'all' }) => {
                     )}
                 </div>
             </div>
+
+            {historyPatientId && (
+                <PatientHistoryDrawer patientId={historyPatientId} onClose={() => setHistoryPatientId(null)} />
+            )}
 
             <ConfirmationModal
                 isOpen={confirmModal.isOpen}

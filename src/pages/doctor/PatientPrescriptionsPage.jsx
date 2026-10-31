@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -321,10 +322,7 @@ const PatientPrescriptionsPage = () => {
     if (isLoading) {
         return (
             <DashboardLayout>
-                <div className="max-w-[1600px] mx-auto py-12 px-4 flex flex-col items-center justify-center min-h-[60vh]">
-                    <Activity className="w-12 h-12 text-primary-500 animate-spin mb-4" />
-                    <p className="text-slate-500 font-bold tracking-wider text-sm uppercase">Loading Clinical Records...</p>
-                </div>
+                <AppLoader fullScreen={false} label="Loading clinical records" />
             </DashboardLayout>
         );
     }

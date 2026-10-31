@@ -20,6 +20,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { printDocument } from '../../utils/printHelper';
 import { formatMedicationDuration } from '../../utils/documentUtils';
 import TablePagination from '../../components/shared/TablePagination';
+import AppLoader from '../../components/shared/AppLoader';
 
 const MedicalHistory = () => {
     const { user } = useAuth();
@@ -129,13 +130,7 @@ const MedicalHistory = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {isLoading ? (
-                                    [1, 2, 3, 4, 5].map(i => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td colSpan="5" className="px-8 py-6">
-                                                <div className="h-4 bg-slate-50 rounded-full w-full"></div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    <tr><td colSpan="5"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                 ) : filteredAppointments.length === 0 ? (
                                     <tr>
                                         <td colSpan="5" className="px-8 py-20 text-center">

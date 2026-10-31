@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { pharmacyApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import TablePagination from '../../components/shared/TablePagination';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 
@@ -779,13 +780,7 @@ const PharmacyDashboard = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-50 text-sm">
                                 {isLoading ? (
-                                    [1, 2, 3, 4, 5].map((i) => (
-                                        <tr key={i} className="animate-pulse h-16">
-                                            <td colSpan="7" className="px-6 py-4">
-                                                <div className="h-4 bg-slate-100 rounded-lg w-full" />
-                                            </td>
-                                        </tr>
-                                    ))
+                                    <tr><td colSpan="7"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                 ) : drugs.length === 0 ? (
                                     <tr>
                                         <td colSpan="7" className="px-6 py-20 text-center">

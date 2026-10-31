@@ -36,6 +36,7 @@ import { doctorApi } from '../../services/api';
 import { getLocalDateString, formatDateDisplay } from '../../utils/documentUtils';
 import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import TablePagination from '../../components/shared/TablePagination';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
@@ -597,16 +598,7 @@ const Appointments = () => {
                                 </thead>
                                 <tbody>
                                     {isLoading ? (
-                                        [1, 2, 3, 4, 5].map(i => (
-                                            <tr key={i} className="animate-pulse">
-                                                <td><div className="h-9 w-24 bg-slate-100 rounded-md"></div></td>
-                                                <td><div className="flex items-center gap-3"><div className="h-9 w-9 bg-slate-100 rounded-full"></div><div className="h-9 w-36 bg-slate-100 rounded-md"></div></div></td>
-                                                <td><div className="h-5 w-28 bg-slate-100 rounded-md"></div></td>
-                                                <td><div className="h-5 w-14 bg-slate-100 rounded-md"></div></td>
-                                                <td><div className="h-6 w-20 bg-slate-100 rounded-full"></div></td>
-                                                <td><div className="h-9 w-32 bg-slate-100 rounded-lg ml-auto"></div></td>
-                                            </tr>
-                                        ))
+                                        <tr><td colSpan="6"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                     ) : filteredAppointments.length === 0 ? (
                                         <tr>
                                             <td colSpan="6">{emptyState}</td>
@@ -664,13 +656,7 @@ const Appointments = () => {
                         {/* Mobile cards */}
                         <div className="md:hidden divide-y divide-line">
                             {isLoading ? (
-                                [1, 2, 3].map(i => (
-                                    <div key={i} className="p-4 animate-pulse space-y-3">
-                                        <div className="h-9 w-48 bg-slate-100 rounded-md"></div>
-                                        <div className="h-5 w-32 bg-slate-100 rounded-md"></div>
-                                        <div className="h-9 w-full bg-slate-100 rounded-lg"></div>
-                                    </div>
-                                ))
+                                <AppLoader fullScreen={false} compact label="Loading" />
                             ) : filteredAppointments.length === 0 ? (
                                 emptyState
                             ) : (
@@ -780,7 +766,7 @@ const PrescriptionModal = ({ appointmentId, onClose }) => {
         }
     });
 
-    if (isLoading) return null;
+    if (isLoading) return <AppLoader fullScreen={false} compact label="Loading prescription" />;
 
     const { prescription, clinicalDetails } = prescriptionData || {};
 

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import { printDocument } from '../../utils/printHelper';
 import TablePagination from '../../components/shared/TablePagination';
 import {
@@ -186,11 +187,7 @@ const BillingManager = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-50 ">
                                 {isLoading ? (
-                                    [1, 2, 3].map(i => (
-                                        <tr key={i} className="animate-pulse">
-                                            <td colSpan="6" className="px-8 py-5 h-20 bg-slate-50/50"></td>
-                                        </tr>
-                                    ))
+                                    <tr><td colSpan="6"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                 ) : (
                                     paginatedInvoices.map((inv) => (
                                         <tr key={inv._id} className="hover:bg-slate-50 transition-colors group text-sm">

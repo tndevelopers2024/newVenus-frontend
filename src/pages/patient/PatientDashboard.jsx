@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { patientApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 
 const PatientDashboard = () => {
     const { user } = useAuth();
@@ -115,9 +116,7 @@ const PatientDashboard = () => {
                         </div>
 
                         {isLoading ? (
-                            <div className="animate-pulse space-y-6">
-                                {[1, 2, 3].map(i => <div key={i} className="h-32 bg-slate-50 rounded-3xl"></div>)}
-                            </div>
+                            <AppLoader fullScreen={false} compact label="Loading" />
                         ) : (
                             <div className="space-y-6 relative before:absolute before:left-3.5 before:top-4 before:bottom-4 before:w-[2px] before:bg-slate-100">
                                 {historyData?.appointments?.length === 0 && (

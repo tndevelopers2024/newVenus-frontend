@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MapPin, Plus, User, ArrowLeft } from 'lucide-react';
 import { adminApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import { useNavigate } from 'react-router-dom';
 
 const DepartmentManager = () => {
@@ -83,7 +84,7 @@ const DepartmentManager = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {isLoading ? (
-                        [1, 2, 3].map(i => <div key={i} className="h-48 bg-slate-50 animate-pulse rounded-2xl" />)
+                        <div className="col-span-full"><AppLoader fullScreen={false} compact label="Loading" /></div>
                     ) : (
                         departments?.map((dept) => (
                             <div key={dept._id} className="glass-card p-6 hover:shadow-xl transition-all group">

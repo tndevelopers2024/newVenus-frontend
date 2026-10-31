@@ -36,6 +36,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { doctorApi, adminApi } from '../../services/api';
 import { matchesPatientQuery } from '../../utils/searchUtils';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import AppLoader from '../../components/shared/AppLoader';
 import ConfirmationModal from '../../components/shared/ConfirmationModal';
 import AppointmentsChart from '../../components/shared/AppointmentsChart';
 
@@ -289,9 +290,7 @@ const DoctorDashboard = () => {
 
                         <div className="p-4 bg-slate-50/60">
                             {isLoading ? (
-                                <div className="animate-pulse space-y-3">
-                                    {[1, 2, 3].map(i => <div key={i} className="h-[74px] bg-slate-100 rounded-xl"></div>)}
-                                </div>
+                                <AppLoader fullScreen={false} compact label="Loading" />
                             ) : (
                                 <DndContext
                                     sensors={sensors}

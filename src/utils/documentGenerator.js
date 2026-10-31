@@ -6,14 +6,14 @@ import { findImageField, resolveImageUrl, isImagePrescription, formatMedicationD
 export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode = false) => {
     const isPrescription = type === 'prescription';
     const { prescription, clinicalDetails } = data;
-    
+
     // 1. EXTRACT IMAGE PATH - USE SHARED UTILS
     const imagePath = findImageField(data);
-    
+
     // 2. RESOLVE API BASE URL
-    const apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 
-                     window.localStorage.getItem('api_url') || 
-                     'http://localhost:5003/api';
+    const apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+        window.localStorage.getItem('api_url') ||
+        'http://localhost:5003/api';
     const prescriptionImageUrl = resolveImageUrl(imagePath, apiBase);
     const showImageOnly = isImagePrescription(data, type);
 
@@ -90,19 +90,20 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
     // 4. STANDARD TEMPLATE (FALLBACK)
     const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const patientName = prescription?.patient?.name || data.patient?.name || '';
+    const patientUhid = prescription?.patient?.displayId || data.patient?.displayId || '';
     const patientAgeObj = prescription?.patient?.age || data.patient?.age;
     const patientGenderObj = prescription?.patient?.gender || data.patient?.gender;
     const patientAge = patientAgeObj ? patientAgeObj + ' Y' : '';
     const patientGender = patientGenderObj ? patientGenderObj : '-';
     const logoUrl = window.location.origin + '/images/venus-logo.webp';
-    
+
     const doctorObj = prescription?.doctor || data.doctor;
     let doctorName = doctorObj?.name ? doctorObj.name.toUpperCase() : 'DR. C.R. MADHU PRABHU DOSS';
     doctorName = doctorName.replace(/^DR\.?\s*DR\.?\s*/i, 'DR. ');
-    
+
     // Check if the doctor has customized details saved (meaning they were set via Admin UI)
     const hasDetails = !!doctorObj?.doctorDetails;
-    
+
     const doctorQuals = hasDetails ? (doctorObj.doctorDetails.qualification || '') : 'M.B.B.S., M.D., D.M., Cardiology';
     const doctorTamil = hasDetails ? (doctorObj.doctorDetails.nameTamil || '') : 'டாக்டர். சி.ரா. மது பிரபு தாஸ், எம்.பி.பி.எஸ்., எம்.டி., டி.எம்., கார்டியாலஜி';
     const doctorAddQuals = hasDetails ? (doctorObj.doctorDetails.additionalQualifications || '') : 'Interventions (Canada), FESC (Europe), FSCAI (US)';
@@ -144,6 +145,19 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                     .col h3 { font-size: 13px; font-weight: bold; text-decoration: underline; margin: 0 0 3px 0; }
                     .colcontent { font-size: 13px; line-height: 1.3; }
                     .rx-symbol { height: 26px !important; width: auto !important; max-width: none !important; object-fit: contain; display: block; margin-bottom: 6px; }
+                    .vitals-strip { display: flex; margin-bottom: 14px; border: 1px solid #cfdcec; border-radius: 8px; background: #f8fafd; overflow: hidden; }
+                    .vital { flex: 1; padding: 6px 10px 7px; text-align: center; border-right: 1px solid #cfdcec; }
+                    .vital:last-child { border-right: none; }
+                    .vital-label { font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.8px; color: #004b93; }
+                    .vital-value { font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 2px; }
+                    .vital-unit { font-size: 10px; font-weight: normal; color: #64748b; margin-left: 3px; }
+                    .clinical-grid { display: flex; gap: 12px; margin-bottom: 14px; }
+                    .col { flex: 1; border: 1px solid #cfdcec; border-radius: 8px; overflow: hidden; background: #fff; }
+                    .col h3 { font-size: 10.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.8px; color: #004b93; background: #eef4fb; border-bottom: 1px solid #cfdcec; margin: 0; padding: 5px 10px; }
+                    .colcontent { font-size: 13px; line-height: 1.4; padding: 7px 10px 8px; min-height: 22px; white-space: pre-wrap; }
+                    .remarks-box { margin-top: 12px; border: 1px solid #cfdcec; border-left: 4px solid #004b93; border-radius: 8px; background: #f8fafd; padding: 8px 12px 9px; }
+                    .remarks-box strong { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; color: #004b93; margin-bottom: 3px; }
+                    .remarks-box div { font-size: 13px; white-space: pre-wrap; line-height: 1.4; }
                     table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
                     th { text-align: left; padding: 4px 0 6px 0; font-size: 13px; font-weight: bold; border-bottom: 1.5px solid #000; }
                     td { padding: 4px 0 5px 0; border-bottom: 1px dashed #d1d5db; font-size: 13px; vertical-align: middle; }
@@ -208,22 +222,23 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                             <div>Age : <span style="color:#000; font-weight:normal; margin-left: 23px;">${patientAge || '-'}</span></div>
                             <div>Gender : <span style="color:#000; font-weight:normal; margin-left: 5px;">${patientGender}</span></div>
                         </div>
-                        <div>
+                        <div style="text-align: right;">
                             <div>Date : <span style="color:#000; font-weight:normal; margin-left: 10px;">${dateStr}</span></div>
+                            ${patientUhid ? `<div style="margin-top: 4px;">UHID : <span style="color:#000; font-weight:normal; margin-left: 10px;">${patientUhid}</span></div>` : ''}
                         </div>
                     </div>
                     
                     <!-- Clinical Info -->
                     <div class="clinical-section">
                         ${clinicalDetails?.vitals && (clinicalDetails.vitals.bloodPressure || clinicalDetails.vitals.pulse || clinicalDetails.vitals.spo2 || clinicalDetails.vitals.temperature || clinicalDetails.vitals.weight) ? `
-                            <div style="margin-bottom: 14px;">
-                                <div style="display: flex; gap: 20px; flex-wrap: wrap; background-color: #f8fafc; padding: 10px 14px; border-radius: 8px; font-size: 13px; border-left: 4px solid #004b93;">
-                                    ${clinicalDetails.vitals.bloodPressure ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">BP:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.bloodPressure}</span> <span style="color: #64748b; font-size: 11px;">mmHg</span></div>` : ''}
-                                    ${clinicalDetails.vitals.pulse ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Pulse:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.pulse}</span> <span style="color: #64748b; font-size: 11px;">bpm</span></div>` : ''}
-                                    ${clinicalDetails.vitals.spo2 ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">SpO2:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.spo2}</span> <span style="color: #64748b; font-size: 11px;">%</span></div>` : ''}
-                                    ${clinicalDetails.vitals.temperature ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Temp:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.temperature}</span> <span style="color: #64748b; font-size: 11px;">°F</span></div>` : ''}
-                                    ${clinicalDetails.vitals.weight ? `<div><span style="color: #64748b; font-weight: bold; margin-right: 4px;">Weight:</span><span style="font-weight: bold; color: #0f172a;">${clinicalDetails.vitals.weight}</span> <span style="color: #64748b; font-size: 11px;">Kg</span></div>` : ''}
-                                </div>
+                            <div class="vitals-strip">
+                                ${[
+                ['BP', clinicalDetails.vitals.bloodPressure, 'mmHg'],
+                ['Pulse', clinicalDetails.vitals.pulse, 'bpm'],
+                ['SpO2', clinicalDetails.vitals.spo2, '%'],
+                ['Temp', clinicalDetails.vitals.temperature, '°F'],
+                ['Weight', clinicalDetails.vitals.weight, 'Kg']
+            ].filter(v => v[1]).map(v => `<div class="vital"><div class="vital-label">${v[0]}</div><div class="vital-value">${v[1]}<span class="vital-unit">${v[2]}</span></div></div>`).join('')}
                             </div>
                         ` : ''}
 
@@ -256,9 +271,9 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                             ` : ''}
 
                             ${prescription?.notes ? `
-                                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
-                                    <strong style="font-size: 13px;">Instructions / Remarks:</strong>
-                                    <div style="margin-top: 2px; font-size: 13px; white-space: pre-wrap; line-height: 1.3;">${prescription.notes}</div>
+                                <div class="remarks-box">
+                                    <strong>Instructions / Remarks</strong>
+                                    <div>${prescription.notes}</div>
                                 </div>
                             ` : ''}
 
