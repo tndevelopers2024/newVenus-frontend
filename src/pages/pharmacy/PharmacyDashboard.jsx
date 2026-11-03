@@ -309,28 +309,22 @@ const PharmacyDashboard = () => {
                 }
 
                 // Split lines
+                let rawItems = [];
                 const lines = pastedText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-                const drugsList = lines.map(line => {
-                    if (line.includes(',')) {
-                        const parts = line.split(',').map(p => p.trim());
-                        return {
-                            name: parts[0],
-                            category: parts[1] || bulkDefaultCategory,
-                            dosageForm: parts[2] || bulkDefaultDosageForm,
-                            strength: parts[3] || '',
-                            manufacturer: parts[4] || '',
-                            notes: parts[5] || ''
-                        };
-                    }
-                    return {
-                        name: line,
-                        category: bulkDefaultCategory,
-                        dosageForm: bulkDefaultDosageForm,
-                        strength: '',
-                        manufacturer: '',
-                        notes: ''
-                    };
-                });
+                if (lines.length === 1 && lines[0].includes(',')) {
+                    rawItems = lines[0].split(',').map(s => s.trim()).filter(Boolean);
+                } else {
+                    rawItems = lines;
+                }
+
+                const drugsList = rawItems.map(item => ({
+                    name: item,
+                    category: 'General',
+                    dosageForm: 'Tablet',
+                    strength: '',
+                    manufacturer: '',
+                    notes: ''
+                }));
 
                 const res = await pharmacyApi.bulkUpload({ drugs: drugsList }, false);
                 toast.success(res.data?.message || 'Drugs imported successfully');
@@ -349,18 +343,28 @@ const PharmacyDashboard = () => {
     };
 
     // Download Sample CSV template
-    const handleDownloadSample = async () => {
+    const handleDownloadSample = () => {
         try {
-            const res = await pharmacyApi.downloadSampleCsv();
-            const blob = new Blob([res.data], { type: 'text/csv' });
+            const sampleCsv = `Drug Name
+TAB. CILACAR 5 MG
+CAP. URIMAX 0.4 MG
+TAB. ROSUVAS 20 MG
+TAB. BRILINTA 60 MG
+CAP. ABFLO 100 MG
+TAB. NEUROBION FORTE
+TAB. ALDACTONE 25 MG
+TAB. ATORVA 40 MG
+PARACETAMOL 650 MG`;
+
+            const blob = new Blob(["\uFEFF" + sampleCsv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'venus_drugs_sample_template.csv';
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
             toast.success('Sample template downloaded');
         } catch (err) {
             console.error('Download sample error:', err);
@@ -380,15 +384,9 @@ const PharmacyDashboard = () => {
                 return;
             }
 
-            const headers = ['Drug Name', 'Category', 'Dosage Form', 'Strength', 'Manufacturer', 'Status', 'Notes'];
+            const headers = ['Drug Name'];
             const rows = allDrugs.map(d => [
-                `"${(d.name || '').replace(/"/g, '""')}"`,
-                `"${(d.category || '').replace(/"/g, '""')}"`,
-                `"${(d.dosageForm || '').replace(/"/g, '""')}"`,
-                `"${(d.strength || '').replace(/"/g, '""')}"`,
-                `"${(d.manufacturer || '').replace(/"/g, '""')}"`,
-                d.isActive ? 'Active' : 'Inactive',
-                `"${(d.notes || '').replace(/"/g, '""')}"`
+                `"${(d.name || '').replace(/"/g, '""')}"`
             ]);
 
             const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -610,7 +608,7 @@ const PharmacyDashboard = () => {
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
                                 type="text"
-                                placeholder="Search by drug name, category, dosage, manufacturer..."
+                                placeholder="Search by drug name..."
                                 className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-2xl pl-11 pr-10 py-2.5 text-sm font-semibold outline-none transition-all placeholder:text-slate-400"
                                 value={searchTerm}
                                 onChange={(e) => {
@@ -631,68 +629,20 @@ const PharmacyDashboard = () => {
                             )}
                         </div>
 
-                        {/* Filters Dropdown Group */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            {/* Category Filter */}
-                            <select
-                                value={selectedCategory}
-                                onChange={(e) => {
-                                    setSelectedCategory(e.target.value);
+                        {searchTerm && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setSelectedCategory('all');
+                                    setSelectedDosageForm('all');
+                                    setSelectedStatus('all');
                                     setCurrentPage(1);
                                 }}
-                                className="bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl px-3 py-2.5 outline-none focus:border-emerald-500 cursor-pointer"
+                                className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shrink-0"
                             >
-                                <option value="all">All Categories</option>
-                                {COMMON_CATEGORIES.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-
-                            {/* Dosage Form Filter */}
-                            <select
-                                value={selectedDosageForm}
-                                onChange={(e) => {
-                                    setSelectedDosageForm(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                className="bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl px-3 py-2.5 outline-none focus:border-emerald-500 cursor-pointer"
-                            >
-                                <option value="all">All Forms</option>
-                                {DOSAGE_FORMS.map(form => (
-                                    <option key={form} value={form}>{form}</option>
-                                ))}
-                            </select>
-
-                            {/* Status Filter */}
-                            <select
-                                value={selectedStatus}
-                                onChange={(e) => {
-                                    setSelectedStatus(e.target.value);
-                                    setCurrentPage(1);
-                                }}
-                                className="bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-2xl px-3 py-2.5 outline-none focus:border-emerald-500 cursor-pointer"
-                            >
-                                <option value="all">All Statuses</option>
-                                <option value="active">Active Only</option>
-                                <option value="inactive">Inactive Only</option>
-                            </select>
-
-                            {/* Reset Filters */}
-                            {(searchTerm || selectedCategory !== 'all' || selectedDosageForm !== 'all' || selectedStatus !== 'all') && (
-                                <button
-                                    onClick={() => {
-                                        setSearchTerm('');
-                                        setSelectedCategory('all');
-                                        setSelectedDosageForm('all');
-                                        setSelectedStatus('all');
-                                        setCurrentPage(1);
-                                    }}
-                                    className="px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                                >
-                                    Reset
-                                </button>
-                            )}
-                        </div>
+                                Reset
+                            </button>
+                        )}
                     </div>
 
                     {/* Bulk Selection Banner */}
@@ -761,18 +711,6 @@ const PharmacyDashboard = () => {
                                             )}
                                         </div>
                                     </th>
-                                    <th className="px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                        Dosage Form & Strength
-                                    </th>
-                                    <th className="px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                        Category
-                                    </th>
-                                    <th className="px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                        Manufacturer
-                                    </th>
-                                    <th className="px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
-                                        Prescription Status
-                                    </th>
                                     <th className="px-4 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">
                                         Actions
                                     </th>
@@ -780,10 +718,10 @@ const PharmacyDashboard = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-50 text-sm">
                                 {isLoading ? (
-                                    <tr><td colSpan="7"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
+                                    <tr><td colSpan="3"><AppLoader fullScreen={false} compact label="Loading" /></td></tr>
                                 ) : drugs.length === 0 ? (
                                     <tr>
-                                        <td colSpan="7" className="px-6 py-20 text-center">
+                                        <td colSpan="3" className="px-6 py-20 text-center">
                                             <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                                                 <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 shadow-inner">
                                                     <Pill className="w-8 h-8" />
@@ -865,48 +803,7 @@ const PharmacyDashboard = () => {
                                                     </div>
                                                 </td>
 
-                                                {/* Dosage Form & Strength */}
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                                            {drug.dosageForm || 'Tablet'}
-                                                        </span>
-                                                        {drug.strength && (
-                                                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                                                                {drug.strength}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-
-                                                {/* Category */}
-                                                <td className="px-4 py-3">
-                                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200 inline-block">
-                                                        {drug.category || 'General'}
-                                                    </span>
-                                                </td>
-
-                                                {/* Manufacturer */}
-                                                <td className="px-4 py-3">
-                                                    <span className="text-xs font-medium text-slate-600">
-                                                        {drug.manufacturer || '—'}
-                                                    </span>
-                                                </td>
-
-                                                {/* Prescription Status Toggle */}
-                                                <td className="px-4 py-3 text-center">
-                                                    <button
-                                                        onClick={() => toggleStatusMutation.mutate(drug._id)}
-                                                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider transition-all border ${drug.isActive
-                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                                            : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'
-                                                            }`}
-                                                        title="Click to toggle status"
-                                                    >
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${drug.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                                                        {drug.isActive ? 'Active' : 'Inactive'}
-                                                    </button>
-                                                </td>
+                                                
 
                                                 {/* Actions */}
                                                 <td className="px-4 py-3 text-right">
@@ -974,7 +871,7 @@ const PharmacyDashboard = () => {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden"
+                                className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden"
                             >
                                 <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                     <div className="flex items-center gap-3">
@@ -986,7 +883,7 @@ const PharmacyDashboard = () => {
                                                 {editingDrug ? 'Edit Drug Details' : 'Add Drug to Formulary'}
                                             </h3>
                                             <p className="text-xs text-slate-500">
-                                                {editingDrug ? 'Update medication specifications' : 'Enter medication specifications to make it available for prescriptions'}
+                                                {editingDrug ? 'Update drug name' : 'Enter drug name to make it available for prescriptions'}
                                             </p>
                                         </div>
                                     </div>
@@ -998,7 +895,7 @@ const PharmacyDashboard = () => {
                                     </button>
                                 </div>
 
-                                <form onSubmit={handleSaveDrug} className="p-6 space-y-4">
+                                <form onSubmit={handleSaveDrug} className="p-6 space-y-5">
                                     {/* Drug Name */}
                                     <div>
                                         <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
@@ -1007,99 +904,11 @@ const PharmacyDashboard = () => {
                                         <input
                                             type="text"
                                             required
-                                            placeholder="e.g. Paracetamol 650mg, Amoxicillin 500mg"
+                                            autoFocus
+                                            placeholder="e.g. TAB. CILACAR 5 MG, CAP. URIMAX 0.4 MG"
                                             className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl px-4 py-3 text-sm font-semibold outline-none transition-all placeholder:text-slate-400"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Dosage Form & Strength Grid */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                                                Dosage Form
-                                            </label>
-                                            <select
-                                                value={formData.dosageForm}
-                                                onChange={(e) => setFormData({ ...formData, dosageForm: e.target.value })}
-                                                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl px-3 py-3 text-sm font-semibold outline-none transition-all cursor-pointer"
-                                            >
-                                                {DOSAGE_FORMS.map(form => (
-                                                    <option key={form} value={form}>{form}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                                                Strength / Dose
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="e.g. 500mg, 100ml"
-                                                className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl px-4 py-3 text-sm font-semibold outline-none transition-all placeholder:text-slate-400"
-                                                value={formData.strength}
-                                                onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Category */}
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                                            Therapeutic Category
-                                        </label>
-                                        <select
-                                            value={formData.category}
-                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                            className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl px-3 py-3 text-sm font-semibold outline-none transition-all cursor-pointer"
-                                        >
-                                            {COMMON_CATEGORIES.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    {/* Manufacturer */}
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                                            Manufacturer / Brand Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Cipla, Sun Pharma, Abbott, GSK"
-                                            className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl px-4 py-3 text-sm font-semibold outline-none transition-all placeholder:text-slate-400"
-                                            value={formData.manufacturer}
-                                            onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Notes */}
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                                            Instructions / Notes (Optional)
-                                        </label>
-                                        <textarea
-                                            rows="2"
-                                            placeholder="e.g. Take after food, complete full course, avoid in pregnancy"
-                                            className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl px-4 py-2.5 text-sm font-semibold outline-none transition-all placeholder:text-slate-400 resize-none"
-                                            value={formData.notes}
-                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                        />
-                                    </div>
-
-                                    {/* Active Status */}
-                                    <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
-                                        <div>
-                                            <p className="text-xs font-bold text-secondary-900">Active in Prescription Form</p>
-                                            <p className="text-[11px] text-slate-500">Allow doctors to view and auto-suggest this drug</p>
-                                        </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.isActive}
-                                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                                            className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer"
                                         />
                                     </div>
 
@@ -1222,7 +1031,7 @@ const PharmacyDashboard = () => {
                                                             Click or drag & drop CSV or TXT file here
                                                         </p>
                                                         <p className="text-xs text-slate-400 mt-1">
-                                                            Supports .csv and .txt formats with header columns: Drug Name, Category, Dosage Form, Strength, Manufacturer
+                                                            Supports .csv and .txt files with drug names (one per line, e.g. TAB. CILACAR 5 MG)
                                                         </p>
                                                     </div>
                                                 )}
@@ -1258,45 +1067,15 @@ const PharmacyDashboard = () => {
                                                     </span>
                                                 </div>
                                                 <textarea
-                                                    rows="6"
-                                                    placeholder={`Paracetamol 650mg\nAmoxicillin 500mg\nCetirizine 10mg\nPantoprazole 40mg\nAzithromycin 500mg\nMetformin 500mg`}
+                                                    rows="8"
+                                                    placeholder={`TAB. CILACAR 5 MG\nCAP. URIMAX 0.4 MG\nTAB. ROSUVAS 20 MG\nTAB. BRILINTA 60 MG\nPARACETAMOL 650 MG`}
                                                     className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 rounded-2xl p-4 text-xs font-mono font-medium outline-none transition-all placeholder:text-slate-400 resize-none"
                                                     value={pastedText}
                                                     onChange={(e) => setPastedText(e.target.value)}
                                                 />
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-3 pt-1">
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                                                        Default Category for pasted items
-                                                    </label>
-                                                    <select
-                                                        value={bulkDefaultCategory}
-                                                        onChange={(e) => setBulkDefaultCategory(e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-200 text-xs font-bold rounded-xl px-2.5 py-2 outline-none focus:border-emerald-500 cursor-pointer"
-                                                    >
-                                                        {COMMON_CATEGORIES.map(cat => (
-                                                            <option key={cat} value={cat}>{cat}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                                                        Default Dosage Form
-                                                    </label>
-                                                    <select
-                                                        value={bulkDefaultDosageForm}
-                                                        onChange={(e) => setBulkDefaultDosageForm(e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-200 text-xs font-bold rounded-xl px-2.5 py-2 outline-none focus:border-emerald-500 cursor-pointer"
-                                                    >
-                                                        {DOSAGE_FORMS.map(form => (
-                                                            <option key={form} value={form}>{form}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
+                                            
                                         </div>
                                     )}
 
