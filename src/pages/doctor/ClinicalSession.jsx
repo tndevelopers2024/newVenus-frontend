@@ -1010,6 +1010,8 @@ const ClinicalSession = () => {
                                                     <option value="Before Food">Before Food</option>
                                                     <option value="With Food">With Food</option>
                                                     <option value="Empty Stomach">Empty Stomach</option>
+                                                    <option value="At Bedtime">At Bedtime</option>
+                                                    <option value="-">-</option>
                                                 </select>
                                                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-subtle pointer-events-none" />
                                                 </div>

@@ -33,7 +33,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const FREQUENCY_OPTIONS = ['1-0-1', '1-0-0', '0-0-1', '1-1-1', '1-1-1-1', '0-1-0', 'SOS', 'PRN', 'As Needed'];
 const DURATION_UNITS = ['Days', 'Weeks', 'Months'];
-const INSTRUCTION_OPTIONS = ['After Food', 'Before Food', 'With Food', 'Empty Stomach', 'At Bedtime'];
+const INSTRUCTION_OPTIONS = ['After Food', 'Before Food', 'With Food', 'Empty Stomach', 'At Bedtime', '-'];
 
 const PatientPrescriptionsPage = () => {
     const { id: patientId } = useParams();

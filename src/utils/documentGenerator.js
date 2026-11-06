@@ -262,7 +262,7 @@ export const getUnifiedDocumentHTML = (data, type = 'prescription', previewMode 
                                         ${prescription.medications.map((med, idx) => `
                                             <tr>
                                                 <td style="padding: 4px 0;"><span style="font-weight:bold; text-transform:uppercase;">${idx + 1}) ${med.name}</span></td>
-                                                <td style="padding: 4px 0;"><div style="line-height: 1.25;">${med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div><div style="font-size:11px; color:#4b5563; line-height: 1.2;">(${med.instruction || 'After Food'})</div></td>
+                                                <td style="padding: 4px 0;"><div style="line-height: 1.25;">${med.frequency}${med.unit && med.unit !== '-' ? ` ${med.unit}` : ''}</div>${med.instruction && med.instruction !== '-' ? `<div style="font-size:11px; color:#4b5563; line-height: 1.2;">(${med.instruction})</div>` : ''}</td>
                                                 <td style="padding: 4px 0;"><span>${formatMedicationDuration(med.duration, med.durationUnit)}</span></td>
                                             </tr>
                                         `).join('')}
