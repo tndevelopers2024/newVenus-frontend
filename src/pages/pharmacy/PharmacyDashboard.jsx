@@ -771,36 +771,41 @@ PARACETAMOL 650 MG`;
 
                                                 {/* Drug Name with Doctor Upload badge */}
                                                 <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                                            drug.uploadedByDoctor ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100/70 text-emerald-700'
-                                                        }`}>
-                                                            {drug.uploadedByDoctor ? <Stethoscope className="w-4 h-4" /> : <Pill className="w-4 h-4" />}
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                <span className="font-bold text-secondary-900 block leading-tight">
-                                                                    {drug.name}
-                                                                </span>
-                                                                {drug.uploadedByDoctor ? (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                                        <Stethoscope className="w-2.5 h-2.5" />
-                                                                        <span>Doctor Uploaded</span>
-                                                                        {drug.doctorName && <span className="opacity-80">({drug.doctorName})</span>}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
-                                                                        <span>Pharmacy</span>
-                                                                    </span>
-                                                                )}
+                                                    {(() => {
+                                                        const isDoctorDrug = drug.uploadedByDoctor === true || drug.uploadedByDoctor === 'true' || Boolean(drug.doctorName && drug.doctorName !== '—' && drug.doctorName !== '-') || (typeof drug.source === 'string' && /doctor/i.test(drug.source));
+                                                        return (
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                                                    isDoctorDrug ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100/70 text-emerald-700'
+                                                                }`}>
+                                                                    {isDoctorDrug ? <Stethoscope className="w-4 h-4" /> : <Pill className="w-4 h-4" />}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <span className="font-bold text-secondary-900 block leading-tight">
+                                                                            {drug.name}
+                                                                        </span>
+                                                                        {isDoctorDrug ? (
+                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                                                <Stethoscope className="w-2.5 h-2.5" />
+                                                                                <span>Doctor Uploaded</span>
+                                                                                {drug.doctorName && <span className="opacity-80">({drug.doctorName})</span>}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-200">
+                                                                                <span>Pharmacy</span>
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    {drug.notes && (
+                                                                        <span className="text-[11px] text-slate-400 truncate max-w-xs block mt-0.5">
+                                                                            {drug.notes}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
-                                                            {drug.notes && (
-                                                                <span className="text-[11px] text-slate-400 truncate max-w-xs block mt-0.5">
-                                                                    {drug.notes}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                                        );
+                                                    })()}
                                                 </td>
 
                                                 
