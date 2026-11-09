@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -43,6 +43,7 @@ import { printDocument } from '../../utils/printHelper';
 import { UnifiedDocument } from '../../components/shared/UnifiedDocument';
 import CalendarDatePicker from '../../components/ui/CalendarDatePicker';
 import { normalizeMedication, formatMedicationDuration } from '../../utils/documentUtils';
+import { rankDrugResults } from '../../utils/drugSearchHelper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { VITALS_META } from '../../config/vitals';
@@ -1751,7 +1752,7 @@ const DrugAutosuggest = ({ query, onSelect, onClose }) => {
     const wrapperRef = useRef(null);
     const justSelected = useRef(false);
 
-    const { data: results, isLoading } = useQuery({
+    const { data: rawResults, isLoading } = useQuery({
         queryKey: ['medSearch', query],
         queryFn: async () => {
             try {
@@ -1764,6 +1765,11 @@ const DrugAutosuggest = ({ query, onSelect, onClose }) => {
         },
         enabled: true,
     });
+
+    // Prioritize search results: starts-with > brand match > word match > substring
+    const results = useMemo(() => {
+        return rankDrugResults(rawResults || [], query || '');
+    }, [rawResults, query]);
 
     // Control visibility based on query changes
     useEffect(() => {

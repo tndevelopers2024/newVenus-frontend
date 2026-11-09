@@ -29,6 +29,7 @@ import { doctorApi } from '../../services/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import AppLoader from '../../components/shared/AppLoader';
 import { toast } from 'react-hot-toast';
+import { rankDrugResults } from '../../utils/drugSearchHelper';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const FREQUENCY_OPTIONS = ['1-0-1', '1-0-0', '0-0-1', '1-1-1', '1-1-1-1', '0-1-0', 'SOS', 'PRN', 'As Needed'];
@@ -163,7 +164,7 @@ const PatientPrescriptionsPage = () => {
         if (query.trim().length >= 2) {
             try {
                 const res = await doctorApi.searchMedications(query.trim());
-                setDrugSuggestions(res.data || []);
+                setDrugSuggestions(rankDrugResults(res.data || [], query.trim()));
             } catch {
                 setDrugSuggestions([]);
             }
